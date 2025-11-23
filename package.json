@@ -1,0 +1,13 @@
+{
+  "name": "AuraMail",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "db:generate": "pnpm --filter database db:generate",
+    "db:migrate": "pnpm --filter database db:migrate",
+    "db:studio": "pnpm --filter database db:studio",
+    "docker:dev": "docker-compose up -d",
+    "clean": "rm -rf node_modules && pnpm -r exec rm -rf node_modules"
+  }
+}

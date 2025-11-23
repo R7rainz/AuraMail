@@ -1,0 +1,188 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  provider      String    // "google"
+  providerId    String?   // google sub
+  refreshToken  String?   // For JWT refresh tokens
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Authentication relationships
+  accounts      Account[]
+  sessions      Session[]
+  
+  // Email relationships
+  emails        Email[]
+  placementMails PlacementMail[]
+  gmailTokens   GmailToken[]  // ✅ ADDED: Store Gmail tokens per user
+
+  @@map("users")
+}
+
+model GmailToken {
+  id           String   @id @default(cuid())
+  accessToken  String
+  refreshToken String?
+  scope        String?
+  tokenType    String?  @default("Bearer")
+  expiryDate   DateTime? // When the token expires
+  
+  // User association
+  userId       String   @unique // One token per user
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("gmail_tokens")
+}
+
+model Email {
+  id          String   @id
+  subject     String?
+  from        String?
+  date        String?
+  snippet     String
+  body        String?
+  summary     String?
+  category    String?
+  deadline    String?
+  isImportant Boolean  @default(false)
+  
+  // AI-extracted fields
+  company     String?
+  role        String?
+  applyLink   String?
+  eligibility String?
+  timings     String?
+  salary      String?
+  location    String?
+  
+  createdAt   DateTime @default(now())
+  
+  // User association
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, userId]) // Composite unique constraint
+  @@index([userId])
+  @@index([category])
+  @@index([isImportant])
+  @@map("emails")
+}
+
+model PlacementMail {
+  id             Int      @id @default(autoincrement())
+  gmailMessageId String
+  subject        String
+  sender         String
+  snippet        String?
+  receivedAt     DateTime
+
+  // Parsed placement details
+  company     String?
+  role        String?
+  eligibility String?
+  deadline    DateTime?
+  applyLink   String?
+  otherLinks  String?  // JSON array of additional links
+  attachments String?  // JSON array of attachment info
+  
+  // AI-extracted additional fields
+  summary         String?
+  category        String?  // internship, job offer, exam, reminder, announcement, misc
+  timings         String?
+  salary          String?
+  location        String?
+  eventDetails    String?  // Event-specific details (reporting, dress code, etc.)
+  requirements    String?  // Job/internship requirements
+  description     String?  // Detailed description
+  attachmentSummary String? // AI summary of what attachments contain
+
+  // Safety and validation fields
+  rawAiOutput     String?  // Store raw AI JSON output for review
+  hasAnomaly      Boolean  @default(false)
+  anomalies       String?  // JSON array of detected anomalies
+  anomalySeverity String?  // low, medium, high
+  requiresReview  Boolean  @default(false)
+  reviewedAt      DateTime?
+  reviewedBy      String?
+
+  // Metadata
+  markedImportant Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // User association
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Indexes for better query performance
+  @@unique([gmailMessageId, userId]) // Composite unique per user
+  @@index([gmailMessageId])
+  @@index([receivedAt])
+  @@index([deadline])
+  @@index([markedImportant])
+  @@index([userId])
+  @@index([company])
+  @@index([category])
+  @@index([requiresReview])
+  @@index([hasAnomaly])
+  @@map("placement_mails")
+}
+
+// Authentication models (NextAuth.js compatible)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}

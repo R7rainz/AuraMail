@@ -1,0 +1,72 @@
+# Dependencies
+node_modules/
+*/node_modules/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+dist/
+build/
+*/dist/
+*/build/
+.next/           # Next.js
+out/             # Next.js static export
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# TypeScript
+*.tsbuildinfo
+
+# Prisma
+packages/database/generated/  # Prisma generated client
+packages/database/.prisma/    # Prisma internal cache
+
+# Docker
+*.tar
+*.img
+*.container
+docker-compose.override.yml
+Dockerfile.local
+.docker/
+
+# Temporary folders
+tmp/
+temp/
