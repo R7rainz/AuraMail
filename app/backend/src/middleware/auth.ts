@@ -13,7 +13,7 @@ export interface AuthRequest extends Request {
 export async function authenticateToken(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -61,7 +61,7 @@ export async function authenticateToken(
 export function optionalAuth(
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
