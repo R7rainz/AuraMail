@@ -6,7 +6,7 @@ import { prisma } from "database";
 import path from "path";
 import { google } from "googleapis";
 import fs from "fs";
-import { success } from "zod";
+import { fetchPlacementMails } from "../utils/gmailParser";
 
 const router = express.Router();
 const activeSyncOptions = new Set<string>();
@@ -54,7 +54,7 @@ router.get(
         error: "Failed to fetch emails",
       });
     }
-  }
+  },
 );
 
 //helper function to refresh token if expired
@@ -86,7 +86,7 @@ async function getValidAccessToken(userId: string): Promise<string | null> {
     const OAuth2Client = new google.auth.OAuth2(
       client_id,
       client_secret,
-      redirect_urls[0]
+      redirect_urls[0],
     );
     OAuth2Client.setCredentials({
       refresh_token: gmailToken.refreshToken,
@@ -120,7 +120,7 @@ router.post("/sync", authenticateToken, async (req: AuthRequest, res) => {
   if (activeSyncOptions.has(userId)) {
     return res.status(428).json({
       success: false,
-      error: "Sync operation already in progess",
+      error: "Sync operation already in progress",
     });
   }
   try {
@@ -166,3 +166,5 @@ router.post("/sync", authenticateToken, async (req: AuthRequest, res) => {
     activeSyncOptions.delete(userId);
   }
 });
+
+export default router;
