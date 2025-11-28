@@ -15,7 +15,6 @@ import {
   authorize,
 } from "./utils/gmail";
 import { fetchPlacementMails } from "./utils/gmailParser";
-import { promise } from "zod";
 
 dotenv.config();
 

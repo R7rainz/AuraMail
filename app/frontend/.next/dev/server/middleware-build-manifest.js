@@ -4,20 +4,20 @@ globalThis.__BUILD_MANIFEST = {
   },
   "devFiles": [],
   "polyfillFiles": [
-    "static/chunks/89c9f_next_dist_build_polyfills_polyfill-nomodule.js"
+    "static/chunks/687f7_next_dist_build_polyfills_polyfill-nomodule.js"
   ],
   "lowPriorityFiles": [],
   "rootMainFiles": [
-    "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_0c246466._.js",
-    "static/chunks/89c9f_next_dist_compiled_react-dom_6b6dd9fd._.js",
-    "static/chunks/89c9f_next_dist_compiled_react-server-dom-turbopack_807a846e._.js",
-    "static/chunks/89c9f_next_dist_compiled_next-devtools_index_b639c12d.js",
-    "static/chunks/89c9f_next_dist_compiled_03dad844._.js",
-    "static/chunks/89c9f_next_dist_client_d756274b._.js",
-    "static/chunks/89c9f_next_dist_2004bf8a._.js",
-    "static/chunks/e8308_@swc_helpers_cjs_c8454490._.js",
-    "static/chunks/Documents_Web_ai-email_app_frontend_a0ff3932._.js",
-    "static/chunks/turbopack-Documents_Web_ai-email_app_frontend_e08d7d05._.js"
+    "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_a7784f4e._.js",
+    "static/chunks/687f7_next_dist_compiled_react-dom_5b35bec9._.js",
+    "static/chunks/687f7_next_dist_compiled_react-server-dom-turbopack_6f9565e2._.js",
+    "static/chunks/687f7_next_dist_compiled_next-devtools_index_79f97e08.js",
+    "static/chunks/687f7_next_dist_compiled_dd53eb93._.js",
+    "static/chunks/687f7_next_dist_client_b14cad18._.js",
+    "static/chunks/687f7_next_dist_1761e62a._.js",
+    "static/chunks/c2de5_@swc_helpers_cjs_594bd5c5._.js",
+    "static/chunks/Documents_Web_AuraMail_app_frontend_a0ff3932._.js",
+    "static/chunks/turbopack-Documents_Web_AuraMail_app_frontend_4036daa9._.js"
   ]
 };
 globalThis.__BUILD_MANIFEST.lowPriorityFiles = [
