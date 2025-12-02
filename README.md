@@ -1,105 +1,128 @@
 # 🌟 AuraMail  
 ### AI-Powered Placement Email Analyzer (Fully Dockerized)
 
-AuraMail is an AI-driven, Dockerized email intelligence platform designed to help students and job-seekers efficiently manage placement-related communication. Instead of manually scanning through different emails about different topics, AuraMail automatically gathers placement mails, summarizes them, and extracts the essential information in a clean, organized format.
+AuraMail is an AI-driven, Dockerized email intelligence platform that helps students and job seekers instantly understand placement-related emails. It fetches mails directly from Gmail using the official Google Cloud APIs, summarizes them with OpenAI GPT-4.0 Mini, extracts key information, and organizes it into an easy-to-read format.
 
 ---
 
 ## 📨 Email Processing via Gmail API (Google Cloud)
 
-AuraMail uses the **official Gmail API provided by Google Cloud** to securely fetch emails.  
-Key aspects include:
+AuraMail integrates directly with the **Gmail API** through Google Cloud, offering:
 
-- Google Cloud–based Gmail API integration  
-- OAuth2-based secure authentication  
-- Permission-scoped access (read-only, user-approved)  
-- Safe and reliable email retrieval without exposing credentials  
+- Secure OAuth2-based email access  
+- Permission-scoped (read-only) inbox retrieval  
+- Reliable processing of placement mails  
+- No password handling, only token-based authentication  
 
-This ensures highly secure, permission-controlled access to users’ inboxes.
-
----
-
-## 🔐 Authentication via Google Cloud (OAuth Login)
-
-The platform supports **Google Login** using Google Cloud OAuth for seamless and secure user authentication.
-
-- Direct Google Sign-In  
-- Tokens handled securely  
-- No password storage  
-- Simple, frictionless user onboarding  
-
-AuraMail ties your Gmail account authorization directly with the processing engine, allowing the system to fetch and analyze only the emails you permit.
+This ensures fully secure, compliant, and user-approved access to email data.
 
 ---
 
-## 🤖 AI Summary & Information Extraction
+## 🔐 Authentication: Google OAuth (Google Cloud)
 
-AuraMail uses LLM-powered AI pipelines to:
+User login and authorization is handled via **Google Cloud OAuth**, meaning:
 
-### ✨ Summarize Emails  
-Converts long placement announcements into short, understandable summaries.
+- One-click Google Login  
+- No credential storage  
+- Secure token-based authentication  
+- Smooth onboarding and session management  
 
-### 🔎 Extract Key Data Points
-Automatically identifies critical details such as:
+OAuth also grants the app secure permission to read only the emails necessary for processing.
 
-- Cutoff percentages  
+---
+
+## 🤖 AI Engine (OpenAI GPT-4.0 Mini)
+
+AuraMail uses the **OpenAI GPT-4.0 Mini model** to power all AI functionality, including:
+
+### ✔️ AI Summarization  
+Long placement emails → short, clear summaries.
+
+### ✔️ AI Extraction  
+Structured extraction of key details including:
+
+- Cutoff percentage  
 - Eligibility criteria  
-- Company name  
-- Role and job description  
-- Package / CTC  
+- Company information  
+- Role & job description  
+- CTC / package  
 - Location  
 - Application deadlines  
 - Required documents  
-- Instructions  
-- Other highlighted keywords  
-- **Apply links (cleaned and separated)**  
+- Important instructions  
+- **Apply links (cleanly separated)**  
 
-Everything is structured into well-defined sections for quick reading.
-
----
-
-## 🧩 Core Objectives
-
-- Reduce the time students spend reading repeated placement emails  
-- Provide clarity by extracting only the *useful* information  
-- Centralize and structure important details  
-- Make application decisions easier and faster  
+All processed using the GPT-4.0 Mini LLM for fast, efficient, high-quality outputs.
 
 ---
 
-## 🐳 Fully Dockerized Application
+## 🧩 Tech Stack
 
-AuraMail is shipped as a **fully Dockerized application** for easy deployment across any system or server.
+### **Frontend**
+- **Next.js (TypeScript)**  
+- **shadcn/ui**  
+- **TailwindCSS**  
+- **Lucide Icons**  
+- **Framer Motion** (animations)
 
-Includes:
+### **Backend**
+- **Node.js**  
+- **Express.js (TypeScript)**  
+- **Zod** for validation  
+- **OpenAI SDK (`openai` package)**  
+- **Google APIs (`googleapis`, `google-auth-library`)**  
+- **Node-cron** for periodic tasks  
+- **Helmet + CORS** for security  
+- **Dotenv** for environment configuration  
 
-- `Dockerfile` for containerized backend  
-- `docker-compose.yml` for orchestrating services  
-- Environment-driven configuration  
-- Portable infrastructure, consistent behavior everywhere  
+### **AI**
+- **OpenAI GPT-4.0 Mini model**  
+- AI-based summarization + extraction logic  
 
-This ensures AuraMail can run reliably on any environment with Docker installed.
+### **Security**
+- Google OAuth (no passwords stored)  
+- Read-only Gmail scopes  
+- JWT-based sessions  
+- Helmet-enhanced API security  
+
+### **Containerization**
+- Fully dockerized  
+- `Dockerfile` + `docker-compose.yml`  
+- Portable across systems  
+- Consistent dev, test, and production environments  
+
+---
+
+## 🐳 Dockerized Architecture
+
+AuraMail runs entirely through Docker:
+
+- **Backend container** (Express + AI + Gmail processing)  
+- **Frontend container** (Next.js UI)  
+- Optional additional service containers  
+- Shared environment variables using a `.env` file  
+- One-command startup with Docker Compose  
+
+This ensures consistency, reliability, and easy deployment.
 
 ---
 
 ## 📂 High-Level System Overview
-
-User → Google Login (OAuth) → Gmail API Access → Email Fetching →
-AI Summarization & Extraction → Organized Structured Output
+User Login → Google OAuth → Gmail API Access → Email Fetch →
+AI Processing (GPT-4.0 Mini) → Extraction & Summary →
+Frontend Display (Next.js + shadcn/ui)
 
 
 ---
 
-## 📘 What AuraMail Delivers
+## 📘 What AuraMail Provides
 
-- A clean summary of each placement email  
-- Extracted eligibility and cutoff details  
-- Extracted dates and deadlines  
-- Easily accessible apply links  
-- Company & job role metadata  
-- Organized, student-friendly interface  
-
-Designed specifically for placement preparation and campus recruitment workflows.
+- Concise summary of each placement email  
+- Extracted eligibility & cutoff details  
+- Highlighted apply links  
+- Company + job info  
+- Dates, deadlines & required documents  
+- Clean, organized, student-friendly output  
 
 ---
 
@@ -108,19 +131,22 @@ Designed specifically for placement preparation and campus recruitment workflows
 - University students  
 - Job seekers  
 - Placement cells  
-- Anyone receiving a high volume of recruitment emails  
+- Anyone receiving frequent recruitment emails  
 
 ---
 
-## 🛡️ Security Considerations
+## 🛡️ Security Highlights
 
-- Uses OAuth2 — no passwords stored  
-- Read-only Gmail scopes  
-- Tokens securely processed  
-- Emails never stored unless explicitly configured  
+- OAuth2 login  
+- Read-only Gmail data access  
+- No password storage  
+- Secure token management  
+- Backend protected with Helmet, CORS, and validated input (Zod)  
 
 ---
 
 ## ⭐ Support
 
-If you find AuraMail useful, please consider giving the repository a **star ⭐** to support development.
+If you find AuraMail helpful, consider giving the repo a **star ⭐** to support future development.
+
+
