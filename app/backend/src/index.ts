@@ -1,4 +1,13 @@
 import dotenv from "dotenv";
+import path from "path";
+
+// Load env from backend/.env first, then fall back to repo-level .env if present
+// IMPORTANT: Load env BEFORE importing database package so DATABASE_URL is available
+dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+
+// Now import database after env is loaded
 import express from "express";
 import { prisma } from "database";
 import cors from "cors";
@@ -15,8 +24,6 @@ import {
   authorize,
 } from "./utils/gmail";
 import { fetchPlacementMails } from "./utils/gmailParser";
-
-dotenv.config();
 
 const app = express();
 app.use(cors());
@@ -74,7 +81,7 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.get("oauth2callback", async (req, res) => {
+app.get("/oauth2callback", async (req, res) => {
   try {
     const code = req.query.code as string;
     if (!code) return res.status(400).send("No authorization code received");
@@ -93,7 +100,7 @@ app.get("oauth2callback", async (req, res) => {
     `);
   } catch (error) {
     console.error("OAuth callback error: ", error);
-    res.status(500).send("Autthentication failed");
+    res.status(500).send("Authentication failed");
   }
 });
 
@@ -111,7 +118,7 @@ app.get("/api/mails", emailFetchRateLimiter, async (req, res) => {
       emails: mails,
     });
   } catch (error) {
-    console.error("Erro in /api/mails:", error);
+    console.error("Error in /api/mails:", error);
     res.status(500).json({
       success: false,
       error: "Error fetching mails",
@@ -126,7 +133,7 @@ app.post("/api/sync-mails", syncRateLimiter, async (req, res) => {
   if (activeSyncOptions.has(userId)) {
     return res.status(429).json({
       success: false,
-      error: "Sync operation already to profess for this user",
+      error: "Sync operation already in progress for this user",
     });
   }
 
@@ -206,12 +213,6 @@ app.get("/api/emails", async (req, res) => {
         },
       }),
     ]);
-    prisma.placementMail.count({
-      where: {
-        requiresReview: true,
-        reviewedAt: null,
-      },
-    });
 
     res.json({
       success: true,
