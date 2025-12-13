@@ -1,11 +1,11 @@
-import { z } from 'zod';
+import { z } from "zod";
 import { prisma } from "database";
-import  fs  from 'fs'
+import fs from "fs";
 import { google } from "googleapis";
 import { gmailAttachmentSchema } from "../schemas/gmail.schema";
-import { parseDate, extractDeadlineDate } from '../utils/dateParser'
+import { parseDate, extractDeadlineDate } from "../utils/dateParser";
 import { detectAnomalies, formatAnomalyReport } from "./anomalyDetector";
-import { analyzeEmail } from './aiSummarizer';
+import { analyzeEmail } from "./aiSummarizer";
 import path from "path";
 
 const CREDENTIALS_PATH = path.join(process.cwd(), "credentials.json");
@@ -30,22 +30,25 @@ function sleep(ms: number): Promise<void> {
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   retries: number = MAX_RETRIES,
-  delay: number = 1000
+  delay: number = 1000,
 ): Promise<T> {
   try {
     return await fn();
   } catch (error) {
     if (retries <= 0) throw error;
-    console.warn(`Retrying operation in ${delay}ms... (${retries} retries left)`);
+    console.warn(
+      `Retrying operation in ${delay}ms... (${retries} retries left)`,
+    );
     await sleep(delay);
     return retryWithBackoff(fn, retries - 1, delay * 2);
   }
 }
 
 //extract attachments from email payload
-function extractAttachments(payload: any, depth: number = 0): z.infer<
-  typeof gmailAttachmentSchema
->[] {
+function extractAttachments(
+  payload: any,
+  depth: number = 0,
+): z.infer<typeof gmailAttachmentSchema>[] {
   if (!payload || depth > MAX_RECURSION_DEPTH) return [];
   const attachments: z.infer<typeof gmailAttachmentSchema>[] = [];
 
@@ -134,12 +137,12 @@ function parseDeadline(text: string): Date | null {
         const oneYearFromNow = new Date(
           now.getFullYear() + 1,
           now.getMonth(),
-          now.getDate()
+          now.getDate(),
         );
         const oneYearAgo = new Date(
           now.getFullYear() - 1,
           now.getMonth(),
-          now.getDate()
+          now.getDate(),
         );
 
         if (
@@ -169,7 +172,7 @@ function parseApplyLink(text: string): string | null {
         link.toLowerCase().includes("apply") ||
         link.toLowerCase().includes("registration") ||
         link.toLowerCase().includes("form") ||
-        link.toLowerCase().includes("career")
+        link.toLowerCase().includes("career"),
     );
 
     const selectedLink = applyLink || matches[0];
@@ -235,14 +238,16 @@ async function processBatch(
   messages: any[],
   userId: string,
   batchIndex: number,
-  totalBatches: number
+  totalBatches: number,
 ): Promise<{ saved: number; skipped: number; errors: number }> {
   let savedCount = 0;
   let skippedCount = 0;
   let errorCount = 0;
 
   console.log(
-    `Processing batch ${batchIndex + 1}/${totalBatches} (${messages.length} messages)`
+    `Processing batch ${batchIndex + 1}/${totalBatches} (${
+      messages.length
+    } messages)`,
   );
 
   for (const [index, msg] of messages.entries()) {
@@ -281,7 +286,7 @@ async function processBatch(
       const body = extractEmailBody(payload);
       const truncatedBody =
         body.length > MAX_BODY_LENGTH
-          ? body.substring(0, MAX_BODY_LENGTH) + "... [truncate]"
+          ? body.substring(0, MAX_BODY_LENGTH) + "... [truncated]"
           : body;
       const fullText = `${subject} ${snippet} ${truncatedBody}`;
 
@@ -305,7 +310,7 @@ async function processBatch(
             attachments: attachments.length > 0 ? attachments : undefined,
           }),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("AI analysis timeout")), 45000)
+            setTimeout(() => reject(new Error("AI analysis timeout")), 45000),
           ),
         ]);
 
@@ -314,14 +319,14 @@ async function processBatch(
         console.log(`AI extracted:`, {
           category: aiData?.category,
           company: aiData?.company,
-          role: aiData?: role,
+          role: aiData?.role,
           hasLinks: !!aiData?.otherLinks,
           attachments: attachments.length,
         });
       } catch (aiError) {
         console.warn(
           `AI analysis failed for: ${subject.substring(0, 50)}...`,
-          aiError instanceof Error ? aiError.message : aiError
+          aiError instanceof Error ? aiError.message : aiError,
         );
       }
 
@@ -362,7 +367,9 @@ async function processBatch(
         if (parsedDeadline) {
           finalDeadline = parsedDeadline;
         } else {
-          console.warn(`could not parse AI deadline with chrono: ${aiData.deadline}`);
+          console.warn(
+            `could not parse AI deadline with chrono: ${aiData.deadline}`,
+          );
 
           try {
             const parsedDate = new Date(aiData.deadline);
@@ -392,7 +399,9 @@ async function processBatch(
       });
 
       if (anomalyResult.hasAnomaly) {
-        console.log(`Anomalies detected:\n&{formatAnomalyReport(anomalyResult)}`);
+        console.log(
+          `Anomalies detected:\n${formatAnomalyReport(anomalyResult)}`,
+        );
       }
 
       await prisma.$transaction(async (tx) => {
@@ -423,8 +432,12 @@ async function processBatch(
             // Safety and validation fields
             rawAiOutput,
             hasAnomaly: anomalyResult.hasAnomaly,
-            anomalies: anomalyResult.hasAnomaly ? JSON.stringify(anomalyResult.anomalies) : null,
-            anomalySeverity: anomalyResult.hasAnomaly ? anomalyResult.severity : null,
+            anomalies: anomalyResult.hasAnomaly
+              ? JSON.stringify(anomalyResult.anomalies)
+              : null,
+            anomalySeverity: anomalyResult.hasAnomaly
+              ? anomalyResult.severity
+              : null,
             requiresReview: anomalyResult.requiresReview,
           },
         });
@@ -499,7 +512,7 @@ async function processBatch(
 export async function fetchPlacementMails(
   userId: string,
   userAccessToken: string,
-  customQuery?: string
+  customQuery?: string,
 ) {
   if (!userId || !userAccessToken)
     throw new Error("User ID and access token are required");
@@ -515,20 +528,20 @@ export async function fetchPlacementMails(
       throw new Error(
         `Failed to read credentials file: ${
           error instanceof Error ? error.message : "Unknown Error"
-        }`
+        }`,
       );
     }
 
-    const { client_secret, client_id, redirect_urls } =
+    const { client_secret, client_id, redirect_uris } =
       credentials.web || credentials.installed;
-    if (!client_id || !client_secret || !redirect_urls?.[0]) {
+    if (!client_id || !client_secret || !redirect_uris?.[0]) {
       throw new Error("Invalid credentials file structure");
     }
 
     const OAuth2Client = new google.auth.OAuth2(
       client_id,
       client_secret,
-      redirect_urls[0]
+      redirect_uris[0],
     );
 
     OAuth2Client.setCredentials({ access_token: userAccessToken });
@@ -572,7 +585,7 @@ export async function fetchPlacementMails(
           batch,
           userId,
           batchIndex,
-          batches.length
+          batches.length,
         );
         totalSaved += batchResults.saved;
         totalSkipped += batchResults.skipped;
