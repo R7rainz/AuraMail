@@ -43,6 +43,7 @@ router.get(
 
       const result = await handleGoogleCallBack(code);
       if (!result) {
+        console.error("handleGoogleCallBack returned null/undefined");
         throw new Error("Invalid Google callback result");
       }
 
@@ -52,9 +53,14 @@ router.get(
         refresh_token: result.tokens.refreshToken,
       });
 
+      console.log(`Redirecting to frontend: ${frontendUrl}/auth/callback`);
       res.redirect(`${frontendUrl}/auth/callback?${params.toString()}`);
     } catch (error) {
       console.error("OAuth callback error: ", error);
+      console.error("Error details:", error instanceof Error ? error.message : String(error));
+      if (error instanceof Error && error.stack) {
+        console.error("Stack trace:", error.stack);
+      }
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
       res.redirect(`${frontendUrl}/auth?error=auth_failed`);
     }

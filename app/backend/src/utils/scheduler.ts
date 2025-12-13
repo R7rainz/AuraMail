@@ -55,7 +55,7 @@ async function refreshToken(
 export function startEmailSyncScheduler(
   cronExpression: string = "0 */6 * * * *",
 ) {
-  console.log(`Email sync schedule startEmailSyncScheduler`);
+  console.log(`Email sync scheduler started`);
 
   cron.schedule(cronExpression, async () => {
     console.log(`Starting schedule email sync for all users...`);

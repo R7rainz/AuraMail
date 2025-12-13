@@ -5,7 +5,7 @@ import { FeaturesSection } from "./components/featuresSection";
 import { PricingSection } from "./components/pricingSection";
 import { CTASection } from "./components/ctaSection";
 import { AnimatedSection } from "./components/animatedSection";
-import { useAuth } from "./lib/auth";
+import { useAuth } from "./lib/authContext";
 import { useRouter } from "next/navigation";
 
 export default function LandingPage() {

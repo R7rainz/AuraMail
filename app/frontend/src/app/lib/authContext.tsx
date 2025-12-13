@@ -1,19 +1,12 @@
 "use client";
-
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
 import {
-  User,
-  getCurrentUser,
-  logout as logoutUser,
-  isAuthenticated,
-} from "./auth";
-
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { getCurrentUser, isAuthenticated, User, logoutUser } from "./auth";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -33,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
     } catch (error) {
-      console.error("Error fetching user:", error);
+      console.error("Error fetching user: ", error);
       setUser(null);
     }
   };
@@ -45,10 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setLoading(false);
     };
-
     initAuth();
 
-    // Listen for storage changes (for when user logs in)
     const handleStorageChange = () => {
       if (isAuthenticated()) {
         refreshUser();
@@ -71,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         logout,
         refreshUser,
-        isAuthenticated: user !== null,
+        isAuthenticated: user != null,
       }}
     >
       {children}

@@ -36,10 +36,9 @@ export function getOAuthClient(): OAuth2Client {
   return _oAuthClient;
 }
 
-export const oAuth2Client = getOAuthClient();
-
 export function getGoogleAuthURL() {
   const client = getOAuthClient();
+  // OAuth2Client is already initialized with redirectUri, no need to pass it again
   const authUrl = client.generateAuthUrl({
     access_type: "offline",
     scope: [
@@ -47,8 +46,7 @@ export function getGoogleAuthURL() {
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/gmail.readonly",
     ],
-    prompt: "consent",
-    redirect_url: process.env.GOOGLE_OAUTH_REDIRECT_URI,
+    prompt: "consent", // Force consent to get refresh token
   });
   return authUrl;
 }
@@ -57,11 +55,22 @@ export async function handleGoogleCallBack(code: string) {
   try {
     const client = getOAuthClient();
     const { tokens } = await client.getToken(code);
+
+    // Log for debugging
+    console.log(
+      "Google tokens received - expiry_date type:",
+      typeof tokens.expiry_date
+    );
+
     const validatedTokens = googleTokensSchema.parse(tokens);
 
+    if (!validatedTokens.id_token) {
+      throw new Error("No id_token received from Google OAuth");
+    }
+
     const ticket = await client.verifyIdToken({
-      idToken: validatedTokens.id_token!,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      idToken: validatedTokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_OAUTH_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
@@ -135,6 +144,8 @@ export async function handleGoogleCallBack(code: string) {
     };
   } catch (error) {
     console.error("Google OAuth error", error);
+    // Re-throw error so route handler can handle it properly
+    throw error;
   }
 }
 export async function saveUserGmailTokens(
@@ -154,7 +165,7 @@ export async function saveUserGmailTokens(
         scope: validatedTokens.scope || undefined,
         tokenType: validatedTokens.token_type || "Bearer",
         expiryDate: validatedTokens.expiry_date
-          ? new Date(validatedTokens.expiry_date)
+          ? new Date(validatedTokens.expiry_date) // expiry_date is now normalized to number (ms)
           : undefined,
       },
       create: {
@@ -163,7 +174,7 @@ export async function saveUserGmailTokens(
         scope: validatedTokens.scope || undefined,
         tokenType: validatedTokens.token_type || undefined,
         expiryDate: validatedTokens.expiry_date
-          ? new Date(validatedTokens.expiry_date)
+          ? new Date(validatedTokens.expiry_date) // expiry_date is now normalized to number (ms)
           : undefined,
         userId: userId,
       },
