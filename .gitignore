@@ -11,6 +11,7 @@ yarn.lock
 .env.development.local
 .env.test.local
 .env.production.local
+.env.backup
 
 # Build outputs
 dist/
@@ -59,6 +60,7 @@ Thumbs.db
 # Secrets and tokens (backend)
 app/backend/credentials.json
 app/backend/token.json
+app/backend/.env.backup
 
 # TypeScript
 *.tsbuildinfo
