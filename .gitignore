@@ -19,6 +19,10 @@ build/
 */build/
 .next/           # Next.js
 out/             # Next.js static export
+app/frontend/.next/
+app/frontend/out/
+app/frontend/coverage/
+app/frontend/dist/
 
 # Logs
 *.log
@@ -51,6 +55,10 @@ Thumbs.db
 *.swo
 *.bak
 *.tmp
+
+# Secrets and tokens (backend)
+app/backend/credentials.json
+app/backend/token.json
 
 # TypeScript
 *.tsbuildinfo
