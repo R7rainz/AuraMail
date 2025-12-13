@@ -1,11 +1,19 @@
 import OpenAi from "openai";
 
-const openai = new OpenAi({
-  apiKey: process.env.OPENAI_API_KEY,
-  timeout: 30000,
-  maxRetries: 2,
-  baseURL: "https://api.openai.com/v1",
-});
+// Initialize OpenAI client only if API key is available
+let openai: OpenAi | null = null;
+
+function getOpenAIClient(): OpenAi | null {
+  if (!openai && process.env.OPENAI_API_KEY) {
+    openai = new OpenAi({
+      apiKey: process.env.OPENAI_API_KEY,
+      timeout: 30000,
+      maxRetries: 2,
+      baseURL: "https://api.openai.com/v1",
+    });
+  }
+  return openai;
+}
 
 const aiCache = new Map<string, any>();
 const CACHE_TTL = 60 * 60 * 1000;
@@ -139,8 +147,27 @@ export async function analyzeEmail(email: {
     '6.  **Unstop/HackerRank**: Contests and challenges on platforms like Unstop, Dare2Compete, or HackerRank must be categorized as **"announcement"** unless they are explicitly an exam for a placement process.',
   ].join("\n");
 
+  const client = getOpenAIClient();
+  if (!client) {
+    console.warn("OpenAI API key not configured. Skipping AI analysis.");
+    // Return fallback immediately if OpenAI is not configured
+    const fallback = {
+      summary:
+        email.subject.length > 30
+          ? email.subject.substring(0, 27) + "..."
+          : email.subject || "Unknown email",
+      category: "misc",
+      deadline: null,
+    };
+    aiCache.set(cacheKey, {
+      data: fallback,
+      timestamp: Date.now(),
+    });
+    return fallback;
+  }
+
   try {
-    const completion = await openai.chat.completions.create({
+    const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
