@@ -116,7 +116,7 @@ function extractEmailBody(
   for (const part of parts) {
     if (part.mimeType === "text/plain" && part.body?.data) {
       try {
-        return Buffer.from(part.body.data, "base64", error);
+        return Buffer.from(part.body.data, "base64").toString("utf8");
       } catch (error) {
         console.warn("Failed to decode email body: ", error);
       }
