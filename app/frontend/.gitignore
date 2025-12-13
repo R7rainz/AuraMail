@@ -1,0 +1,59 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Node modules
+node_modules/
+
+# Build output
+.next/
+.out/
+.next-static/
+.next-cache/
+.next/standalone/
+coverage/
+dist/
+
+# TypeScript
+*.tsbuildinfo
+
+# Vercel/Netlify
+.vercel/
+.netlify/
+
+# Env files (keep templates like .env.example tracked)
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Turbo/Repo cache
+.turbo/
+
+# Pnpm store (local)
+.pnpm-store/
+
+# Next.js cache
+.cache/
+
+# Storybook
+storybook-static/
+
+# Sentry/Crash reports
+sentry-cli
+
+# Misc
+*.swp
+*.swo
+
