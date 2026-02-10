@@ -25,7 +25,6 @@ export function detectAnomalies(data: EmailData): AnomalyResult {
   const anomalies: string[] = [];
   let severity: "low" | "medium" | "high" = "low";
 
-  // Rule 1: Job offer or internship should have company name
   if (
     (data.category === "job offer" || data.category === "internship") &&
     !data.company
@@ -34,7 +33,6 @@ export function detectAnomalies(data: EmailData): AnomalyResult {
     severity = "high";
   }
 
-  // Rule 2: Job offer or internship should have role
   if (
     (data.category === "job offer" || data.category === "internship") &&
     !data.role
@@ -43,7 +41,6 @@ export function detectAnomalies(data: EmailData): AnomalyResult {
     severity = severity === "high" ? "high" : "medium";
   }
 
-  // Rule 3: Job offer or internship should have apply link
   if (
     (data.category === "job offer" || data.category === "internship") &&
     !data.applyLink
@@ -52,7 +49,6 @@ export function detectAnomalies(data: EmailData): AnomalyResult {
     severity = severity === "high" ? "high" : "medium";
   }
 
-  // Rule 4: Job offer with "intern" keyword might be miscategorized
   if (data.category === "job offer" && data.subject) {
     const subjectLower = data.subject.toLowerCase();
     if (
@@ -64,7 +60,6 @@ export function detectAnomalies(data: EmailData): AnomalyResult {
     }
   }
 
-  // Rule 5: Internship with full-time keywords might be miscategorized
   if (data.category === "internship" && data.subject) {
     const subjectLower = data.subject.toLowerCase();
     const fullTimeKeywords = [
@@ -81,13 +76,11 @@ export function detectAnomalies(data: EmailData): AnomalyResult {
     }
   }
 
-  // Rule 6: Exam category should not have company/role
   if (data.category === "exam" && (data.company || data.role)) {
     anomalies.push("Exam categorized email has company/role fields filled");
     severity = "medium";
   }
 
-  // Rule 7: Check for deadline inconsistency
   if (data.deadline) {
     const deadlineDate =
       data.deadline instanceof Date ? data.deadline : new Date(data.deadline);
@@ -122,7 +115,6 @@ export function detectAnomalies(data: EmailData): AnomalyResult {
     severity = "medium";
   }
 
-  // Rule 10: Check for "misc" category with structured data
   if (
     data.category === "misc" &&
     (data.company || data.role || data.applyLink || data.salary)
@@ -133,19 +125,18 @@ export function detectAnomalies(data: EmailData): AnomalyResult {
     severity = "high";
   }
 
-  // Rule 11: No category assigned
   if (!data.category) {
     anomalies.push("No category assigned to email");
     severity = "medium";
   }
 
-  // Rule 12: Check for invalid URLs
+  //invalid category
   if (data.applyLink && !isValidUrl(data.applyLink)) {
     anomalies.push("Apply link appears to be invalid URL");
     severity = "medium";
   }
 
-  // Determine if requires human review
+  //determine if requires human review
   const requiresReview = severity === "high" || anomalies.length >= 3;
 
   return {
@@ -156,7 +147,7 @@ export function detectAnomalies(data: EmailData): AnomalyResult {
   };
 }
 
-//Validate URL format
+//url format validation
 function isValidUrl(url: string): boolean {
   if (!url) return false;
   try {
@@ -173,9 +164,8 @@ export function formatAnomalyReport(result: AnomalyResult): string {
     return "No anomalies detected";
   }
 
-  const header = `[${result.severity.toUpperCase()}] ${
-    result.anomalies.length
-  } anomaly(ies) detected`;
+  const header = `[${result.severity.toUpperCase()}] ${result.anomalies.length
+    } anomaly(ies) detected`;
   const issues = result.anomalies.map((a, i) => `  ${i + 1}. ${a}`).join("\n");
   const footer = result.requiresReview ? "\n⚠️  REQUIRES HUMAN REVIEW" : "";
 

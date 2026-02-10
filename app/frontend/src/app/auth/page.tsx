@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getGoogleAuthUrl } from "../lib/auth";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "../lib/authContext";
 
-export default function AuthPage() {
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading } = useAuth();
@@ -14,7 +15,6 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check for error in URL params
     const errorParam = searchParams.get("error");
     if (errorParam === "no_code") {
       setError("No authorization code received. Please try again.");
@@ -22,25 +22,16 @@ export default function AuthPage() {
       setError("Authentication failed. Please try again.");
     }
 
-    // If user is already authenticated, redirect to dashboard
     if (!loading && user) {
       router.push("/dashboard");
     }
   }, [searchParams, user, loading, router]);
 
-  const handleGoogleLogin = async () => {
-    try {
-      setAuthLoading(true);
-      setError(null);
-      const authUrl = await getGoogleAuthUrl();
-      // Redirect to Google OAuth
-      window.location.href = authUrl;
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to start authentication"
-      );
-      setAuthLoading(false);
-    }
+  const handleGoogleLogin = () => {
+    setAuthLoading(true);
+    setError(null);
+    // Redirect directly to backend OAuth endpoint
+    window.location.href = `${API_URL}/auth/google`;
   };
 
   if (loading) {
@@ -52,7 +43,7 @@ export default function AuthPage() {
   }
 
   if (user) {
-    return null; // Will redirect via useEffect
+    return null;
   }
 
   return (
@@ -138,3 +129,18 @@ export default function AuthPage() {
   );
 }
 
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-slate-950 to-black">
+      <div className="text-white text-lg">Loading...</div>
+    </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <AuthContent />
+    </Suspense>
+  );
+}

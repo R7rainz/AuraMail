@@ -1,875 +1,1157 @@
-"use client";
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "../lib/authContext";
+"use client"
+import { useEffect, useState, useCallback, useRef, useMemo } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/app/lib/authContext"
 import {
   Mail,
-  Search,
-  Bell,
   LogOut,
   Briefcase,
   Building2,
   GraduationCap,
   Clock,
-  LinkIcon,
+  ExternalLink,
   X,
   RefreshCw,
-  Archive,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Inbox,
+  CalendarPlus,
+  ChevronRight,
+  Bell,
+  MapPin,
+  DollarSign,
+  FileText,
+  User,
+  AlertTriangle,
+  ChevronLeft,
+  Presentation,
+  Wrench,
+  ClipboardCheck,
+  UserCheck,
+  Tag,
+  Zap,
+  Star,
+  Calendar,
+  Search,
+  LayoutDashboard,
+  CalendarCheck,
+  TrendingUp,
+  Sparkles,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ChevronDown,
+} from "lucide-react"
 
-const API_URL = "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
-interface PlacementEmail {
-  id: string;
-  gmailMessageId: string;
-  subject: string;
-  sender: string;
-  snippet: string;
-  receivedAt: string;
-  company: string | null;
-  role: string | null;
-  deadline: string | null;
-  applyLink: string | null;
-  otherLinks?: string[] | null;
-  attachments?: Array<{
-    filename: string;
-    mimeType: string;
-    size: number;
-    attachmentId: string;
-  }> | null;
-  eligibility: string | null;
-  timings: string | null;
-  salary: string | null;
-  location: string | null;
-  eventDetails?: string | null;
-  requirements?: string | null;
-  description?: string | null;
-  attachmentSummary?: string | null;
-  category?: string;
-  summary?: string;
+// Tokyo Night Storm - Darker variant
+const colors = {
+  bg: "#0a0a0f",
+  bgAlt: "#0f0f17",
+  bgCard: "#14141f",
+  bgHover: "#1a1a2e",
+  bgHighlight: "#1f1f3a",
+  border: "#1a1a2e",
+  fg: "#c0caf5",
+  fgMuted: "#a9b1d6",
+  fgDim: "#565f89",
+  blue: "#7aa2f7",
+  cyan: "#7dcfff",
+  magenta: "#bb9af7",
+  purple: "#9d7cd8",
+  orange: "#ff9e64",
+  yellow: "#e0af68",
+  green: "#9ece6a",
+  teal: "#73daca",
+  red: "#f7768e",
+  pink: "#ff007c",
 }
 
-type EmailCategory =
-  | "all"
-  | "internship"
-  | "job offer"
-  | "exam"
-  | "announcement"
-  | "reminder";
+interface PlacementEmail {
+  id: string
+  gmailMessageId: string
+  subject: string
+  sender: string
+  snippet: string
+  receivedAt: string
+  company: string | null
+  role: string | null
+  deadline: string | null
+  applyLink: string | null
+  otherLinks?: string[] | null
+  attachments?: Array<{ filename: string; mimeType: string; size: number; attachmentId: string }> | null
+  eligibility: string | null
+  timings: string | null
+  salary: string | null
+  location: string | null
+  eventDetails?: string | null
+  requirements?: string | null
+  description?: string | null
+  category?: string
+  tags?: string[]
+  priority?: string
+  summary?: string
+}
 
-const categoryConfig: Record<
-  EmailCategory,
-  { icon: any; label: string; color: string; bgColor: string }
-> = {
-  all: {
-    icon: Mail,
-    label: "All Mail",
-    color: "text-foreground",
-    bgColor: "bg-white/5",
-  },
-  internship: {
-    icon: Briefcase,
-    label: "Internships",
-    color: "text-foreground",
-    bgColor: "bg-white/5",
-  },
-  "job offer": {
-    icon: Building2,
-    label: "Job Offers",
-    color: "text-foreground",
-    bgColor: "bg-white/5",
-  },
-  exam: {
-    icon: GraduationCap,
-    label: "Exams",
-    color: "text-foreground",
-    bgColor: "bg-white/5",
-  },
-  announcement: {
-    icon: Bell,
-    label: "Announcements",
-    color: "text-foreground",
-    bgColor: "bg-white/5",
-  },
-  reminder: {
-    icon: Clock,
-    label: "Reminders",
-    color: "text-foreground",
-    bgColor: "bg-white/5",
-  },
-};
+interface CalendarEvent {
+  id: string
+  title: string
+  description?: string
+  startTime: string
+  endTime?: string
+  location?: string
+  link?: string
+  isAuraMail: boolean
+}
+
+type View = "dashboard" | "inbox"
+type EmailCategory = "all" | "internship" | "job offer" | "ppt" | "workshop" | "exam" | "interview" | "result" | "reminder" | "announcement" | "registration"
+type SortOption = "date" | "priority" | "company" | "deadline"
+type SortDirection = "asc" | "desc"
+
+const sortOptions: { value: SortOption; label: string; icon: any }[] = [
+  { value: "date", label: "Date Received", icon: Clock },
+  { value: "priority", label: "Priority", icon: Zap },
+  { value: "company", label: "Company", icon: Building2 },
+  { value: "deadline", label: "Deadline", icon: Calendar },
+]
+
+const categoryConfig: Record<string, { icon: any; label: string; color: string }> = {
+  all: { icon: Inbox, label: "All", color: colors.fg },
+  internship: { icon: Briefcase, label: "Internships", color: colors.blue },
+  "job offer": { icon: Building2, label: "Jobs", color: colors.green },
+  ppt: { icon: Presentation, label: "PPT", color: colors.purple },
+  workshop: { icon: Wrench, label: "Workshops", color: colors.orange },
+  exam: { icon: GraduationCap, label: "Exams", color: colors.yellow },
+  interview: { icon: UserCheck, label: "Interviews", color: colors.cyan },
+  result: { icon: ClipboardCheck, label: "Results", color: colors.teal },
+  reminder: { icon: Clock, label: "Reminders", color: colors.red },
+  announcement: { icon: Bell, label: "Announcements", color: colors.magenta },
+  registration: { icon: FileText, label: "Registration", color: colors.pink },
+}
+
+const tagColors: Record<string, string> = {
+  urgent: colors.red,
+  "high-package": colors.green,
+  "dream-company": colors.yellow,
+  "mass-hiring": colors.blue,
+  "off-campus": colors.purple,
+  "on-campus": colors.cyan,
+  remote: colors.teal,
+  hybrid: colors.orange,
+  "tier-1": colors.yellow,
+  startup: colors.pink,
+  mnc: colors.blue,
+  govt: colors.cyan,
+  core: colors.purple,
+  it: colors.blue,
+  "fresher-friendly": colors.green,
+}
 
 export default function DashboardPage() {
-  const { user, loading, logout } = useAuth();
-  const router = useRouter();
-  const [emails, setEmails] = useState<PlacementEmail[]>([]);
-  const [emailsLoading, setEmailsLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [selectedCategory, setSelectedCategory] =
-    useState<EmailCategory>("all");
-  const [selectedEmail, setSelectedEmail] = useState<PlacementEmail | null>(
-    null
-  );
-  const [searchQuery, setSearchQuery] = useState("");
-  const [stats, setStats] = useState({ total: 0, page: 1, totalPages: 1 });
-  const [error, setError] = useState<string | null>(null);
-  const [autoSyncDone, setAutoSyncDone] = useState(false);
-  const syncingRef = useRef(false);
+  const { user, loading, logout } = useAuth()
+  const router = useRouter()
+  
+  const [emails, setEmails] = useState<PlacementEmail[]>([])
+  const [emailsLoading, setEmailsLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [currentView, setCurrentView] = useState<View>("dashboard")
+  const [selectedCategory, setSelectedCategory] = useState<EmailCategory>("all")
+  const [selectedEmail, setSelectedEmail] = useState<PlacementEmail | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
+  const [calendarEventsMap, setCalendarEventsMap] = useState<Record<string, string>>({})
+  const [addingToCalendar, setAddingToCalendar] = useState(false)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [sortBy, setSortBy] = useState<SortOption>("date")
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
+  const [showSortDropdown, setShowSortDropdown] = useState(false)
+  
+  const syncingRef = useRef(false)
 
   const fetchEmails = useCallback(async (silent = false) => {
-    if (!silent) setEmailsLoading(true);
-    setError(null);
+    if (!silent) setEmailsLoading(true)
     try {
-      const accessToken = localStorage.getItem("accessToken");
-      const response = await fetch(`${API_URL}/api/emails`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      if (!response.ok) throw new Error("Failed to fetch emails");
-
-      const data = await response.json();
-      setEmails(data.emails);
-      setStats({
-        total: data.total,
-        page: data.page,
-        totalPages: data.totalPages,
-      });
+      const token = localStorage.getItem("accessToken")
+      const res = await fetch(`${API_URL}/emails`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error("Failed to fetch")
+      const data = await res.json()
+      setEmails(data.emails || [])
     } catch (err) {
-      console.error("Error fetching emails:", err);
-      if (!silent) setError("Failed to load emails");
+      if (!silent) setError("Failed to load emails")
     } finally {
-      if (!silent) setEmailsLoading(false);
+      if (!silent) setEmailsLoading(false)
     }
-  }, []);
+  }, [])
 
-  const handleSync = useCallback(
-    async (silent = false) => {
-      if (syncingRef.current) return;
-
-      syncingRef.current = true;
-      setSyncing(true);
-      setError(null);
-      try {
-        const accessToken = localStorage.getItem("accessToken");
-        const response = await fetch(`${API_URL}/api/emails/sync`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to sync emails");
-        }
-
-        await fetchEmails(true);
-      } catch (err) {
-        console.error("Error syncing emails:", err);
-        if (!silent)
-          setError(
-            err instanceof Error ? err.message : "Failed to sync emails"
-          );
-      } finally {
-        syncingRef.current = false;
-        setSyncing(false);
+  const fetchCalendarEvents = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const res = await fetch(`${API_URL}/calendar/events?days=30`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.success && data.events) {
+        setCalendarEvents(data.events)
+        const map: Record<string, string> = {}
+        data.events.forEach((e: CalendarEvent) => {
+          if (e.isAuraMail) map[e.title] = e.id
+        })
+        setCalendarEventsMap(map)
       }
-    },
-    [fetchEmails]
-  );
+    } catch {}
+  }, [])
+
+  const handleSync = useCallback(async () => {
+    if (syncingRef.current) return
+    syncingRef.current = true
+    setSyncing(true)
+    setError(null)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const res = await fetch(`${API_URL}/emails/sync`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error("Sync failed")
+      await fetchEmails(true)
+      await fetchCalendarEvents()
+    } catch (err) {
+      setError("Failed to sync emails")
+    } finally {
+      syncingRef.current = false
+      setSyncing(false)
+    }
+  }, [fetchEmails, fetchCalendarEvents])
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/");
-      return;
+      router.push("/")
+      return
     }
-
-    if (user && !autoSyncDone) {
-      fetchEmails();
-      const timeoutId = setTimeout(() => {
-        handleSync(true);
-        setAutoSyncDone(true);
-      }, 1000);
-
-      return () => clearTimeout(timeoutId);
+    if (user) {
+      fetchEmails()
+      fetchCalendarEvents()
     }
-  }, [user, loading, router, autoSyncDone]);
+  }, [user, loading, router, fetchEmails, fetchCalendarEvents])
 
-  const handleLogout = async () => {
-    await logout();
-    router.push("/");
-  };
+  // Date helpers
+  const getDaysDiff = (date: string): number => {
+    const target = new Date(date)
+    const now = new Date()
+    const targetUTC = Date.UTC(target.getFullYear(), target.getMonth(), target.getDate())
+    const nowUTC = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+    return Math.floor((targetUTC - nowUTC) / (1000 * 60 * 60 * 24))
+  }
 
-  const getCategoryCounts = () => {
-    const counts: Record<EmailCategory, number> = {
-      all: emails.length,
-      internship: 0,
-      "job offer": 0,
-      exam: 0,
-      announcement: 0,
-      reminder: 0,
-    };
+  const formatRelativeDate = (date: string) => {
+    const days = -getDaysDiff(date)
+    if (days === 0) return "Today"
+    if (days === 1) return "Yesterday"
+    if (days < 7) return `${days}d ago`
+    return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  }
 
-    emails.forEach((email) => {
-      const category = (email.category?.toLowerCase() ||
-        "announcement") as EmailCategory;
-      if (counts[category] !== undefined) {
-        counts[category]++;
-      }
-    });
+  const formatDeadline = (date: string) => {
+    const days = getDaysDiff(date)
+    if (days < 0) return { text: `${Math.abs(days)}d overdue`, urgent: true }
+    if (days === 0) return { text: "Today", urgent: true }
+    if (days === 1) return { text: "Tomorrow", urgent: true }
+    if (days <= 3) return { text: `${days} days`, urgent: true }
+    if (days <= 7) return { text: `${days} days`, urgent: false }
+    return { text: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }), urgent: false }
+  }
 
-    return counts;
-  };
-
-  const filteredEmails = emails
-    .filter((email) => {
-      const matchesCategory =
-        selectedCategory === "all" ||
-        email.category?.toLowerCase() === selectedCategory;
-      const matchesSearch =
-        searchQuery === "" ||
-        email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        email.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        email.role?.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
+  // Computed data
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: emails.length }
+    emails.forEach(e => {
+      const cat = e.category?.toLowerCase() || "announcement"
+      counts[cat] = (counts[cat] || 0) + 1
     })
-    .sort(
-      (a, b) =>
-        new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()
-    );
+    return counts
+  }, [emails])
 
-  const categoryCounts = getCategoryCounts();
+  const filteredEmails = useMemo(() => {
+    const filtered = emails.filter(e => {
+      const matchCat = selectedCategory === "all" || e.category?.toLowerCase() === selectedCategory
+      const matchSearch = !searchQuery || 
+        e.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.role?.toLowerCase().includes(searchQuery.toLowerCase())
+      return matchCat && matchSearch
+    })
+
+    // Sort function
+    const sortedEmails = [...filtered].sort((a, b) => {
+      let comparison = 0
+      
+      switch (sortBy) {
+        case "date":
+          comparison = new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime()
+          break
+        case "priority":
+          // high > medium > low > undefined
+          const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 }
+          const aPriority = priorityOrder[a.priority || ""] || 0
+          const bPriority = priorityOrder[b.priority || ""] || 0
+          comparison = bPriority - aPriority
+          break
+        case "company":
+          const aCompany = (a.company || a.subject || "").toLowerCase()
+          const bCompany = (b.company || b.subject || "").toLowerCase()
+          comparison = aCompany.localeCompare(bCompany)
+          break
+        case "deadline":
+          // Emails with deadlines first, then by deadline date
+          if (!a.deadline && !b.deadline) comparison = 0
+          else if (!a.deadline) comparison = 1
+          else if (!b.deadline) comparison = -1
+          else comparison = new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
+          break
+      }
+      
+      // Apply sort direction
+      return sortDirection === "asc" ? comparison : -comparison
+    })
+
+    return sortedEmails
+  }, [emails, selectedCategory, searchQuery, sortBy, sortDirection])
+
+  const upcomingDeadlines = useMemo(() => {
+    return emails
+      .filter(e => e.deadline && getDaysDiff(e.deadline) >= -1)
+      .sort((a, b) => getDaysDiff(a.deadline!) - getDaysDiff(b.deadline!))
+      .slice(0, 4)
+  }, [emails])
+
+  const highPriorityCount = emails.filter(e => e.priority === "high").length
+  const overdueCount = emails.filter(e => e.deadline && getDaysDiff(e.deadline) < 0).length
+
+  const upcomingEvents = useMemo(() => {
+    return calendarEvents
+      .filter(e => {
+        const days = getDaysDiff(e.startTime)
+        return days >= 0 && days <= 7
+      })
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+      .slice(0, 4)
+  }, [calendarEvents])
+
+  // Calendar helpers
+  const getCalendarDays = () => {
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const daysInMonth = lastDay.getDate()
+    const startingDay = firstDay.getDay()
+    
+    const days: { date: number; isCurrentMonth: boolean; isToday: boolean; hasDeadline: boolean; hasEvent: boolean }[] = []
+    
+    const prevMonthLastDay = new Date(year, month, 0).getDate()
+    for (let i = startingDay - 1; i >= 0; i--) {
+      days.push({ date: prevMonthLastDay - i, isCurrentMonth: false, isToday: false, hasDeadline: false, hasEvent: false })
+    }
+    
+    const today = new Date()
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`
+      days.push({
+        date: i,
+        isCurrentMonth: true,
+        isToday: today.getDate() === i && today.getMonth() === month && today.getFullYear() === year,
+        hasDeadline: emails.some(e => e.deadline?.startsWith(dateStr)),
+        hasEvent: calendarEvents.some(e => e.startTime.startsWith(dateStr)),
+      })
+    }
+    
+    const remaining = 42 - days.length
+    for (let i = 1; i <= remaining; i++) {
+      days.push({ date: i, isCurrentMonth: false, isToday: false, hasDeadline: false, hasEvent: false })
+    }
+    
+    return days
+  }
+
+  const navigateMonth = (dir: number) => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + dir, 1))
+  }
+
+  // Calendar add/remove
+  const getEmailTitle = (email: PlacementEmail) => 
+    email.company ? `${email.company}${email.role ? ` - ${email.role}` : ""}` : email.subject
+
+  const isInCalendar = (email: PlacementEmail) => {
+    const title = getEmailTitle(email)
+    return !!calendarEventsMap[title] || !!calendarEventsMap[email.id]
+  }
+
+  const addToCalendar = async (email: PlacementEmail) => {
+    if (!email.deadline || isInCalendar(email)) return
+    setAddingToCalendar(true)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const title = getEmailTitle(email)
+      let startTime = email.deadline
+      if (!startTime.includes("T")) startTime = `${startTime}T10:00:00`
+      
+      const res = await fetch(`${API_URL}/calendar/events`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description: email.summary || email.snippet, startTime, location: email.location || "", emailId: email.id, company: email.company || "", role: email.role || "", eventType: "deadline" }),
+      })
+      if (!res.ok) throw new Error("Failed")
+      const data = await res.json()
+      setCalendarEventsMap(prev => ({ ...prev, [title]: data.eventId, [email.id]: data.eventId }))
+      fetchCalendarEvents()
+    } catch {
+      setError("Failed to add to calendar")
+    } finally {
+      setAddingToCalendar(false)
+    }
+  }
+
+  const removeFromCalendar = async (email: PlacementEmail) => {
+    const title = getEmailTitle(email)
+    const eventId = calendarEventsMap[title] || calendarEventsMap[email.id]
+    if (!eventId) return
+    setAddingToCalendar(true)
+    try {
+      const token = localStorage.getItem("accessToken")
+      await fetch(`${API_URL}/calendar/events?eventId=${eventId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
+      setCalendarEventsMap(prev => { const next = { ...prev }; delete next[title]; delete next[email.id]; return next })
+      fetchCalendarEvents()
+    } catch {
+      setError("Failed to remove from calendar")
+    } finally {
+      setAddingToCalendar(false)
+    }
+  }
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/20"></div>
-          <p className="text-white/60 animate-pulse">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: colors.bg }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-2 rounded-full animate-spin" style={{ borderColor: colors.bgHighlight, borderTopColor: colors.blue }} />
+          <span className="text-sm" style={{ color: colors.fgDim }}>Loading...</span>
         </div>
       </div>
-    );
+    )
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null
 
-  return (
-    <div className="flex h-screen flex-col bg-[#0a0a0a] text-white">
-      <header className="sticky top-0 z-40 border-b border-white/5 bg-black/50 backdrop-blur-xl transition-all duration-300">
-        <div className="flex h-16 items-center justify-between px-6 lg:px-8">
-          <div className="flex items-center gap-3 group">
-            <div className="p-2 rounded-xl bg-white/5 border border-white/10 group-hover:bg-white/10 group-hover:border-white/20 transition-all duration-500">
-              <Mail className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-base font-semibold text-white tracking-tight">
-                AuraMail
-              </h1>
-              <p className="text-xs text-white/40">Manage your opportunities</p>
-            </div>
-          </div>
+  const renderTag = (tag: string) => (
+    <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: `${tagColors[tag] || colors.fgDim}20`, color: tagColors[tag] || colors.fgDim }}>
+      {tag}
+    </span>
+  )
 
-          <div className="flex items-center gap-2">
-            {syncing && (
-              <div className="flex items-center gap-2 text-xs text-white/60 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 animate-pulse">
-                <RefreshCw className="h-3 w-3 animate-spin" />
-                <span>Syncing</span>
-              </div>
-            )}
-            <Button
-              onClick={() => handleSync(false)}
-              disabled={syncing}
-              variant="ghost"
-              size="sm"
-              className="gap-2 hover:bg-white/10 transition-all duration-300"
-            >
-              <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="relative h-9 w-9 rounded-xl hover:bg-white/10 transition-all duration-300"
-                >
-                  <Avatar className="h-9 w-9 ring-2 ring-white/10">
-                    <AvatarImage src={user.image || ""} alt={user.name || ""} />
-                    <AvatarFallback className="text-xs bg-white/10 text-white font-semibold">
-                      {user.name
-                        ?.split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-56 bg-black/90 backdrop-blur-xl border-white/10"
-                align="end"
-              >
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none text-white">
-                      {user.name}
-                    </p>
-                    <p className="text-xs leading-none text-white/50">
-                      {user.email}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-white/10" />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="cursor-pointer hover:bg-white/10 focus:bg-white/10 text-white/70 hover:text-white transition-colors"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+  // ============ DASHBOARD VIEW ============
+  const renderDashboard = () => (
+    <div className="flex-1 overflow-auto">
+      <div className="max-w-[1600px] mx-auto p-6">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-1" style={{ color: colors.fg }}>
+            Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {user.name?.split(" ")[0]}
+          </h1>
+          <p className="text-sm" style={{ color: colors.fgDim }}>
+            Here's what's happening with your placement emails
+          </p>
         </div>
-      </header>
 
-      <div className="flex-1 overflow-hidden flex gap-6 p-6 lg:p-8">
-        <div className="w-56 flex flex-col gap-4 shrink-0">
-          {/* Search */}
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 group-focus-within:text-white/60 transition-colors duration-300" />
-            <input
-              type="text"
-              placeholder="Search emails..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 focus:bg-white/10 transition-all duration-300 ease-out backdrop-blur-sm"
-            />
-          </div>
-
-          {/* Categories */}
-          <div className="border border-white/10 rounded-xl p-4 bg-white/5 backdrop-blur-sm transition-all duration-500 hover:bg-white/[0.07] hover:border-white/20">
-            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider px-2 mb-3">
-              Categories
-            </p>
-            <div className="space-y-1">
-              {(
-                Object.entries(categoryConfig) as [
-                  EmailCategory,
-                  (typeof categoryConfig)[EmailCategory]
-                ][]
-              ).map(([category, config]) => {
-                const count = categoryCounts[category];
-                const Icon = config.icon;
-                const isSelected = selectedCategory === category;
-                return (
-                  <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 ease-out text-sm font-medium group relative overflow-hidden",
-                      isSelected
-                        ? "bg-white/10 text-white border border-white/20 shadow-lg shadow-white/5"
-                        : "text-white/60 hover:bg-white/5 hover:text-white border border-transparent"
-                    )}
-                  >
-                    <Icon
-                      className={cn(
-                        "h-4 w-4 transition-transform duration-300",
-                        isSelected && "scale-110"
-                      )}
-                    />
-                    <span className="flex-1 text-left">{config.label}</span>
-                    {count > 0 && (
-                      <span
-                        className={cn(
-                          "text-xs font-semibold px-2 py-0.5 rounded-full transition-all duration-300",
-                          isSelected
-                            ? "bg-white/20 text-white"
-                            : "bg-white/10 text-white/60"
-                        )}
-                      >
-                        {count > 99 ? "99+" : count}
+        {/* Main Grid - Left content, Right calendar */}
+        <div className="flex gap-6">
+          {/* Left Column - Main Content */}
+          <div className="flex-1 space-y-6 min-w-0">
+            {/* Stats Row */}
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { label: "Total Emails", value: emails.length, icon: Mail, color: colors.blue, trend: "+12%" },
+                { label: "Deadlines", value: upcomingDeadlines.length, icon: Clock, color: colors.yellow },
+                { label: "High Priority", value: highPriorityCount, icon: Zap, color: colors.red },
+                { label: "Overdue", value: overdueCount, icon: AlertTriangle, color: colors.orange },
+              ].map((s, i) => (
+                <div key={i} className="p-4 rounded-2xl border" style={{ background: colors.bgCard, borderColor: colors.border }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${s.color}15` }}>
+                      <s.icon className="w-5 h-5" style={{ color: s.color }} />
+                    </div>
+                    {s.trend && (
+                      <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: `${colors.green}15`, color: colors.green }}>
+                        <TrendingUp className="w-3 h-3" />{s.trend}
                       </span>
                     )}
-                    {isSelected && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-50 animate-pulse" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="border border-white/10 rounded-xl p-4 bg-white/5 backdrop-blur-sm transition-all duration-500 hover:bg-white/[0.07] hover:border-white/20">
-            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider px-2 mb-3">
-              Overview
-            </p>
-            <div className="space-y-3 text-sm px-2">
-              <div className="flex justify-between items-center group">
-                <span className="text-white/60 group-hover:text-white/80 transition-colors">
-                  Total Emails
-                </span>
-                <span className="font-semibold text-white tabular-nums">
-                  {stats.total}
-                </span>
-              </div>
-              <div className="h-px bg-white/10" />
-              <div className="flex justify-between items-center group">
-                <span className="text-white/60 group-hover:text-white/80 transition-colors">
-                  Viewing
-                </span>
-                <span className="font-semibold text-white tabular-nums">
-                  {filteredEmails.length}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 flex gap-6 min-w-0">
-          {/* Email List */}
-          <div className="flex-1 flex flex-col min-w-0">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-white">
-                {categoryConfig[selectedCategory].label}
-              </h2>
-              <p className="text-sm text-white/50 mt-1">
-                {filteredEmails.length}{" "}
-                {filteredEmails.length === 1 ? "email" : "emails"}
-              </p>
-            </div>
-
-            {error && (
-              <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 p-4 backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                <p className="text-sm text-red-400">{error}</p>
-              </div>
-            )}
-
-            <ScrollArea className="flex-1 border border-white/10 rounded-xl bg-white/5 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-white/20">
-              {emailsLoading ? (
-                <div className="flex justify-center py-16">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white/30"></div>
-                    <p className="text-sm text-white/60 animate-pulse">
-                      Loading emails...
-                    </p>
                   </div>
+                  <p className="text-2xl font-bold mb-0.5" style={{ color: colors.fg }}>{s.value}</p>
+                  <p className="text-xs" style={{ color: colors.fgDim }}>{s.label}</p>
                 </div>
-              ) : filteredEmails.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-                  <Archive className="h-12 w-12 text-white/20 mb-4" />
-                  <p className="text-base font-medium text-white/60 mb-2">
-                    No emails
-                  </p>
-                  <p className="text-sm text-white/40 mb-6">
-                    {selectedCategory === "all"
-                      ? "Sync to fetch emails"
-                      : "Try another category"}
-                  </p>
-                  {selectedCategory === "all" && !syncing && (
-                    <Button
-                      onClick={() => handleSync(false)}
-                      size="sm"
-                      className="gap-2 bg-white/10 hover:bg-white/20 border border-white/20 transition-all duration-300"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                      Sync Emails
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <EmailList
-                  emails={filteredEmails}
-                  selectedEmail={selectedEmail}
-                  onSelectEmail={setSelectedEmail}
-                />
-              )}
-            </ScrollArea>
-          </div>
-
-          {/* Email Detail Panel */}
-          {selectedEmail && (
-            <div className="w-96 flex flex-col border border-white/10 rounded-xl bg-white/5 backdrop-blur-xl overflow-hidden animate-in fade-in slide-in-from-right-5 duration-500">
-              <EmailDetailPanel
-                email={selectedEmail}
-                onClose={() => setSelectedEmail(null)}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmailList({
-  emails,
-  selectedEmail,
-  onSelectEmail,
-}: {
-  emails: PlacementEmail[];
-  selectedEmail: PlacementEmail | null;
-  onSelectEmail: (email: PlacementEmail) => void;
-}) {
-  return (
-    <div className="divide-y divide-white/5">
-      {emails.map((email) => (
-        <button
-          key={email.id}
-          onClick={() => onSelectEmail(email)}
-          className={cn(
-            "w-full text-left px-6 py-4 transition-all duration-300 ease-out border-l-2 relative group",
-            selectedEmail?.id === email.id
-              ? "bg-white/10 border-l-white shadow-lg shadow-white/5"
-              : "hover:bg-white/5 border-l-transparent hover:border-l-white/30"
-          )}
-        >
-          <div className="space-y-3">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4 mb-2">
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm text-white line-clamp-2 group-hover:text-white transition-colors">
-                  {email.subject}
-                </h3>
-              </div>
-              <span className="text-xs text-white/40 shrink-0 whitespace-nowrap tabular-nums">
-                {new Date(email.receivedAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
-              </span>
+              ))}
             </div>
 
-            {/* Company & Role */}
-            {(email.company || email.role) && (
-              <div className="flex gap-2 text-xs">
-                {email.company && (
-                  <span className="font-medium text-white/80 group-hover:text-white transition-colors">
-                    {email.company}
+            {/* Two Column Section */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Upcoming Deadlines */}
+              <div className="rounded-2xl border p-5" style={{ background: colors.bgCard, borderColor: colors.border }}>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-semibold flex items-center gap-2" style={{ color: colors.fg }}>
+                    <Clock className="w-4 h-4" style={{ color: colors.yellow }} />
+                    Upcoming Deadlines
+                  </h2>
+                  <span className="text-xs px-2 py-1 rounded-full" style={{ background: colors.bgHover, color: colors.fgDim }}>
+                    {upcomingDeadlines.length} active
                   </span>
-                )}
-                {email.role && (
-                  <>
-                    <span className="text-white/30">•</span>
-                    <span className="text-white/60 group-hover:text-white/80 transition-colors">
-                      {email.role}
-                    </span>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Snippet */}
-            <p className="text-sm text-white/50 line-clamp-2 group-hover:text-white/70 transition-colors">
-              {email.summary || email.snippet}
-            </p>
-
-            {/* Footer Info */}
-            {(email.deadline ||
-              (email.attachments && email.attachments.length > 0)) && (
-              <div className="flex items-center gap-4 flex-wrap pt-2 text-xs text-white/40">
-                {email.deadline && (
-                  <div className="flex items-center gap-1.5 group-hover:text-white/60 transition-colors">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span className="tabular-nums">
-                      Due{" "}
-                      {new Date(email.deadline).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
+                </div>
+                {upcomingDeadlines.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="w-8 h-8 mx-auto mb-2 opacity-30" style={{ color: colors.fgDim }} />
+                    <p className="text-sm" style={{ color: colors.fgDim }}>No upcoming deadlines</p>
                   </div>
-                )}
-                {email.attachments && email.attachments.length > 0 && (
-                  <div className="flex items-center gap-1.5 group-hover:text-white/60 transition-colors">
-                    <LinkIcon className="h-3.5 w-3.5" />
-                    <span>
-                      {email.attachments.length} attachment
-                      {email.attachments.length !== 1 ? "s" : ""}
-                    </span>
+                ) : (
+                  <div className="space-y-2">
+                    {upcomingDeadlines.map(email => {
+                      const dl = formatDeadline(email.deadline!)
+                      const days = getDaysDiff(email.deadline!)
+                      return (
+                        <div
+                          key={email.id}
+                          onClick={() => { setSelectedEmail(email); setCurrentView("inbox") }}
+                          className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all hover:scale-[1.01]"
+                          style={{ background: colors.bgHover }}
+                        >
+                          <div
+                            className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
+                            style={{ background: `${dl.urgent ? colors.red : colors.blue}15`, color: dl.urgent ? colors.red : colors.blue }}
+                          >
+                            {days < 0 ? "!" : `${days}d`}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate" style={{ color: colors.fg }}>{email.company || email.subject}</p>
+                            <p className="text-xs truncate" style={{ color: colors.fgDim }}>{email.role || dl.text}</p>
+                          </div>
+                          <ChevronRight className="w-4 h-4 shrink-0 opacity-40" style={{ color: colors.fgDim }} />
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-          {selectedEmail?.id === email.id && (
-            <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent pointer-events-none" />
-          )}
-        </button>
-      ))}
-    </div>
-  );
-}
 
-function EmailDetailPanel({
-  email,
-  onClose,
-}: {
-  email: PlacementEmail;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      {/* Header */}
-      <div className="flex items-start justify-between p-6 border-b border-white/10 bg-white/5">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base font-semibold text-white mb-2 pr-8">
-            {email.subject}
-          </h2>
-          <p className="text-sm text-white/50">{email.sender}</p>
-        </div>
-        <Button
-          onClick={onClose}
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 rounded-lg hover:bg-white/10 transition-all duration-300"
-        >
-          <X className="h-4 w-4 text-white/60" />
-        </Button>
-      </div>
-
-      {/* Content */}
-      <ScrollArea className="flex-1 p-6">
-        <div className="space-y-6">
-          {/* Company & Role */}
-          {(email.company || email.role) && (
-            <div className="space-y-2">
-              {email.company && (
-                <div>
-                  <p className="text-xs text-white/50 mb-1 uppercase tracking-wider">
-                    Company
-                  </p>
-                  <p className="text-sm font-medium text-white">
-                    {email.company}
-                  </p>
+              {/* Recent Emails */}
+              <div className="rounded-2xl border p-5" style={{ background: colors.bgCard, borderColor: colors.border }}>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-semibold flex items-center gap-2" style={{ color: colors.fg }}>
+                    <Inbox className="w-4 h-4" style={{ color: colors.blue }} />
+                    Recent Emails
+                  </h2>
+                  <button onClick={() => setCurrentView("inbox")} className="text-xs flex items-center gap-1 hover:underline" style={{ color: colors.blue }}>
+                    View all <ChevronRight className="w-3 h-3" />
+                  </button>
                 </div>
-              )}
-              {email.role && (
-                <div>
-                  <p className="text-xs text-white/50 mb-1 uppercase tracking-wider">
-                    Role
-                  </p>
-                  <p className="text-sm font-medium text-white">{email.role}</p>
-                </div>
-              )}
+                {emailsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: colors.bgHighlight, borderTopColor: colors.blue }} />
+                  </div>
+                ) : emails.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Inbox className="w-8 h-8 mx-auto mb-2 opacity-30" style={{ color: colors.fgDim }} />
+                    <p className="text-sm mb-3" style={{ color: colors.fgDim }}>No emails yet</p>
+                    <button onClick={handleSync} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: colors.blue, color: "#fff" }}>
+                      Sync Now
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {emails.slice(0, 4).map(email => {
+                      const cat = categoryConfig[email.category?.toLowerCase() || "announcement"] || categoryConfig.announcement
+                      const Icon = cat.icon
+                      return (
+                        <div
+                          key={email.id}
+                          onClick={() => { setSelectedEmail(email); setCurrentView("inbox") }}
+                          className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors hover:bg-white/5"
+                        >
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${cat.color}15` }}>
+                            <Icon className="w-4 h-4" style={{ color: cat.color }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate" style={{ color: colors.fg }}>{email.company || email.subject}</p>
+                            <p className="text-xs truncate" style={{ color: colors.fgDim }}>{email.role || email.snippet}</p>
+                          </div>
+                          <span className="text-[10px] shrink-0" style={{ color: colors.fgDim }}>{formatRelativeDate(email.receivedAt)}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
 
-          {/* Key Details Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            {email.deadline && (
-              <div className="p-3 rounded-lg bg-white/5 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-white/20">
-                <p className="text-xs text-white/50 mb-1 uppercase tracking-wider">
-                  Deadline
-                </p>
-                <p className="text-sm font-medium text-white tabular-nums">
-                  {new Date(email.deadline).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
+            {/* Categories */}
+            <div className="rounded-2xl border p-5" style={{ background: colors.bgCard, borderColor: colors.border }}>
+              <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ color: colors.fg }}>
+                <Tag className="w-4 h-4" style={{ color: colors.purple }} />
+                Categories
+              </h2>
+              <div className="grid grid-cols-5 gap-3">
+                {Object.entries(categoryConfig)
+                  .filter(([key]) => key !== "all")
+                  .map(([key, config]) => {
+                    const count = categoryCounts[key] || 0
+                    const Icon = config.icon
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => { setSelectedCategory(key as EmailCategory); setCurrentView("inbox") }}
+                        className="p-4 rounded-xl text-center transition-all hover:scale-[1.02] border"
+                        style={{ background: count > 0 ? `${config.color}08` : colors.bgHover, borderColor: count > 0 ? `${config.color}20` : 'transparent' }}
+                      >
+                        <Icon className="w-5 h-5 mx-auto mb-2" style={{ color: count > 0 ? config.color : colors.fgDim }} />
+                        <p className="text-lg font-bold" style={{ color: count > 0 ? colors.fg : colors.fgDim }}>{count}</p>
+                        <p className="text-[10px]" style={{ color: colors.fgDim }}>{config.label}</p>
+                      </button>
+                    )
                   })}
-                </p>
               </div>
-            )}
-            {email.location && (
-              <div className="p-3 rounded-lg bg-white/5 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-white/20">
-                <p className="text-xs text-white/50 mb-1 uppercase tracking-wider">
-                  Location
-                </p>
-                <p className="text-sm font-medium text-white">
-                  {email.location}
-                </p>
-              </div>
-            )}
-            {email.salary && (
-              <div className="p-3 rounded-lg bg-white/5 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-white/20">
-                <p className="text-xs text-white/50 mb-1 uppercase tracking-wider">
-                  Salary
-                </p>
-                <p className="text-sm font-medium text-white">{email.salary}</p>
-              </div>
-            )}
-            {email.timings && (
-              <div className="p-3 rounded-lg bg-white/5 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-white/20">
-                <p className="text-xs text-white/50 mb-1 uppercase tracking-wider">
-                  Timings
-                </p>
-                <p className="text-sm font-medium text-white">
-                  {email.timings}
-                </p>
-              </div>
-            )}
+            </div>
           </div>
 
-          {/* Description */}
-          {(email.description || email.summary) && (
-            <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-              <p className="text-xs text-white/50 mb-2 uppercase tracking-wider">
-                Description
-              </p>
-              <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
-                {email.description || email.summary}
-              </p>
-            </div>
-          )}
-
-          {/* Eligibility */}
-          {email.eligibility && (
-            <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-              <p className="text-xs text-white/50 mb-2 uppercase tracking-wider">
-                Eligibility
-              </p>
-              <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
-                {email.eligibility}
-              </p>
-            </div>
-          )}
-
-          {/* Requirements */}
-          {email.requirements && (
-            <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-              <p className="text-xs text-white/50 mb-2 uppercase tracking-wider">
-                Requirements
-              </p>
-              <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
-                {email.requirements}
-              </p>
-            </div>
-          )}
-
-          {/* Event Details */}
-          {email.eventDetails && (
-            <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-              <p className="text-xs text-white/50 mb-2 uppercase tracking-wider">
-                Event Details
-              </p>
-              <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
-                {email.eventDetails}
-              </p>
-            </div>
-          )}
-
-          {/* Links */}
-          {email.applyLink && (
-            <div>
-              <p className="text-xs text-white/50 mb-2 uppercase tracking-wider">
-                Apply Link
-              </p>
-              <a
-                href={email.applyLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white text-black hover:bg-white/90 transition-all duration-300 text-sm font-medium group"
-              >
-                <span>Apply Now</span>
-                <LinkIcon className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </a>
-            </div>
-          )}
-
-          {/* Other Links */}
-          {email.otherLinks && email.otherLinks.length > 1 && (
-            <div>
-              <p className="text-xs text-white/50 mb-2 uppercase tracking-wider">
-                Additional Links
-              </p>
-              <div className="space-y-2">
-                {email.otherLinks.map((link, index) => (
-                  <a
-                    key={index}
-                    href={link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 text-sm text-white/70 hover:text-white group"
-                  >
-                    <LinkIcon className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate flex-1">{link}</span>
-                  </a>
+          {/* Right Column - Calendar & Events */}
+          <div className="w-80 shrink-0 space-y-6">
+            {/* Calendar */}
+            <div className="rounded-2xl border p-5" style={{ background: colors.bgCard, borderColor: colors.border }}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold" style={{ color: colors.fg }}>
+                  {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </h2>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => navigateMonth(-1)} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10">
+                    <ChevronLeft className="w-4 h-4" style={{ color: colors.fgDim }} />
+                  </button>
+                  <button onClick={() => navigateMonth(1)} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10">
+                    <ChevronRight className="w-4 h-4" style={{ color: colors.fgDim }} />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d, i) => (
+                  <div key={i} className="text-center text-[10px] py-1 font-medium" style={{ color: colors.fgDim }}>{d}</div>
                 ))}
               </div>
+              
+              <div className="grid grid-cols-7 gap-1">
+                {getCalendarDays().map((day, i) => (
+                  <div
+                    key={i}
+                    className="aspect-square flex items-center justify-center text-xs rounded-lg relative"
+                    style={{ 
+                      background: day.isToday ? colors.blue : 'transparent',
+                      color: day.isToday ? "#fff" : !day.isCurrentMonth ? colors.fgDim + '40' : colors.fgMuted
+                    }}
+                  >
+                    {day.date}
+                    {(day.hasDeadline || day.hasEvent) && !day.isToday && (
+                      <div className="absolute bottom-0.5 flex gap-0.5">
+                        {day.hasDeadline && <div className="w-1 h-1 rounded-full" style={{ background: colors.yellow }} />}
+                        {day.hasEvent && <div className="w-1 h-1 rounded-full" style={{ background: colors.green }} />}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-4 pt-4 flex gap-4 text-[10px] border-t" style={{ borderColor: colors.border }}>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full" style={{ background: colors.yellow }} />
+                  <span style={{ color: colors.fgDim }}>Deadlines</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full" style={{ background: colors.green }} />
+                  <span style={{ color: colors.fgDim }}>Events</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Upcoming Events */}
+            <div className="rounded-2xl border p-5" style={{ background: colors.bgCard, borderColor: colors.border }}>
+              <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ color: colors.fg }}>
+                <CalendarCheck className="w-4 h-4" style={{ color: colors.green }} />
+                Upcoming Events
+              </h2>
+              {upcomingEvents.length === 0 ? (
+                <div className="text-center py-6">
+                  <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" style={{ color: colors.fgDim }} />
+                  <p className="text-xs" style={{ color: colors.fgDim }}>No events this week</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingEvents.map(event => {
+                    const eventDate = new Date(event.startTime)
+                    const days = getDaysDiff(event.startTime)
+                    return (
+                      <a
+                        key={event.id}
+                        href={event.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-start gap-3 p-3 rounded-xl transition-colors hover:bg-white/5"
+                        style={{ background: colors.bgHover }}
+                      >
+                        <div className="w-10 h-10 rounded-lg flex flex-col items-center justify-center shrink-0" style={{ background: `${colors.green}15` }}>
+                          <span className="text-[9px] uppercase font-medium" style={{ color: colors.fgDim }}>
+                            {eventDate.toLocaleDateString('en-US', { month: 'short' })}
+                          </span>
+                          <span className="text-sm font-bold leading-none" style={{ color: colors.green }}>
+                            {eventDate.getDate()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate mb-0.5" style={{ color: colors.fg }}>{event.title}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs" style={{ color: colors.fgDim }}>
+                              {eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            </span>
+                            {days === 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: `${colors.green}20`, color: colors.green }}>Today</span>}
+                            {days === 1 && <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: `${colors.cyan}20`, color: colors.cyan }}>Tomorrow</span>}
+                          </div>
+                        </div>
+                        {event.isAuraMail && <Sparkles className="w-3 h-3 shrink-0 mt-1" style={{ color: colors.magenta }} />}
+                      </a>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  // ============ INBOX VIEW ============
+  const renderInbox = () => (
+    <div className="flex flex-1 min-h-0">
+      {/* Email List */}
+      <div className={`${selectedEmail ? "w-[420px]" : "flex-1 max-w-2xl"} flex flex-col border-r`} style={{ borderColor: colors.border }}>
+        <div className="p-4 space-y-3 border-b" style={{ borderColor: colors.border }}>
+          {/* Search and Sort Row */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: colors.fgDim }} />
+              <input
+                type="text"
+                placeholder="Search emails..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none border"
+                style={{ background: colors.bgHover, color: colors.fg, borderColor: colors.border }}
+              />
+            </div>
+            
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSortDropdown(!showSortDropdown)}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm border transition-colors"
+                style={{ 
+                  background: showSortDropdown ? colors.bgHighlight : colors.bgHover, 
+                  color: colors.fgMuted, 
+                  borderColor: showSortDropdown ? colors.blue : colors.border 
+                }}
+              >
+                <ArrowUpDown className="w-4 h-4" />
+                <span className="hidden sm:inline">{sortOptions.find(s => s.value === sortBy)?.label}</span>
+                <ChevronDown className={`w-3 h-3 transition-transform ${showSortDropdown ? "rotate-180" : ""}`} />
+              </button>
+              
+              {showSortDropdown && (
+                <>
+                  {/* Backdrop */}
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setShowSortDropdown(false)} 
+                  />
+                  
+                  {/* Dropdown Menu */}
+                  <div 
+                    className="absolute right-0 top-full mt-2 w-56 rounded-xl border shadow-xl z-20 overflow-hidden"
+                    style={{ background: colors.bgCard, borderColor: colors.border }}
+                  >
+                    <div className="p-2">
+                      <div className="px-3 py-2 text-[10px] uppercase tracking-wider font-medium" style={{ color: colors.fgDim }}>
+                        Sort by
+                      </div>
+                      {sortOptions.map(option => {
+                        const Icon = option.icon
+                        const isActive = sortBy === option.value
+                        return (
+                          <button
+                            key={option.value}
+                            onClick={() => {
+                              if (sortBy === option.value) {
+                                // Toggle direction if same option clicked
+                                setSortDirection(prev => prev === "asc" ? "desc" : "asc")
+                              } else {
+                                setSortBy(option.value)
+                                // Set sensible default direction for each sort type
+                                setSortDirection(option.value === "company" ? "asc" : "desc")
+                              }
+                              setShowSortDropdown(false)
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors"
+                            style={{ 
+                              background: isActive ? colors.bgHighlight : "transparent",
+                              color: isActive ? colors.fg : colors.fgMuted 
+                            }}
+                          >
+                            <Icon className="w-4 h-4" style={{ color: isActive ? colors.blue : colors.fgDim }} />
+                            <span className="flex-1 text-left">{option.label}</span>
+                            {isActive && (
+                              sortDirection === "desc" 
+                                ? <ArrowDown className="w-3.5 h-3.5" style={{ color: colors.blue }} />
+                                : <ArrowUp className="w-3.5 h-3.5" style={{ color: colors.blue }} />
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    
+                    <div className="border-t px-2 py-2" style={{ borderColor: colors.border }}>
+                      <div className="px-3 py-2 text-[10px] uppercase tracking-wider font-medium" style={{ color: colors.fgDim }}>
+                        Direction
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => { setSortDirection("desc"); setShowSortDropdown(false) }}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+                          style={{ 
+                            background: sortDirection === "desc" ? colors.blue : colors.bgHover,
+                            color: sortDirection === "desc" ? "#fff" : colors.fgMuted 
+                          }}
+                        >
+                          <ArrowDown className="w-3 h-3" /> Descending
+                        </button>
+                        <button
+                          onClick={() => { setSortDirection("asc"); setShowSortDropdown(false) }}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+                          style={{ 
+                            background: sortDirection === "asc" ? colors.blue : colors.bgHover,
+                            color: sortDirection === "asc" ? "#fff" : colors.fgMuted 
+                          }}
+                        >
+                          <ArrowUp className="w-3 h-3" /> Ascending
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          
+          {/* Category Tabs */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {Object.entries(categoryConfig)
+              .filter(([key]) => key === "all" || (categoryCounts[key] || 0) > 0)
+              .map(([key, config]) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedCategory(key as EmailCategory)}
+                  className="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors font-medium"
+                  style={{
+                    background: selectedCategory === key ? colors.blue : colors.bgHover,
+                    color: selectedCategory === key ? "#fff" : colors.fgMuted,
+                  }}
+                >
+                  {config.label}
+                </button>
+              ))}
+          </div>
+          
+          {/* Active Sort Indicator */}
+          {(sortBy !== "date" || sortDirection !== "desc") && (
+            <div className="flex items-center gap-2 text-xs" style={{ color: colors.fgDim }}>
+              <span>Sorted by:</span>
+              <span className="px-2 py-0.5 rounded-full flex items-center gap-1.5" style={{ background: colors.bgHighlight, color: colors.blue }}>
+                {(() => {
+                  const opt = sortOptions.find(s => s.value === sortBy)
+                  const Icon = opt?.icon || Clock
+                  return (
+                    <>
+                      <Icon className="w-3 h-3" />
+                      {opt?.label}
+                      {sortDirection === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                    </>
+                  )
+                })()}
+              </span>
+              <button 
+                onClick={() => { setSortBy("date"); setSortDirection("desc") }}
+                className="hover:underline"
+                style={{ color: colors.fgDim }}
+              >
+                Reset
+              </button>
             </div>
           )}
+        </div>
 
-          {/* Attachments */}
-          {email.attachments && email.attachments.length > 0 && (
-            <div>
-              <p className="text-xs text-white/50 mb-2 uppercase tracking-wider">
-                Attachments ({email.attachments.length})
-              </p>
-              <div className="space-y-2">
-                {email.attachments.map((attachment, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+        <div className="flex-1 overflow-y-auto">
+          {emailsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: colors.bgHighlight, borderTopColor: colors.blue }} />
+            </div>
+          ) : filteredEmails.length === 0 ? (
+            <div className="text-center py-12">
+              <Inbox className="w-12 h-12 mx-auto mb-3 opacity-30" style={{ color: colors.fgDim }} />
+              <p style={{ color: colors.fgDim }}>No emails found</p>
+            </div>
+          ) : (
+            <div className="p-2">
+              {filteredEmails.map(email => {
+                const cat = categoryConfig[email.category?.toLowerCase() || "announcement"] || categoryConfig.announcement
+                const Icon = cat.icon
+                const isSelected = selectedEmail?.id === email.id
+                return (
+                  <button
+                    key={email.id}
+                    onClick={() => setSelectedEmail(email)}
+                    className="w-full text-left p-4 rounded-xl mb-1 transition-all"
+                    style={{ background: isSelected ? colors.bgHighlight : "transparent" }}
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">
-                        {attachment.filename}
-                      </p>
-                      <p className="text-xs text-white/40">
-                        {(attachment.size / 1024).toFixed(1)} KB
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${cat.color}15` }}>
+                        <Icon className="w-5 h-5" style={{ color: cat.color }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="font-medium truncate" style={{ color: colors.fg }}>{email.company || email.subject}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {email.priority === "high" && <Star className="w-3.5 h-3.5" style={{ color: colors.yellow, fill: colors.yellow }} />}
+                            <span className="text-[10px]" style={{ color: colors.fgDim }}>{formatRelativeDate(email.receivedAt)}</span>
+                          </div>
+                        </div>
+                        {email.role && <p className="text-sm mb-1 truncate" style={{ color: colors.fgMuted }}>{email.role}</p>}
+                        <p className="text-xs truncate mb-2" style={{ color: colors.fgDim }}>{email.summary || email.snippet}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {email.deadline && (() => {
+                            const dl = formatDeadline(email.deadline)
+                            return (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-medium" style={{ background: `${dl.urgent ? colors.red : colors.blue}15`, color: dl.urgent ? colors.red : colors.blue }}>
+                                <Clock className="w-2.5 h-2.5" /> {dl.text}
+                              </span>
+                            )
+                          })()}
+                          {email.tags?.slice(0, 2).map(renderTag)}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Email Detail */}
+      {selectedEmail && (
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ background: colors.bgAlt }}>
+          <div className="h-16 flex items-center justify-between px-6 border-b shrink-0" style={{ borderColor: colors.border }}>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-semibold truncate" style={{ color: colors.fg }}>{selectedEmail.company || "Email Details"}</span>
+              {selectedEmail.role && (
+                <>
+                  <ChevronRight className="w-4 h-4 shrink-0" style={{ color: colors.fgDim }} />
+                  <span className="truncate" style={{ color: colors.fgMuted }}>{selectedEmail.role}</span>
+                </>
+              )}
+            </div>
+            <button onClick={() => setSelectedEmail(null)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/5">
+              <X className="w-4 h-4" style={{ color: colors.fgDim }} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-2xl">
+              {/* Badges */}
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
+                {selectedEmail.category && (() => {
+                  const cat = categoryConfig[selectedEmail.category.toLowerCase()] || categoryConfig.announcement
+                  const Icon = cat.icon
+                  return (
+                    <span className="text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 font-medium" style={{ background: `${cat.color}15`, color: cat.color }}>
+                      <Icon className="w-3.5 h-3.5" /> {cat.label}
+                    </span>
+                  )
+                })()}
+                {selectedEmail.priority === "high" && (
+                  <span className="text-xs px-2.5 py-1 rounded-full flex items-center gap-1 font-medium" style={{ background: `${colors.yellow}15`, color: colors.yellow }}>
+                    <Star className="w-3.5 h-3.5" style={{ fill: colors.yellow }} /> High Priority
+                  </span>
+                )}
+              </div>
+
+              <h1 className="text-2xl font-bold mb-2" style={{ color: colors.fg }}>{selectedEmail.subject}</h1>
+              <p className="text-sm mb-6" style={{ color: colors.fgDim }}>
+                {new Date(selectedEmail.receivedAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+              </p>
+
+              {selectedEmail.tags && selectedEmail.tags.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap mb-6">
+                  {selectedEmail.tags.map(renderTag)}
+                </div>
+              )}
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 gap-4 mb-6 p-4 rounded-xl" style={{ background: colors.bgCard }}>
+                {selectedEmail.deadline && (
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-4 h-4 shrink-0" style={{ color: colors.yellow }} />
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.fgDim }}>Deadline</p>
+                      <p className="text-sm font-medium" style={{ color: formatDeadline(selectedEmail.deadline).urgent ? colors.red : colors.fg }}>
+                        {new Date(selectedEmail.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </p>
                     </div>
                   </div>
-                ))}
+                )}
+                {selectedEmail.location && (
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-4 h-4 shrink-0" style={{ color: colors.blue }} />
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.fgDim }}>Location</p>
+                      <p className="text-sm font-medium" style={{ color: colors.fg }}>{selectedEmail.location}</p>
+                    </div>
+                  </div>
+                )}
+                {selectedEmail.salary && (
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="w-4 h-4 shrink-0" style={{ color: colors.green }} />
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.fgDim }}>Salary</p>
+                      <p className="text-sm font-medium" style={{ color: colors.fg }}>{selectedEmail.salary}</p>
+                    </div>
+                  </div>
+                )}
+                {selectedEmail.eligibility && (
+                  <div className="flex items-center gap-3">
+                    <User className="w-4 h-4 shrink-0" style={{ color: colors.cyan }} />
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.fgDim }}>Eligibility</p>
+                      <p className="text-sm font-medium" style={{ color: colors.fg }}>{selectedEmail.eligibility}</p>
+                    </div>
+                  </div>
+                )}
               </div>
-              {email.attachmentSummary && (
-                <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
-                  <p className="text-xs text-white/70">
-                    {email.attachmentSummary}
-                  </p>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3 mb-8">
+                {selectedEmail.deadline && (
+                  isInCalendar(selectedEmail) ? (
+                    <button onClick={() => removeFromCalendar(selectedEmail)} disabled={addingToCalendar} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 transition-colors" style={{ background: `${colors.green}15`, color: colors.green }}>
+                      <CalendarCheck className="w-4 h-4" /> In Calendar
+                    </button>
+                  ) : (
+                    <button onClick={() => addToCalendar(selectedEmail)} disabled={addingToCalendar} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 transition-colors" style={{ background: colors.blue, color: "#fff" }}>
+                      <CalendarPlus className="w-4 h-4" /> Add to Calendar
+                    </button>
+                  )
+                )}
+                {selectedEmail.applyLink && (
+                  <a href={selectedEmail.applyLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors" style={{ background: colors.green, color: "#fff" }}>
+                    <ExternalLink className="w-4 h-4" /> Apply Now
+                  </a>
+                )}
+              </div>
+
+              {selectedEmail.summary && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: colors.fg }}>
+                    <Sparkles className="w-4 h-4" style={{ color: colors.magenta }} /> AI Summary
+                  </h3>
+                  <p className="text-sm leading-relaxed" style={{ color: colors.fgMuted }}>{selectedEmail.summary}</p>
+                </div>
+              )}
+
+              {selectedEmail.description && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2" style={{ color: colors.fg }}>Description</h3>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: colors.fgMuted }}>{selectedEmail.description}</p>
                 </div>
               )}
             </div>
-          )}
-
-          {/* Full Email Content */}
-          {email.snippet && (
-            <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-              <p className="text-xs text-white/50 mb-2 uppercase tracking-wider">
-                Email Snippet
-              </p>
-              <p className="text-sm text-white/70 leading-relaxed">
-                {email.snippet}
-              </p>
-            </div>
-          )}
-
-          {/* Timestamp */}
-          <div className="pt-4 border-t border-white/10">
-            <p className="text-xs text-white/40 tabular-nums">
-              Received{" "}
-              {new Date(email.receivedAt).toLocaleString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
-            </p>
           </div>
         </div>
-      </ScrollArea>
-    </>
-  );
+      )}
+    </div>
+  )
+
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: colors.bg }}>
+      {/* Header */}
+      <header className="h-16 border-b flex items-center justify-between px-6 shrink-0" style={{ borderColor: colors.border, background: colors.bgAlt }}>
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${colors.blue}20` }}>
+              <Mail className="w-4 h-4" style={{ color: colors.blue }} />
+            </div>
+            <span className="text-lg font-bold" style={{ color: colors.fg }}>AuraMail</span>
+          </div>
+          <nav className="flex items-center gap-1">
+            {[
+              { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+              { id: "inbox", label: "Inbox", icon: Inbox },
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => setCurrentView(item.id as View)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{ 
+                  background: currentView === item.id ? colors.bgHighlight : "transparent", 
+                  color: currentView === item.id ? colors.fg : colors.fgDim 
+                }}
+              >
+                <item.icon className="w-4 h-4" />
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={handleSync} disabled={syncing} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border" style={{ background: colors.bgHover, color: colors.fg, borderColor: colors.border }}>
+            <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing..." : "Sync"}
+          </button>
+          <div className="w-px h-8" style={{ background: colors.border }} />
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium" style={{ background: colors.bgHighlight, color: colors.fg }}>
+              {user.name?.charAt(0) || "U"}
+            </div>
+            <span className="text-sm font-medium" style={{ color: colors.fgMuted }}>{user.name?.split(" ")[0]}</span>
+          </div>
+          <button onClick={() => { logout(); router.push("/") }} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/5">
+            <LogOut className="w-4 h-4" style={{ color: colors.fgDim }} />
+          </button>
+        </div>
+      </header>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="mx-6 mt-4 p-3 rounded-xl flex items-center gap-3" style={{ background: `${colors.red}15`, borderColor: `${colors.red}30` }}>
+          <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: colors.red }} />
+          <span className="text-sm flex-1" style={{ color: colors.red }}>{error}</span>
+          <button onClick={() => setError(null)}><X className="w-4 h-4" style={{ color: colors.red }} /></button>
+        </div>
+      )}
+
+      {/* Content */}
+      {currentView === "dashboard" ? renderDashboard() : renderInbox()}
+    </div>
+  )
 }

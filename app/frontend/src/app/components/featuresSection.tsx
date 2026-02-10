@@ -1,107 +1,89 @@
-"use client";
-
-import {
-  Mail,
-  Calendar,
-  BookOpen,
-  Zap,
-  Bell,
-  BarChart3,
-  type LucideIcon,
-} from "lucide-react";
-import { motion } from "framer-motion";
+"use client"
+import { Mail, Calendar, BookOpen, Zap, Bell, BarChart3, type LucideIcon } from "lucide-react"
+import { motion } from "framer-motion"
 
 interface FeatureCardProps {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  index: number;
+  icon: LucideIcon
+  title: string
+  description: string
+  index: number
 }
 
-const FeatureCard = ({
-  icon: Icon,
-  title,
-  description,
-  index,
-}: FeatureCardProps) => (
+const FeatureCard = ({ icon: Icon, title, description, index }: FeatureCardProps) => (
   <motion.div
-    className="group p-6 rounded-xl bg-gradient-to-br from-white/3 to-white/1 hover:from-white/6 hover:to-white/2 transition-all duration-300 backdrop-blur-sm"
+    className="group relative p-6 rounded-xl border border-white/10 bg-gradient-to-br from-white/3 to-transparent hover:border-white/20 hover:bg-white/5 transition-all duration-300 backdrop-blur-sm overflow-hidden"
     initial={{ opacity: 0, y: 20 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
-    transition={{ duration: 0.5, delay: index * 0.1 }}
-    whileHover={{ y: -5 }}
+    transition={{ duration: 0.5, delay: index * 0.08 }}
   >
-    <div className="flex items-start gap-4">
-      <div className="p-2 rounded-lg bg-gradient-to-br from-white/8 to-white/2 group-hover:from-white/12 group-hover:to-white/4 transition-all duration-300">
-        <Icon className="w-6 h-6 text-gray-300 group-hover:text-white transition-colors" />
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-indigo-500/0 group-hover:from-blue-500/5 group-hover:to-indigo-500/5 transition-all duration-300"></div>
+
+    <div className="relative z-10 flex items-start gap-4">
+      <div className="p-3 rounded-lg bg-white/5 group-hover:bg-white/10 transition-all duration-300">
+        <Icon className="w-6 h-6 text-blue-400" />
       </div>
       <div>
-        <h3 className="text-white font-semibold mb-2 group-hover:text-gray-100 transition-colors">
-          {title}
-        </h3>
-        <p className="text-gray-500 text-sm leading-relaxed group-hover:text-gray-400 transition-colors">
-          {description}
-        </p>
+        <h3 className="text-white font-semibold mb-2">{title}</h3>
+        <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
       </div>
     </div>
   </motion.div>
-);
+)
 
 export function FeaturesSection() {
   const features = [
     {
       icon: Mail,
-      title: "AI-Organized Placement Emails",
-      description:
-        "Automatically categorize and organize placement-related emails with intelligent AI analysis.",
+      title: "AI-Organized Emails",
+      description: "Automatically categorize and organize placement-related emails with intelligent AI analysis.",
     },
     {
       icon: Calendar,
-      title: "Smart Calendar Integration",
-      description:
-        "Mark important emails and automatically sync them to Google Calendar with notifications.",
+      title: "Smart Calendar Sync",
+      description: "Mark important emails and automatically sync them to Google Calendar with notifications.",
     },
     {
       icon: BookOpen,
-      title: "Google Classroom Manager",
-      description:
-        "Seamlessly manage your courses, track assignments, and stay updated with classroom activities.",
+      title: "Classroom Manager",
+      description: "Seamlessly manage your courses, track assignments, and stay updated with classroom activities.",
     },
     {
       icon: Zap,
       title: "n8n Automation",
-      description:
-        "Trigger automated workflows based on email events and placement updates.",
+      description: "Trigger automated workflows based on email events and placement updates.",
     },
     {
       icon: Bell,
       title: "Smart Notifications",
-      description:
-        "Get real-time alerts on your devices for important placement opportunities and deadlines.",
+      description: "Get real-time alerts on your devices for important placement opportunities.",
     },
     {
       icon: BarChart3,
-      title: "Placement Analytics",
-      description:
-        "Track your placement journey with detailed insights and progress metrics.",
+      title: "Analytics Dashboard",
+      description: "Track your placement journey with detailed insights and progress metrics.",
     },
-  ];
+  ]
 
   return (
-    <section className="w-full px-5 py-16 md:py-24 relative">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-gradient-to-b from-white/5 to-transparent rounded-full blur-3xl opacity-30 pointer-events-none"></div>
+    <section className="relative w-full px-4 py-20 md:py-32 bg-black">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
 
-      <div className="max-w-[1220px] mx-auto relative z-10">
-        <div className="text-center mb-12">
-          <h2 className="text-white text-4xl md:text-5xl font-semibold mb-4 bg-gradient-to-r from-white via-gray-300 to-gray-500 bg-clip-text text-transparent">
-            Powerful Features for Your Success
-          </h2>
-          <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-            Everything you need to manage your academic and professional journey
-            in one unified platform.
+      <div className="max-w-6xl mx-auto relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">Everything You Need</h2>
+          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+            Powerful features designed to help you manage your academic and professional journey in one unified
+            platform.
           </p>
-        </div>
+        </motion.div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
             <FeatureCard key={feature.title} {...feature} index={index} />
@@ -109,5 +91,5 @@ export function FeaturesSection() {
         </div>
       </div>
     </section>
-  );
+  )
 }

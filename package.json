@@ -2,12 +2,24 @@
   "name": "AuraMail",
   "private": true,
   "scripts": {
-    "dev": "pnpm -r --parallel run dev",
-    "build": "pnpm -r run build",
+    "dev": "pnpm run dev:all",
+    "dev:all": "concurrently \"pnpm run dev:frontend\" \"pnpm run dev:backend\"",
+    "dev:frontend": "pnpm --filter frontend run dev",
+    "dev:backend": "cd app/backend && go run ./cmd/backend/",
+    "build": "pnpm run build:all",
+    "build:all": "pnpm run build:frontend && pnpm run build:backend",
+    "build:frontend": "pnpm --filter frontend run build",
+    "build:backend": "cd app/backend && go build -o backend ./cmd/backend/",
+    "start:backend": "cd app/backend && ./backend",
     "db:generate": "pnpm --filter database db:generate",
     "db:migrate": "pnpm --filter database db:migrate",
+    "db:migrate:go": "cd app/backend && goose -dir migrations postgres \"$GOOSE_DBSTRING\" up",
     "db:studio": "pnpm --filter database db:studio",
     "docker:dev": "docker-compose up -d",
-    "clean": "rm -rf node_modules && pnpm -r exec rm -rf node_modules"
+    "clean": "rm -rf node_modules && pnpm -r exec rm -rf node_modules",
+    "test:backend": "cd app/backend && go test ./..."
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }

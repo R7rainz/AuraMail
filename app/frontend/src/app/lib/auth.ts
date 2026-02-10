@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || `http://localhost:5000`;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export interface User {
   id: string;
@@ -19,7 +19,7 @@ export interface AuthResponse {
 }
 
 export async function getGoogleAuthUrl(): Promise<string> {
-  const response = await fetch(`${API_URL}/api/auth/google`);
+  const response = await fetch(`${API_URL}/auth/google`);
   const data = await response.json();
 
   if (!data.success) {
@@ -88,7 +88,7 @@ export async function refreshAccessToken(): Promise<AuthTokens | null> {
   }
 
   try {
-    const response = await fetch(`${API_URL}/api/auth/refresh`, {
+    const response = await fetch(`${API_URL}/auth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -125,7 +125,7 @@ export async function getCurrentUser(): Promise<User | null> {
 
   if (!tokens) return null;
   try {
-    const response = await fetch(`${API_URL}/api/auth/me`, {
+    const response = await fetch(`${API_URL}/auth/me`, {
       headers: {
         Authorization: `Bearer ${tokens.accessToken}`,
       },
@@ -160,7 +160,7 @@ export async function logoutUser(): Promise<void> {
 
   if (tokens) {
     try {
-      await fetch(`${API_URL}/api/auth/logout`, {
+      await fetch(`${API_URL}/auth/logout`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${tokens.accessToken}`,

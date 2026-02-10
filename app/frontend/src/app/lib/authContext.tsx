@@ -2,11 +2,13 @@
 import {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useState,
 } from "react";
-import { getCurrentUser, isAuthenticated, User, logoutUser } from "./auth";
+import { getCurrentUser, isAuthenticated, User, logoutUser, getStoredUser } from "./auth";
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -21,19 +23,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
+      // First check localStorage for user (faster)
+      const storedUser = getStoredUser();
+      if (storedUser) {
+        setUser(storedUser);
+      }
+      
+      // Then verify with backend
       const currentUser = await getCurrentUser();
       setUser(currentUser);
     } catch (error) {
       console.error("Error fetching user: ", error);
       setUser(null);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const initAuth = async () => {
       if (isAuthenticated()) {
+        // Quickly set user from localStorage first
+        const storedUser = getStoredUser();
+        if (storedUser) {
+          setUser(storedUser);
+        }
+        // Then refresh from backend
         await refreshUser();
       }
       setLoading(false);
@@ -43,17 +58,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleStorageChange = () => {
       if (isAuthenticated()) {
         refreshUser();
+      } else {
+        setUser(null);
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+  }, [refreshUser]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await logoutUser();
     setUser(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider
