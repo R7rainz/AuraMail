@@ -16,6 +16,7 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
 export default function LandingPage() {
+  // Initialize visibility state - will be set to true after mount for animation
   const [isVisible, setIsVisible] = useState(false)
   const [beamsAccelerated, setBeamsAccelerated] = useState(false)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
@@ -26,13 +27,18 @@ export default function LandingPage() {
   }
 
   useEffect(() => {
-    setIsVisible(true)
+    // Trigger entrance animation after mount - this pattern is intentional
+    // for CSS transitions that need to start after initial render
+    const visibilityTimer = requestAnimationFrame(() => {
+      setIsVisible(true)
+    })
     
     const accelTimer = setTimeout(() => {
       setBeamsAccelerated(true)
     }, 3000)
 
     return () => {
+      cancelAnimationFrame(visibilityTimer)
       clearTimeout(accelTimer)
     }
   }, [])

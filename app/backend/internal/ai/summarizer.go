@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +11,12 @@ import (
 	"time"
 
 	"github.com/sashabaranov/go-openai"
+)
+
+// Common AI errors
+var (
+	ErrOpenAIKeyMissing       = errors.New("OPENAI_API_KEY environment variable is not set")
+	ErrAIClientNotInitialized = errors.New("AI client is not initialized")
 )
 
 type AIResult struct {
@@ -105,7 +112,7 @@ JSON FIELD RULES:
 
 	c := getClient()
 	if c == nil {
-		return &AIResult{Summary: subject, Category: "misc"}, nil
+		return nil, ErrOpenAIKeyMissing
 	}
 
 	resp, err := c.CreateChatCompletion(ctx, openai.ChatCompletionRequest{

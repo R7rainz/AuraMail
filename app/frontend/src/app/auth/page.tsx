@@ -14,18 +14,21 @@ function AuthContent() {
   const [authLoading, setAuthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const errorParam = searchParams.get("error");
-    if (errorParam === "no_code") {
-      setError("No authorization code received. Please try again.");
-    } else if (errorParam === "auth_failed") {
-      setError("Authentication failed. Please try again.");
-    }
+  // Handle error params - compute error message directly from URL params
+  const errorParam = searchParams.get("error");
+  const errorMessage = errorParam === "no_code" 
+    ? "No authorization code received. Please try again."
+    : errorParam === "auth_failed"
+    ? "Authentication failed. Please try again."
+    : error;
 
+  useEffect(() => {
+    // If user is already logged in, redirect to dashboard
+    // Use replace to prevent back navigation to auth page
     if (!loading && user) {
-      router.push("/dashboard");
+      router.replace("/dashboard");
     }
-  }, [searchParams, user, loading, router]);
+  }, [user, loading, router]);
 
   const handleGoogleLogin = () => {
     setAuthLoading(true);
@@ -42,8 +45,13 @@ function AuthContent() {
     );
   }
 
+  // Don't render auth page if user is logged in (will redirect)
   if (user) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-slate-950 to-black">
+        <div className="text-white text-lg">Redirecting to dashboard...</div>
+      </div>
+    );
   }
 
   return (
@@ -58,9 +66,9 @@ function AuthContent() {
           </p>
         </div>
 
-        {error && (
+        {errorMessage && (
           <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 text-red-400 text-sm">
-            {error}
+            {errorMessage}
           </div>
         )}
 

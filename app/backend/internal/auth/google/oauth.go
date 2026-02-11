@@ -2,6 +2,7 @@ package google
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -10,6 +11,12 @@ import (
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/option"
+)
+
+// Common errors for OAuth operations
+var (
+	ErrEmptyRefreshToken  = errors.New("refresh token is empty or invalid")
+	ErrMissingOAuthConfig = errors.New("Google OAuth configuration is incomplete")
 )
 
 func NewOAuthConfig() *oauth2.Config {
@@ -34,7 +41,17 @@ func NewOAuthConfig() *oauth2.Config {
 }
 
 func CreateGmailService(ctx context.Context, refreshToken string) (*gmail.Service, error) {
+	// Validate refresh token
+	if refreshToken == "" {
+		return nil, ErrEmptyRefreshToken
+	}
+
 	config := NewOAuthConfig()
+
+	// Validate OAuth config
+	if config.ClientID == "" || config.ClientSecret == "" {
+		return nil, ErrMissingOAuthConfig
+	}
 
 	//Create token from stored refresh token
 	token := &oauth2.Token{
@@ -50,7 +67,17 @@ func CreateGmailService(ctx context.Context, refreshToken string) (*gmail.Servic
 
 // CreateCalendarService creates a Google Calendar service using the stored refresh token
 func CreateCalendarService(ctx context.Context, refreshToken string) (*calendar.Service, error) {
+	// Validate refresh token
+	if refreshToken == "" {
+		return nil, ErrEmptyRefreshToken
+	}
+
 	config := NewOAuthConfig()
+
+	// Validate OAuth config
+	if config.ClientID == "" || config.ClientSecret == "" {
+		return nil, ErrMissingOAuthConfig
+	}
 
 	token := &oauth2.Token{
 		RefreshToken: refreshToken,

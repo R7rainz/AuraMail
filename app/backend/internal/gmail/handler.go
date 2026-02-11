@@ -128,20 +128,42 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 
 	userID, ok := ctx.Value(auth.UserIDContextKey).(int)
 	if !ok {
-		response.Unauthorized(w, "No UserID found in context")
+		response.JSON(w, http.StatusUnauthorized, map[string]interface{}{
+			"success": false,
+			"error":   "UNAUTHORIZED",
+			"message": "No UserID found in context. Please log in again.",
+		})
 		return
 	}
 
 	u, err := h.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		response.NotFound(w, "User not found")
+		response.JSON(w, http.StatusNotFound, map[string]interface{}{
+			"success": false,
+			"error":   "USER_NOT_FOUND",
+			"message": "User not found. Please log in again.",
+		})
+		return
+	}
+
+	// Validate refresh token exists
+	if u.RefreshToken == "" {
+		response.JSON(w, http.StatusUnauthorized, map[string]interface{}{
+			"success": false,
+			"error":   "INVALID_REFRESH_TOKEN",
+			"message": "Your Gmail authorization has expired. Please log out and log in again to re-authorize.",
+		})
 		return
 	}
 
 	srv, err := google.CreateGmailService(ctx, u.RefreshToken)
 	if err != nil {
 		slog.ErrorContext(ctx, "gmail service init failed", "err", err)
-		response.InternalError(w, "Failed to connect to Gmail")
+		response.JSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"success": false,
+			"error":   "GMAIL_AUTH_FAILED",
+			"message": "Failed to connect to Gmail. Your authorization may have expired. Please log out and log in again.",
+		})
 		return
 	}
 
@@ -153,16 +175,53 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 
 	slog.Info("Starting email sync with AI processing", "query", query, "userID", userID)
 
-	// Use FetchAndSummarize to get AI-processed emails
-	emailStream := FetchAndSummarize(ctx, srv, h.userRepo, query, u.ID)
+	// Use FetchAndSummarize to get AI-processed emails with error handling
+	emailStream, errChan := FetchAndSummarize(ctx, srv, h.userRepo, query, u.ID)
 
 	// Collect all processed emails
 	var processedEmails []*ai.AIResult
-	for summary := range emailStream {
-		if summary != nil {
-			processedEmails = append(processedEmails, summary)
-			slog.Info("Processed email", "company", summary.Company, "category", summary.Category)
+	var syncError error
+
+	// Read from both channels
+	done := false
+	for !done {
+		select {
+		case summary, ok := <-emailStream:
+			if !ok {
+				done = true
+				break
+			}
+			if summary != nil {
+				processedEmails = append(processedEmails, summary)
+				slog.Info("Processed email", "company", summary.Company, "category", summary.Category)
+			}
+		case err := <-errChan:
+			if err != nil {
+				syncError = err
+				slog.Error("Sync error received", "err", err)
+			}
 		}
+	}
+
+	// Check for errors after processing
+	if syncError != nil {
+		// Check if it's a SyncError with a specific code
+		if se, ok := syncError.(*SyncError); ok {
+			response.JSON(w, http.StatusOK, map[string]interface{}{
+				"success":   false,
+				"error":     se.Code,
+				"message":   se.Message,
+				"processed": len(processedEmails),
+				"emails":    processedEmails,
+			})
+			return
+		}
+		response.JSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"success": false,
+			"error":   "SYNC_FAILED",
+			"message": fmt.Sprintf("Email sync failed: %v", syncError),
+		})
+		return
 	}
 
 	slog.Info("Email sync completed", "processed", len(processedEmails))
@@ -222,7 +281,7 @@ func (h *GmailHandler) StreamPlacementEmails(w http.ResponseWriter, r *http.Requ
 	w.(http.Flusher).Flush()
 
 	// Start live stream for new emails
-	emailStream := FetchAndSummarize(ctx, srv, h.userRepo, query, u.ID)
+	emailStream, errChan := FetchAndSummarize(ctx, srv, h.userRepo, query, u.ID)
 
 	foundAny := false
 
@@ -234,6 +293,14 @@ func (h *GmailHandler) StreamPlacementEmails(w http.ResponseWriter, r *http.Requ
 		case <-ctx.Done():
 			// User closed connection
 			return
+		case err := <-errChan:
+			if err != nil {
+				if se, ok := err.(*SyncError); ok {
+					sendSSEError(w, se.Code, se.Message)
+				} else {
+					sendSSEError(w, "SYNC_ERROR", err.Error())
+				}
+			}
 		case summary, ok := <-emailStream:
 			if !ok {
 				// Channel closed

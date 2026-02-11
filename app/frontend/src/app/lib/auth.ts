@@ -177,3 +177,15 @@ export async function logoutUser(): Promise<void> {
 export function isAuthenticated(): boolean {
   return getStoredTokens() !== null;
 }
+
+// Clear sensitive data from URL (used after OAuth callback)
+export function clearUrlParams(): void {
+  if (typeof window !== "undefined") {
+    const url = new URL(window.location.href);
+    // Remove sensitive tokens from URL
+    url.searchParams.delete("access_token");
+    url.searchParams.delete("refresh_token");
+    // Replace current history entry without the tokens
+    window.history.replaceState({}, "", url.pathname);
+  }
+}

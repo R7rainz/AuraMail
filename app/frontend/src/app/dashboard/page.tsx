@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/app/lib/authContext"
+import type { LucideIcon } from "lucide-react"
 import {
   Mail,
   LogOut,
@@ -108,14 +109,14 @@ type EmailCategory = "all" | "internship" | "job offer" | "ppt" | "workshop" | "
 type SortOption = "date" | "priority" | "company" | "deadline"
 type SortDirection = "asc" | "desc"
 
-const sortOptions: { value: SortOption; label: string; icon: any }[] = [
+const sortOptions: { value: SortOption; label: string; icon: LucideIcon }[] = [
   { value: "date", label: "Date Received", icon: Clock },
   { value: "priority", label: "Priority", icon: Zap },
   { value: "company", label: "Company", icon: Building2 },
   { value: "deadline", label: "Deadline", icon: Calendar },
 ]
 
-const categoryConfig: Record<string, { icon: any; label: string; color: string }> = {
+const categoryConfig: Record<string, { icon: LucideIcon; label: string; color: string }> = {
   all: { icon: Inbox, label: "All", color: colors.fg },
   internship: { icon: Briefcase, label: "Internships", color: colors.blue },
   "job offer": { icon: Building2, label: "Jobs", color: colors.green },
@@ -176,11 +177,20 @@ export default function DashboardPage() {
       const res = await fetch(`${API_URL}/emails`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!res.ok) throw new Error("Failed to fetch")
+      
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        const errorMessage = data?.message || `Failed to fetch emails (${res.status})`
+        throw new Error(errorMessage)
+      }
+      
       const data = await res.json()
       setEmails(data.emails || [])
     } catch (err) {
-      if (!silent) setError("Failed to load emails")
+      if (!silent) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to load emails"
+        setError(errorMessage)
+      }
     } finally {
       if (!silent) setEmailsLoading(false)
     }
@@ -215,11 +225,51 @@ export default function DashboardPage() {
       const res = await fetch(`${API_URL}/emails/sync`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!res.ok) throw new Error("Sync failed")
+      
+      // Parse response body regardless of status
+      const data = await res.json().catch(() => null)
+      
+      if (!res.ok) {
+        // Handle HTTP errors with response body details
+        const errorMessage = data?.message || `Sync failed with status ${res.status}`
+        throw new Error(errorMessage)
+      }
+      
+      // Check for application-level errors in successful response
+      if (data && !data.success) {
+        // Handle specific error codes
+        const errorCode = data.error || "UNKNOWN_ERROR"
+        let userMessage = data.message || "Sync completed with errors"
+        
+        switch (errorCode) {
+          case "NO_EMAILS_FOUND":
+            userMessage = "No emails found matching your query. Try adjusting your search or check your email settings."
+            break
+          case "GMAIL_API_ERROR":
+            userMessage = "Could not connect to Gmail. Please try again or re-authorize your account."
+            break
+          case "INVALID_REFRESH_TOKEN":
+            userMessage = "Your Gmail authorization has expired. Please log out and log in again."
+            break
+          case "GMAIL_AUTH_FAILED":
+            userMessage = "Failed to authenticate with Gmail. Please log out and log in again to re-authorize."
+            break
+        }
+        
+        setError(userMessage)
+        // Still refresh emails if any were processed
+        if (data.processed > 0) {
+          await fetchEmails(true)
+          await fetchCalendarEvents()
+        }
+        return
+      }
+      
       await fetchEmails(true)
       await fetchCalendarEvents()
     } catch (err) {
-      setError("Failed to sync emails")
+      const errorMessage = err instanceof Error ? err.message : "Failed to sync emails. Please try again."
+      setError(errorMessage)
     } finally {
       syncingRef.current = false
       setSyncing(false)
@@ -228,7 +278,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/")
+      // Use replace to prevent back navigation to dashboard when not authenticated
+      router.replace("/")
       return
     }
     if (user) {
@@ -460,7 +511,7 @@ export default function DashboardPage() {
             Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {user.name?.split(" ")[0]}
           </h1>
           <p className="text-sm" style={{ color: colors.fgDim }}>
-            Here's what's happening with your placement emails
+            Here&apos;s what&apos;s happening with your placement emails
           </p>
         </div>
 
@@ -962,6 +1013,7 @@ export default function DashboardPage() {
       {/* Email Detail */}
       {selectedEmail && (
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ background: colors.bgAlt }}>
+          {/* Header */}
           <div className="h-16 flex items-center justify-between px-6 border-b shrink-0" style={{ borderColor: colors.border }}>
             <div className="flex items-center gap-2 min-w-0">
               <span className="font-semibold truncate" style={{ color: colors.fg }}>{selectedEmail.company || "Email Details"}</span>
@@ -977,114 +1029,275 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="max-w-2xl">
-              {/* Badges */}
-              <div className="flex items-center gap-2 mb-4 flex-wrap">
-                {selectedEmail.category && (() => {
-                  const cat = categoryConfig[selectedEmail.category.toLowerCase()] || categoryConfig.announcement
-                  const Icon = cat.icon
-                  return (
-                    <span className="text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 font-medium" style={{ background: `${cat.color}15`, color: cat.color }}>
-                      <Icon className="w-3.5 h-3.5" /> {cat.label}
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-3xl mx-auto p-6 space-y-6">
+              
+              {/* Hero Section */}
+              <div className="rounded-2xl p-6 border" style={{ background: colors.bgCard, borderColor: colors.border }}>
+                {/* Category & Priority Badges */}
+                <div className="flex items-center gap-2 mb-4 flex-wrap">
+                  {selectedEmail.category && (() => {
+                    const cat = categoryConfig[selectedEmail.category.toLowerCase()] || categoryConfig.announcement
+                    const Icon = cat.icon
+                    return (
+                      <span className="text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium" style={{ background: `${cat.color}15`, color: cat.color }}>
+                        <Icon className="w-3.5 h-3.5" /> {cat.label}
+                      </span>
+                    )
+                  })()}
+                  {selectedEmail.priority === "high" && (
+                    <span className="text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium" style={{ background: `${colors.red}15`, color: colors.red }}>
+                      <Zap className="w-3.5 h-3.5" /> High Priority
                     </span>
-                  )
-                })()}
-                {selectedEmail.priority === "high" && (
-                  <span className="text-xs px-2.5 py-1 rounded-full flex items-center gap-1 font-medium" style={{ background: `${colors.yellow}15`, color: colors.yellow }}>
-                    <Star className="w-3.5 h-3.5" style={{ fill: colors.yellow }} /> High Priority
-                  </span>
-                )}
-              </div>
-
-              <h1 className="text-2xl font-bold mb-2" style={{ color: colors.fg }}>{selectedEmail.subject}</h1>
-              <p className="text-sm mb-6" style={{ color: colors.fgDim }}>
-                {new Date(selectedEmail.receivedAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-              </p>
-
-              {selectedEmail.tags && selectedEmail.tags.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap mb-6">
-                  {selectedEmail.tags.map(renderTag)}
+                  )}
+                  {selectedEmail.priority === "medium" && (
+                    <span className="text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium" style={{ background: `${colors.yellow}15`, color: colors.yellow }}>
+                      <Star className="w-3.5 h-3.5" /> Medium Priority
+                    </span>
+                  )}
                 </div>
-              )}
 
-              {/* Details Grid */}
-              <div className="grid grid-cols-2 gap-4 mb-6 p-4 rounded-xl" style={{ background: colors.bgCard }}>
-                {selectedEmail.deadline && (
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-4 h-4 shrink-0" style={{ color: colors.yellow }} />
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.fgDim }}>Deadline</p>
-                      <p className="text-sm font-medium" style={{ color: formatDeadline(selectedEmail.deadline).urgent ? colors.red : colors.fg }}>
-                        {new Date(selectedEmail.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </p>
-                    </div>
-                  </div>
+                {/* Title */}
+                <h1 className="text-2xl font-bold mb-2 leading-tight" style={{ color: colors.fg }}>
+                  {selectedEmail.company || selectedEmail.subject}
+                </h1>
+                {selectedEmail.role && selectedEmail.company && (
+                  <p className="text-lg mb-3" style={{ color: colors.fgMuted }}>{selectedEmail.role}</p>
                 )}
-                {selectedEmail.location && (
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-4 h-4 shrink-0" style={{ color: colors.blue }} />
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.fgDim }}>Location</p>
-                      <p className="text-sm font-medium" style={{ color: colors.fg }}>{selectedEmail.location}</p>
-                    </div>
-                  </div>
-                )}
-                {selectedEmail.salary && (
-                  <div className="flex items-center gap-3">
-                    <DollarSign className="w-4 h-4 shrink-0" style={{ color: colors.green }} />
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.fgDim }}>Salary</p>
-                      <p className="text-sm font-medium" style={{ color: colors.fg }}>{selectedEmail.salary}</p>
-                    </div>
-                  </div>
-                )}
-                {selectedEmail.eligibility && (
-                  <div className="flex items-center gap-3">
-                    <User className="w-4 h-4 shrink-0" style={{ color: colors.cyan }} />
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider" style={{ color: colors.fgDim }}>Eligibility</p>
-                      <p className="text-sm font-medium" style={{ color: colors.fg }}>{selectedEmail.eligibility}</p>
-                    </div>
+                
+                {/* Meta info */}
+                <div className="flex items-center gap-4 text-sm" style={{ color: colors.fgDim }}>
+                  <span>{new Date(selectedEmail.receivedAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</span>
+                </div>
+
+                {/* Tags */}
+                {selectedEmail.tags && selectedEmail.tags.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap mt-4 pt-4 border-t" style={{ borderColor: colors.border }}>
+                    {selectedEmail.tags.map(tag => (
+                      <span key={tag} className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: `${tagColors[tag] || colors.fgDim}15`, color: tagColors[tag] || colors.fgDim }}>
+                        {tag}
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-3 mb-8">
+              {/* Quick Actions */}
+              <div className="flex items-center gap-3 flex-wrap">
+                {selectedEmail.applyLink && (
+                  <a href={selectedEmail.applyLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105" style={{ background: colors.green, color: "#fff" }}>
+                    <ExternalLink className="w-4 h-4" /> Apply Now
+                  </a>
+                )}
                 {selectedEmail.deadline && (
                   isInCalendar(selectedEmail) ? (
-                    <button onClick={() => removeFromCalendar(selectedEmail)} disabled={addingToCalendar} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 transition-colors" style={{ background: `${colors.green}15`, color: colors.green }}>
-                      <CalendarCheck className="w-4 h-4" /> In Calendar
+                    <button onClick={() => removeFromCalendar(selectedEmail)} disabled={addingToCalendar} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition-all hover:scale-105 border" style={{ background: `${colors.green}15`, color: colors.green, borderColor: `${colors.green}30` }}>
+                      <CalendarCheck className="w-4 h-4" /> Added to Calendar
                     </button>
                   ) : (
-                    <button onClick={() => addToCalendar(selectedEmail)} disabled={addingToCalendar} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 transition-colors" style={{ background: colors.blue, color: "#fff" }}>
+                    <button onClick={() => addToCalendar(selectedEmail)} disabled={addingToCalendar} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition-all hover:scale-105" style={{ background: colors.blue, color: "#fff" }}>
                       <CalendarPlus className="w-4 h-4" /> Add to Calendar
                     </button>
                   )
                 )}
-                {selectedEmail.applyLink && (
-                  <a href={selectedEmail.applyLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors" style={{ background: colors.green, color: "#fff" }}>
-                    <ExternalLink className="w-4 h-4" /> Apply Now
+                {selectedEmail.otherLinks && selectedEmail.otherLinks.length > 0 && (
+                  <a href={selectedEmail.otherLinks[0]} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors border" style={{ background: colors.bgHover, color: colors.fg, borderColor: colors.border }}>
+                    <ExternalLink className="w-4 h-4" /> View Link
                   </a>
                 )}
               </div>
 
-              {selectedEmail.summary && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: colors.fg }}>
-                    <Sparkles className="w-4 h-4" style={{ color: colors.magenta }} /> AI Summary
-                  </h3>
-                  <p className="text-sm leading-relaxed" style={{ color: colors.fgMuted }}>{selectedEmail.summary}</p>
+              {/* Key Details Grid */}
+              {(selectedEmail.deadline || selectedEmail.location || selectedEmail.salary || selectedEmail.eligibility || selectedEmail.timings) && (
+                <div className="rounded-2xl border overflow-hidden" style={{ background: colors.bgCard, borderColor: colors.border }}>
+                  <div className="px-5 py-3 border-b" style={{ borderColor: colors.border }}>
+                    <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: colors.fg }}>
+                      <FileText className="w-4 h-4" style={{ color: colors.cyan }} /> Key Details
+                    </h2>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x" style={{ borderColor: colors.border }}>
+                    {selectedEmail.deadline && (
+                      <div className="p-4 flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${colors.yellow}15` }}>
+                          <Clock className="w-5 h-5" style={{ color: colors.yellow }} />
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider mb-1" style={{ color: colors.fgDim }}>Deadline</p>
+                          <p className="text-sm font-semibold" style={{ color: formatDeadline(selectedEmail.deadline).urgent ? colors.red : colors.fg }}>
+                            {new Date(selectedEmail.deadline).toLocaleDateString("en-US", { weekday: "short", month: "long", day: "numeric" })}
+                          </p>
+                          <p className="text-xs mt-0.5" style={{ color: formatDeadline(selectedEmail.deadline).urgent ? colors.red : colors.fgDim }}>
+                            {formatDeadline(selectedEmail.deadline).text}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedEmail.location && (
+                      <div className="p-4 flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${colors.blue}15` }}>
+                          <MapPin className="w-5 h-5" style={{ color: colors.blue }} />
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider mb-1" style={{ color: colors.fgDim }}>Location</p>
+                          <p className="text-sm font-semibold" style={{ color: colors.fg }}>{typeof selectedEmail.location === 'string' ? selectedEmail.location : JSON.stringify(selectedEmail.location)}</p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedEmail.salary && (
+                      <div className="p-4 flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${colors.green}15` }}>
+                          <DollarSign className="w-5 h-5" style={{ color: colors.green }} />
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider mb-1" style={{ color: colors.fgDim }}>Compensation</p>
+                          <p className="text-sm font-semibold" style={{ color: colors.fg }}>{typeof selectedEmail.salary === 'string' ? selectedEmail.salary : JSON.stringify(selectedEmail.salary)}</p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedEmail.timings && (
+                      <div className="p-4 flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${colors.purple}15` }}>
+                          <Clock className="w-5 h-5" style={{ color: colors.purple }} />
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-wider mb-1" style={{ color: colors.fgDim }}>Timings</p>
+                          <p className="text-sm" style={{ color: colors.fg }}>{typeof selectedEmail.timings === 'string' ? selectedEmail.timings : JSON.stringify(selectedEmail.timings)}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {selectedEmail.eligibility && (
+                    <div className="p-4 border-t" style={{ borderColor: colors.border }}>
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${colors.cyan}15` }}>
+                          <User className="w-5 h-5" style={{ color: colors.cyan }} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: colors.fgDim }}>Eligibility Criteria</p>
+                          <div className="text-sm leading-relaxed" style={{ color: colors.fg }}>
+                            {typeof selectedEmail.eligibility === 'string' 
+                              ? selectedEmail.eligibility.split('\n').map((line, i) => (
+                                  <p key={i} className={line.startsWith('•') ? 'pl-2' : ''}>{line}</p>
+                                ))
+                              : JSON.stringify(selectedEmail.eligibility)
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {selectedEmail.description && (
-                <div>
-                  <h3 className="text-sm font-semibold mb-2" style={{ color: colors.fg }}>Description</h3>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: colors.fgMuted }}>{selectedEmail.description}</p>
+              {/* AI Summary */}
+              {selectedEmail.summary && (
+                <div className="rounded-2xl border overflow-hidden" style={{ background: `linear-gradient(135deg, ${colors.magenta}08, ${colors.blue}08)`, borderColor: `${colors.magenta}20` }}>
+                  <div className="px-5 py-3 border-b flex items-center gap-2" style={{ borderColor: `${colors.magenta}20` }}>
+                    <Sparkles className="w-4 h-4" style={{ color: colors.magenta }} />
+                    <h2 className="text-sm font-semibold" style={{ color: colors.fg }}>AI Summary</h2>
+                  </div>
+                  <div className="p-5">
+                    <p className="text-sm leading-relaxed" style={{ color: colors.fgMuted }}>{selectedEmail.summary}</p>
+                  </div>
                 </div>
               )}
+
+              {/* Requirements */}
+              {selectedEmail.requirements && (
+                <div className="rounded-2xl border overflow-hidden" style={{ background: colors.bgCard, borderColor: colors.border }}>
+                  <div className="px-5 py-3 border-b" style={{ borderColor: colors.border }}>
+                    <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: colors.fg }}>
+                      <ClipboardCheck className="w-4 h-4" style={{ color: colors.orange }} /> Requirements
+                    </h2>
+                  </div>
+                  <div className="p-5">
+                    <div className="text-sm leading-relaxed" style={{ color: colors.fgMuted }}>
+                      {typeof selectedEmail.requirements === 'string' 
+                        ? selectedEmail.requirements.split('\n').map((line, i) => (
+                            <p key={i} className={`${line.startsWith('•') ? 'pl-2 flex items-start gap-2' : ''} ${i > 0 ? 'mt-1.5' : ''}`}>
+                              {line.startsWith('•') && <span style={{ color: colors.orange }}>•</span>}
+                              {line.startsWith('•') ? line.substring(1).trim() : line}
+                            </p>
+                          ))
+                        : JSON.stringify(selectedEmail.requirements)
+                      }
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Event Details */}
+              {selectedEmail.eventDetails && (
+                <div className="rounded-2xl border overflow-hidden" style={{ background: colors.bgCard, borderColor: colors.border }}>
+                  <div className="px-5 py-3 border-b" style={{ borderColor: colors.border }}>
+                    <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: colors.fg }}>
+                      <Calendar className="w-4 h-4" style={{ color: colors.teal }} /> Event Details
+                    </h2>
+                  </div>
+                  <div className="p-5">
+                    <div className="text-sm leading-relaxed" style={{ color: colors.fgMuted }}>
+                      {typeof selectedEmail.eventDetails === 'string' 
+                        ? selectedEmail.eventDetails.split('\n').map((line, i) => (
+                            <p key={i} className={i > 0 ? 'mt-1.5' : ''}>{line}</p>
+                          ))
+                        : JSON.stringify(selectedEmail.eventDetails)
+                      }
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Description */}
+              {selectedEmail.description && (
+                <div className="rounded-2xl border overflow-hidden" style={{ background: colors.bgCard, borderColor: colors.border }}>
+                  <div className="px-5 py-3 border-b" style={{ borderColor: colors.border }}>
+                    <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: colors.fg }}>
+                      <FileText className="w-4 h-4" style={{ color: colors.blue }} /> Description
+                    </h2>
+                  </div>
+                  <div className="p-5">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: colors.fgMuted }}>{selectedEmail.description}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Other Links */}
+              {selectedEmail.otherLinks && selectedEmail.otherLinks.length > 0 && (
+                <div className="rounded-2xl border overflow-hidden" style={{ background: colors.bgCard, borderColor: colors.border }}>
+                  <div className="px-5 py-3 border-b" style={{ borderColor: colors.border }}>
+                    <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: colors.fg }}>
+                      <ExternalLink className="w-4 h-4" style={{ color: colors.cyan }} /> Related Links
+                    </h2>
+                  </div>
+                  <div className="p-4 space-y-2">
+                    {selectedEmail.otherLinks.map((link, i) => (
+                      <a 
+                        key={i} 
+                        href={link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="flex items-center gap-3 p-3 rounded-xl transition-colors hover:scale-[1.01]"
+                        style={{ background: colors.bgHover }}
+                      >
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${colors.cyan}15` }}>
+                          <ExternalLink className="w-4 h-4" style={{ color: colors.cyan }} />
+                        </div>
+                        <span className="text-sm truncate flex-1" style={{ color: colors.blue }}>{link}</span>
+                        <ChevronRight className="w-4 h-4 shrink-0" style={{ color: colors.fgDim }} />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Original Subject (if different from company) */}
+              {selectedEmail.company && selectedEmail.subject && selectedEmail.subject !== selectedEmail.company && (
+                <div className="rounded-xl p-4 border" style={{ background: colors.bgHover, borderColor: colors.border }}>
+                  <p className="text-xs uppercase tracking-wider mb-1" style={{ color: colors.fgDim }}>Original Subject</p>
+                  <p className="text-sm" style={{ color: colors.fgMuted }}>{selectedEmail.subject}</p>
+                </div>
+              )}
+
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ package gmail
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"log/slog"
 	"math"
@@ -15,12 +16,30 @@ import (
 	"github.com/r7rainz/auramail/internal/utils"
 )
 
-func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.PostgresRepository, query string, userID int) chan *ai.AIResult {
+// SyncResult contains both the AI result and any error that occurred
+type SyncResult struct {
+	Result *ai.AIResult
+	Error  error
+}
+
+// SyncError represents an error during sync with a specific error code
+type SyncError struct {
+	Code    string
+	Message string
+}
+
+func (e *SyncError) Error() string {
+	return fmt.Sprintf("%s: %s", e.Code, e.Message)
+}
+
+func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.PostgresRepository, query string, userID int) (chan *ai.AIResult, chan error) {
 	out := make(chan *ai.AIResult)
+	errChan := make(chan error, 1) // Buffered to prevent blocking
 
 	var aiSemaphore = make(chan struct{}, 10) //limit to 10 concurrent AI requests
 	go func() {
 		defer close(out)
+		defer close(errChan)
 
 		slog.Info("FetchAndSummarize started", "query", query, "userID", userID)
 
@@ -28,10 +47,12 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.Postg
 		list, err := srv.Users.Messages.List("me").Q(query).MaxResults(10).Do()
 		if err != nil {
 			slog.Error("Gmail API error", "err", err)
+			errChan <- &SyncError{Code: "GMAIL_API_ERROR", Message: fmt.Sprintf("Failed to fetch emails from Gmail: %v", err)}
 			return
 		}
 		if list == nil || len(list.Messages) == 0 {
 			slog.Warn("No messages found for query", "query", query)
+			errChan <- &SyncError{Code: "NO_EMAILS_FOUND", Message: fmt.Sprintf("No emails found matching query: %s", query)}
 			return
 		}
 
@@ -136,5 +157,5 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.Postg
 		wg.Wait()
 		slog.Info("FetchAndSummarize completed")
 	}()
-	return out
+	return out, errChan
 }
