@@ -1,152 +1,181 @@
-# 🌟 AuraMail  
-### AI-Powered Placement Email Analyzer (Fully Dockerized)
+# AuraMail
 
-AuraMail is an AI-driven, Dockerized email intelligence platform that helps students and job seekers instantly understand placement-related emails. It fetches mails directly from Gmail using the official Google Cloud APIs, summarizes them with OpenAI GPT-4.0 Mini, extracts key information, and organizes it into an easy-to-read format.
+AI-powered placement email analyzer for students. Syncs with Gmail, summarizes emails with OpenAI, and helps you never miss a deadline.
 
----
+## Features
 
-## 📨 Email Processing via Gmail API (Google Cloud)
+- **Gmail Integration** - Securely sync placement emails via Google OAuth
+- **AI Summaries** - GPT-4 powered email analysis and categorization
+- **Smart Extraction** - Automatically extracts company, role, deadline, salary, eligibility
+- **Google Calendar** - One-click deadline sync to your calendar
+- **Real-time Updates** - SSE streaming for live email processing
+- **Beautiful Dashboard** - Modern UI with category filters, priority sorting, and detailed views
 
-AuraMail integrates directly with the **Gmail API** through Google Cloud, offering:
+## Tech Stack
 
-- Secure OAuth2-based email access  
-- Permission-scoped (read-only) inbox retrieval  
-- Reliable processing of placement mails  
-- No password handling, only token-based authentication  
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui |
+| **Backend** | Go 1.21+, Chi router, PostgreSQL |
+| **AI** | OpenAI GPT-4 Mini |
+| **Auth** | Google OAuth 2.0, JWT |
+| **Database** | PostgreSQL with Goose migrations |
 
-This ensures fully secure, compliant, and user-approved access to email data.
+## Project Structure
 
----
+```
+AuraMail/
+├── app/
+│   ├── backend/          # Go backend API
+│   │   ├── cmd/          # Entry point
+│   │   ├── internal/     # Core logic (auth, gmail, ai, calendar)
+│   │   └── migrations/   # Database migrations
+│   └── frontend/         # Next.js frontend
+│       └── src/app/      # App router pages
+└── packages/
+    └── database/         # Shared database package
+```
 
-## 🔐 Authentication: Google OAuth (Google Cloud)
+## Quick Start
 
-User login and authorization is handled via **Google Cloud OAuth**, meaning:
+### Prerequisites
 
-- One-click Google Login  
-- No credential storage  
-- Secure token-based authentication  
-- Smooth onboarding and session management  
+- Go 1.21+
+- Node.js 18+
+- PostgreSQL 12+
+- Google Cloud project with OAuth credentials
+- OpenAI API key
 
-OAuth also grants the app secure permission to read only the emails necessary for processing.
+### 1. Clone and Setup
 
----
+```bash
+git clone https://github.com/yourusername/auramail.git
+cd auramail
+```
 
-## 🤖 AI Engine (OpenAI GPT-4.0 Mini)
+### 2. Configure Environment
 
-AuraMail uses the **OpenAI GPT-4.0 Mini model** to power all AI functionality, including:
+**Backend** (`app/backend/.env`):
+```bash
+PORT=8080
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/auramail
+JWT_SECRET=your-jwt-secret
+GOOGLE_OAUTH_CLIENT_ID=your-client-id
+GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
+GOOGLE_OAUTH_REDIRECT_URI=http://localhost:8080/auth/google/callback
+OPENAI_API_KEY=your-openai-key
+FRONTEND_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000
+```
 
-### ✔️ AI Summarization  
-Long placement emails → short, clear summaries.
+**Frontend** (`app/frontend/.env.local`):
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
 
-### ✔️ AI Extraction  
-Structured extraction of key details including:
+### 3. Start Database
 
-- Cutoff percentage  
-- Eligibility criteria  
-- Company information  
-- Role & job description  
-- CTC / package  
-- Location  
-- Application deadlines  
-- Required documents  
-- Important instructions  
-- **Apply links (cleanly separated)**  
+```bash
+cd app/backend
+make docker-up      # Start PostgreSQL
+make migrate-up     # Run migrations
+```
 
-All processed using the GPT-4.0 Mini LLM for fast, efficient, high-quality outputs.
+### 4. Run the App
 
----
+**Terminal 1 - Backend:**
+```bash
+cd app/backend
+make dev
+```
 
-## 🧩 Tech Stack
+**Terminal 2 - Frontend:**
+```bash
+cd app/frontend
+npm install
+npm run dev
+```
 
-### **Frontend**
-- **Next.js (TypeScript)**  
-- **shadcn/ui**  
-- **TailwindCSS**  
-- **Lucide Icons**  
-- **Framer Motion** (animations)
+Open [http://localhost:3000](http://localhost:3000)
 
-### **Backend**
-- **Node.js**  
-- **Express.js (TypeScript)**  
-- **Zod** for validation  
-- **OpenAI SDK (`openai` package)**  
-- **Google APIs (`googleapis`, `google-auth-library`)**  
-- **Node-cron** for periodic tasks  
-- **Helmet + CORS** for security  
-- **Dotenv** for environment configuration  
+## API Endpoints
 
-### **AI**
-- **OpenAI GPT-4.0 Mini model**  
-- AI-based summarization + extraction logic  
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Health check |
+| `GET` | `/auth/google` | Start OAuth flow |
+| `GET` | `/auth/google/callback` | OAuth callback |
+| `POST` | `/auth/refresh` | Refresh access token |
+| `GET` | `/auth/me` | Get current user |
+| `GET` | `/emails` | Get email summaries |
+| `GET` | `/emails/sync` | Sync new emails |
+| `GET` | `/emails/stream` | SSE stream for processing |
+| `POST` | `/calendar/events` | Add event to calendar |
 
-### **Security**
-- Google OAuth (no passwords stored)  
-- Read-only Gmail scopes  
-- JWT-based sessions  
-- Helmet-enhanced API security  
+## Email Categories
 
-### **Containerization**
-- Fully dockerized  
-- `Dockerfile` + `docker-compose.yml`  
-- Portable across systems  
-- Consistent dev, test, and production environments  
+AuraMail automatically categorizes emails into:
 
----
+- Internships
+- Job Offers
+- PPT (Pre-Placement Talks)
+- Workshops
+- Exams
+- Interviews
+- Results
+- Reminders
+- Announcements
+- Registration
 
-## 🐳 Dockerized Architecture
+## Development
 
-AuraMail runs entirely through Docker:
+### Backend Commands
 
-- **Backend container** (Express + AI + Gmail processing)  
-- **Frontend container** (Next.js UI)  
-- Optional additional service containers  
-- Shared environment variables using a `.env` file  
-- One-command startup with Docker Compose  
+```bash
+make dev            # Run with hot reload
+make build          # Build binary
+make test           # Run tests
+make migrate-up     # Apply migrations
+make migrate-down   # Rollback migration
+make lint           # Run linter
+```
 
-This ensures consistency, reliability, and easy deployment.
+### Frontend Commands
 
----
+```bash
+npm run dev         # Development server
+npm run build       # Production build
+npm run lint        # Run ESLint
+```
 
-## 📂 High-Level System Overview
-User Login → Google OAuth → Gmail API Access → Email Fetch →
-AI Processing (GPT-4.0 Mini) → Extraction & Summary →
-Frontend Display (Next.js + shadcn/ui)
+## Google OAuth Setup
 
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a project and enable Gmail API + Calendar API
+3. Configure OAuth consent screen (External, test users)
+4. Create OAuth 2.0 credentials (Web application)
+5. Add redirect URI: `http://localhost:8080/auth/google/callback`
+6. Copy credentials to `.env`
 
----
+## Screenshots
 
-## 📘 What AuraMail Provides
+### Landing Page
+Modern landing page with animated light beams and feature highlights.
 
-- Concise summary of each placement email  
-- Extracted eligibility & cutoff details  
-- Highlighted apply links  
-- Company + job info  
-- Dates, deadlines & required documents  
-- Clean, organized, student-friendly output  
+### Dashboard
+Email list with category sidebar, priority indicators, and quick actions.
 
----
+### Email Detail
+Expanded view with AI summary, key details grid, and calendar integration.
 
-## 🎯 Target Users
+## License
 
-- University students  
-- Job seekers  
-- Placement cells  
-- Anyone receiving frequent recruitment emails  
+MIT
 
----
+## Contributing
 
-## 🛡️ Security Highlights
-
-- OAuth2 login  
-- Read-only Gmail data access  
-- No password storage  
-- Secure token management  
-- Backend protected with Helmet, CORS, and validated input (Zod)  
-
----
-
-## ⭐ Support
-
-If you find AuraMail helpful, consider giving the repo a **star ⭐** to support future development.
-
-
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing`)
+5. Open a Pull Request

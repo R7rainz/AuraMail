@@ -1,36 +1,131 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AuraMail Frontend
+
+Next.js frontend for AuraMail - the AI-powered placement email analyzer.
+
+## Tech Stack
+
+- **Next.js 16** - React framework with App Router
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Utility-first styling
+- **shadcn/ui** - UI components
+- **Lucide Icons** - Icon library
+
+## Pages
+
+| Route | Description |
+|-------|-------------|
+| `/` | Landing page with features and pricing |
+| `/auth` | Google OAuth login |
+| `/auth/callback` | OAuth callback handler |
+| `/dashboard` | Main email dashboard |
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- Backend running at `http://localhost:8080`
+
+### Installation
+
+```bash
+npm install
+```
+
+### Environment Variables
+
+Create `.env.local`:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/
+│   ├── page.tsx              # Landing page
+│   ├── auth/
+│   │   ├── page.tsx          # Login page
+│   │   └── callback/
+│   │       └── page.tsx      # OAuth callback
+│   ├── dashboard/
+│   │   └── page.tsx          # Main dashboard
+│   └── lib/
+│       ├── auth.ts           # Auth utilities
+│       └── authContext.tsx   # Auth provider
+├── components/
+│   └── ui/                   # shadcn/ui components
+└── middleware.ts             # Auth page caching
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Features
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Landing Page
+- Animated light beams background
+- Feature cards with spotlight hover effects
+- Pricing section
+- Responsive design
 
-## Deploy on Vercel
+### Dashboard
+- Email list with category filtering
+- Sort by date, priority, company, deadline
+- Search functionality
+- Email detail view with:
+  - AI-generated summary
+  - Key details grid (deadline, location, salary, eligibility)
+  - Quick actions (Apply, Add to Calendar)
+  - Related links extraction
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Authentication
+- Google OAuth integration
+- JWT token management
+- Auto-refresh on token expiry
+- Protected routes with middleware
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+
+## Styling
+
+The app uses a dark theme with Catppuccin-inspired colors:
+
+```typescript
+const colors = {
+  bg: "#0a0a0f",
+  bgSurface: "#12121a",
+  fg: "#e4e4e7",
+  fgDim: "#71717a",
+  blue: "#60a5fa",
+  green: "#4ade80",
+  yellow: "#fbbf24",
+  red: "#f87171",
+  // ...
+}
+```
+
+## License
+
+MIT
