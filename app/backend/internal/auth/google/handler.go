@@ -108,6 +108,7 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		user.Sub,
 	)
 	if err != nil {
+		slog.Error("failed to persist user", "err", err, "email", user.Email, "sub", user.Sub)
 		http.Error(w, "failed to persist user", http.StatusInternalServerError)
 		return
 	}
