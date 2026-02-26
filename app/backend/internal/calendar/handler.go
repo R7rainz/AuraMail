@@ -53,7 +53,7 @@ func (h *Handler) AddEvent(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("AddEvent called")
 
-	userID, ok := ctx.Value(auth.UserIDContextKey).(int)
+	userID, ok := ctx.Value(auth.UserIDContextKey).(string)
 	if !ok {
 		slog.Error("No UserID in context")
 		response.Unauthorized(w, "No UserID found in context")
@@ -228,7 +228,7 @@ func getColorForEventType(eventType string) string {
 func (h *Handler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userID, ok := ctx.Value(auth.UserIDContextKey).(int)
+	userID, ok := ctx.Value(auth.UserIDContextKey).(string)
 	if !ok {
 		response.Unauthorized(w, "No UserID found in context")
 		return
@@ -290,7 +290,7 @@ type CalendarEvent struct {
 func (h *Handler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userID, ok := ctx.Value(auth.UserIDContextKey).(int)
+	userID, ok := ctx.Value(auth.UserIDContextKey).(string)
 	if !ok {
 		response.Unauthorized(w, "No UserID found in context")
 		return
