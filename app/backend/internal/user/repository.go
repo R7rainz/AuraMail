@@ -14,15 +14,15 @@ type Repository interface {
 
 	UpdateRefreshToken(
 		ctx context.Context,
-		userID int,
+		userID string,
 		refreshToken string,
 	) error
 
 	FindByRefreshToken(ctx context.Context, token string) (*User, error)
 
-	ClearRefreshToken(ctx context.Context, userID int) error
+	ClearRefreshToken(ctx context.Context, userID string) error
 
-	FindByID(ctx context.Context, id int) (*User, error)
+	FindByID(ctx context.Context, id string) (*User, error)
 
 	Save(ctx context.Context, user *User) error
 }
