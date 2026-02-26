@@ -63,8 +63,8 @@ func getClient() *openai.Client {
 	return client
 }
 
-func AnalyzeEmail(ctx context.Context, userID int, subject, snippet, body string) (*AIResult, error) {
-	cacheKey := fmt.Sprintf("user:%d:%s:%s", userID, subject, snippet)
+func AnalyzeEmail(ctx context.Context, userID string, subject, snippet, body string) (*AIResult, error) {
+	cacheKey := fmt.Sprintf("user:%s:%s:%s", userID, subject, snippet)
 	if len(cacheKey) > 100 {
 		cacheKey = cacheKey[:100]
 	}
