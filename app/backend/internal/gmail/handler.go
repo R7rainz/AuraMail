@@ -33,7 +33,7 @@ func NewHandler(cfg *config.Config, repo *user.PostgresRepository) *GmailHandler
 func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userID, ok := ctx.Value(auth.UserIDContextKey).(int)
+	userID, ok := ctx.Value(auth.UserIDContextKey).(string)
 	if !ok {
 		response.Unauthorized(w, "No UserID found in context")
 		return
@@ -126,7 +126,7 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userID, ok := ctx.Value(auth.UserIDContextKey).(int)
+	userID, ok := ctx.Value(auth.UserIDContextKey).(string)
 	if !ok {
 		response.JSON(w, http.StatusUnauthorized, map[string]interface{}{
 			"success": false,
@@ -248,7 +248,7 @@ func (h *GmailHandler) StreamPlacementEmails(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	userID, ok := rawID.(int)
+	userID, ok := rawID.(string)
 	if !ok {
 		sendSSEError(w, "unauthorized", "Invalid UserID type")
 		return
