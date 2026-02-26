@@ -1,3 +1,5 @@
+
+version: '3.8'
 services:
   postgres:
     image: postgres:15
@@ -9,6 +11,30 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./app/backend
+    env_file:
+      - ./app/backend/.env
+    environment:
+      DATABASE_URL: postgres://ai_email_user:brainz1826@postgres:5432/ai_email
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./app/frontend
+    env_file:
+      - ./app/frontend/.env
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
 
 volumes:
   postgres_data:
