@@ -15,11 +15,11 @@ type PostgresRepository struct {
 	db *pgxpool.Pool
 }
 
-func (r *PostgresRepository) FindByID(ctx context.Context, id int) (*User, error) {
-	log.Printf("DB QUERY: Looking for ID [%d]", id)
+func (r *PostgresRepository) FindByID(ctx context.Context, id string) (*User, error) {
+	log.Printf("DB QUERY: Looking for ID [%s]", id)
 
 	var u User
-	query := `SELECT id, email, name, provider, provider_id, refresh_token 
+	query := `SELECT id, email, name, provider, "providerId", "refreshToken" 
 			  FROM users WHERE id = $1;`
 
 	err := r.db.QueryRow(ctx, query, id).Scan(
@@ -27,7 +27,7 @@ func (r *PostgresRepository) FindByID(ctx context.Context, id int) (*User, error
 	)
 
 	if err != nil {
-		log.Printf("DB ERROR for ID %d: %v", id, err)
+		log.Printf("DB ERROR for ID %s: %v", id, err)
 		return nil, err
 	}
 
@@ -56,8 +56,8 @@ func (r *PostgresRepository) FindOrCreateGoogleUser(ctx context.Context, email, 
 		return &u, nil
 	}
 
-	insertQuery := `INSERT INTO users (email, name, provider_id) 
-                    VALUES ($1, $2, $3) 
+	insertQuery := `INSERT INTO users (id, email, name, provider, "providerId") 
+                    VALUES (gen_random_uuid(), $1, $2, 'google', $3) 
                     RETURNING id, email, name`
 	err = r.db.QueryRow(ctx, insertQuery, email, name, sub).Scan(&u.ID, &u.Email, &u.Name)
 	if err != nil {
@@ -69,21 +69,21 @@ func (r *PostgresRepository) FindOrCreateGoogleUser(ctx context.Context, email, 
 
 func (r *PostgresRepository) UpdateRefreshToken(
 	ctx context.Context,
-	userID int,
+	userID string,
 	refreshToken string,
 ) error {
-	query := `UPDATE users SET refresh_token = $1 WHERE id = $2;`
+	query := `UPDATE users SET "refreshToken" = $1 WHERE id = $2;`
 
 	_, err := r.db.Exec(ctx, query, refreshToken, userID)
 	if err != nil {
-		return fmt.Errorf("failed to update refresh token for user %d: %w", userID, err)
+		return fmt.Errorf("failed to update refresh token for user %s: %w", userID, err)
 	}
 
 	return nil
 }
 
 func (r *PostgresRepository) FindByRefreshToken(ctx context.Context, token string) (*User, error) {
-	query := `SELECT id, email, name, provider, provider_id, refresh_token FROM users WHERE refresh_token = $1;`
+	query := `SELECT id, email, name, provider, "providerId", "refreshToken" FROM users WHERE "refreshToken" = $1;`
 
 	var u User
 	err := r.db.QueryRow(ctx, query, token).Scan(&u.ID, &u.Email, &u.Name, &u.Provider, &u.ProviderID, &u.RefreshToken)
@@ -94,54 +94,66 @@ func (r *PostgresRepository) FindByRefreshToken(ctx context.Context, token strin
 	return &u, nil
 }
 
-func (r *PostgresRepository) ClearRefreshToken(ctx context.Context, userID int) error {
-	query := `UPDATE users SET refresh_token = NULL WHERE id = $1;`
+func (r *PostgresRepository) ClearRefreshToken(ctx context.Context, userID string) error {
+	query := `UPDATE users SET "refreshToken" = NULL WHERE id = $1;`
 	_, err := r.db.Exec(ctx, query, userID)
 	if err != nil {
-		return fmt.Errorf("failed to clear refresh token for user %d: %w", userID, err)
+		return fmt.Errorf("failed to clear refresh token for user %s: %w", userID, err)
 	}
 
 	return nil
 }
 
 func (r *PostgresRepository) GetSummary(ctx context.Context, gmailID string) (*ai.AIResult, error) {
-	var data []byte
-	query := `SELECT data FROM email_summaries WHERE gmail_id = $1`
+	query := `SELECT summary, category, company, role, deadline, "applyLink", eligibility, timings, salary, location FROM emails WHERE id = $1`
 
-	err := r.db.QueryRow(ctx, query, gmailID).Scan(&data)
+	var res ai.AIResult
+	var eligibility, timings, salary, location []byte
+	err := r.db.QueryRow(ctx, query, gmailID).Scan(&res.Summary, &res.Category, &res.Company, &res.Role, &res.Deadline, &res.ApplyLink, &eligibility, &timings, &salary, &location)
 	if err != nil {
 		return nil, err
 	}
 
-	var result ai.AIResult
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal cached summary: %w", err)
-	}
+	json.Unmarshal(eligibility, &res.Eligibility)
+	json.Unmarshal(timings, &res.Timings)
+	json.Unmarshal(salary, &res.Salary)
+	json.Unmarshal(location, &res.Location)
 
-	return &result, nil
+	return &res, nil
 }
 
-func (r *PostgresRepository) SaveSummary(ctx context.Context, userID int, gmailID string, res *ai.AIResult) error {
+func (r *PostgresRepository) SaveSummary(ctx context.Context, userID string, gmailID string, res *ai.AIResult) error {
 	jsonData, err := json.Marshal(res)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal AI result: %w", err)
+		return fmt.Errorf("failed to marshal AI result: %w", err)
 	}
 
 	query := `
-		INSERT INTO email_summaries (user_id, gmail_id, category, company, role, summary, deadline, apply_link, data)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		ON CONFLICT (gmail_id) DO NOTHING`
+		INSERT INTO emails (id, "userId", subject, snippet, summary, category, company, role, deadline, "applyLink", eligibility, timings, salary, location, body)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		ON CONFLICT (id) DO NOTHING`
+
+	eligibility, _ := json.Marshal(res.Eligibility)
+	timings, _ := json.Marshal(res.Timings)
+	salary, _ := json.Marshal(res.Salary)
+	location, _ := json.Marshal(res.Location)
 
 	_, err = r.db.Exec(ctx, query,
-		userID,
 		gmailID,
+		userID,
+		res.Company,
+		res.Summary,
+		res.Summary,
 		res.Category,
 		res.Company,
 		res.Role,
-		res.Summary,
 		res.Deadline,
 		res.ApplyLink,
-		jsonData,
+		string(eligibility),
+		string(timings),
+		string(salary),
+		string(location),
+		string(jsonData),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to save summary to db: %w", err)
@@ -149,8 +161,8 @@ func (r *PostgresRepository) SaveSummary(ctx context.Context, userID int, gmailI
 	return nil
 }
 
-func (r *PostgresRepository) GetSummariesByQuery(ctx context.Context, userID int, searchQuery string) ([]*ai.AIResult, error) {
-	query := `SELECT data FROM email_summaries WHERE user_id = $1 AND (summary ILIKE $2 OR company ILIKE $2 OR role ILIKE $2) ORDER BY created_at DESC LIMIT 50`
+func (r *PostgresRepository) GetSummariesByQuery(ctx context.Context, userID string, searchQuery string) ([]*ai.AIResult, error) {
+	query := `SELECT summary, category, company, role, deadline, "applyLink", eligibility, timings, salary, location FROM emails WHERE "userId" = $1 AND (summary ILIKE $2 OR company ILIKE $2 OR role ILIKE $2) ORDER BY "createdAt" DESC LIMIT 50`
 	rows, err := r.db.Query(ctx, query, userID, "%"+searchQuery+"%")
 	if err != nil {
 		return nil, err
@@ -158,12 +170,16 @@ func (r *PostgresRepository) GetSummariesByQuery(ctx context.Context, userID int
 	defer rows.Close()
 	var results []*ai.AIResult
 	for rows.Next() {
-		var data []byte
-		if err := rows.Scan(&data); err != nil {
+		var res ai.AIResult
+		var eligibility, timings, salary, location []byte
+		err := rows.Scan(&res.Summary, &res.Category, &res.Company, &res.Role, &res.Deadline, &res.ApplyLink, &eligibility, &timings, &salary, &location)
+		if err != nil {
 			continue
 		}
-		var res ai.AIResult
-		json.Unmarshal(data, &res)
+		json.Unmarshal(eligibility, &res.Eligibility)
+		json.Unmarshal(timings, &res.Timings)
+		json.Unmarshal(salary, &res.Salary)
+		json.Unmarshal(location, &res.Location)
 		results = append(results, &res)
 	}
 	return results, nil
