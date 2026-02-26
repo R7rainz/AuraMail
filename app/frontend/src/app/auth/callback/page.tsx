@@ -1,13 +1,12 @@
 "use client";
 
 import { Suspense, useEffect, useState, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { storeTokens, storeUser, clearTokens, isAuthenticated, clearUrlParams } from "@/app/lib/auth";
+import { useSearchParams } from "next/navigation";
+import { storeTokens, storeUser, clearTokens } from "@/app/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 function AuthCallbackContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -20,14 +19,6 @@ function AuthCallbackContent() {
 
     const handleCallback = async () => {
       try {
-        // Check if user is already authenticated (back button case)
-        if (isAuthenticated()) {
-          console.log("[Callback] User already authenticated, redirecting to dashboard");
-          // Use replace to prevent back navigation to callback
-          router.replace("/dashboard");
-          return;
-        }
-
         const accessToken = searchParams.get("access_token");
         const refreshToken = searchParams.get("refresh_token");
 
@@ -71,14 +62,10 @@ function AuthCallbackContent() {
         storeUser(data.user);
         console.log("[Callback] User stored, redirecting...");
 
-        // Clear sensitive tokens from URL before redirect
-        clearUrlParams();
-
         setStatus("success");
 
-        // Use router.replace to prevent back navigation to callback page
-        // This removes the callback URL from browser history
-        router.replace("/dashboard");
+        // Use window.location for full page reload to ensure auth context re-initializes
+        window.location.href = "/dashboard";
       } catch (error) {
         console.error("[Callback] Error:", error);
         setErrorMessage(error instanceof Error ? error.message : "Authentication failed");
@@ -86,13 +73,13 @@ function AuthCallbackContent() {
         clearTokens();
 
         setTimeout(() => {
-          router.replace("/auth?error=auth_failed");
+          window.location.href = "/auth?error=auth_failed";
         }, 3000);
       }
     };
 
     handleCallback();
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   return (
     <div className="max-w-md w-full text-center space-y-6">
