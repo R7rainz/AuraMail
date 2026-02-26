@@ -10,15 +10,15 @@ import (
 )
 
 type AccessTokenClaims struct {
-	UserID int    `json:"sub"`
+	UserID string `json:"sub"`
 	Email  string `json:"email"`
 	Name   string `json:"name,omitempty"`
 	jwt.RegisteredClaims
 }
 
 type RefreshTokenClaims struct {
-	UserID int `json:"sub"`
-	Email string `json:"email"`
+	UserID string `json:"sub"`
+	Email  string `json:"email"`
 	jwt.RegisteredClaims
 }
 
@@ -30,7 +30,7 @@ func jwtSecret() ([]byte, error) {
 	return []byte(secret), nil
 }
 
-func GenerateAccessToken(userID int, email, name string) (string, error) {
+func GenerateAccessToken(userID string, email, name string) (string, error) {
 	expirationTime := time.Now().Add(15 * time.Minute)
 	claims := &AccessTokenClaims{
 		UserID: userID,
@@ -60,7 +60,7 @@ func GenerateAccessToken(userID int, email, name string) (string, error) {
 func ValidateAccessToken(token string) (*AccessTokenClaims, error) {
 	key, err := jwtSecret()
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 
 	parsedToken, err := jwt.ParseWithClaims(
@@ -89,7 +89,7 @@ func ValidateAccessToken(token string) (*AccessTokenClaims, error) {
 func ValidateRefreshToken(token string) (*RefreshTokenClaims, error) {
 	key, err := jwtSecret()
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 
 	parsedToken, err := jwt.ParseWithClaims(
@@ -115,7 +115,7 @@ func ValidateRefreshToken(token string) (*RefreshTokenClaims, error) {
 	return claims, nil
 }
 
-func GenerateRefreshToken(userID int, email string) (string, error) {
+func GenerateRefreshToken(userID string, email string) (string, error) {
 	expirationTime := time.Now().Add(14 * 24 * time.Hour)
 	claims := &RefreshTokenClaims{
 		UserID: userID,
@@ -126,10 +126,10 @@ func GenerateRefreshToken(userID int, email string) (string, error) {
 			Issuer:    "AuraMail",
 		},
 	}
-	
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	key, err := jwtSecret()
-	if err!= nil {
+	if err != nil {
 		return "", err
 	}
 
