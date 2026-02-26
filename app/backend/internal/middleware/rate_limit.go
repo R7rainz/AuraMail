@@ -26,7 +26,7 @@ var limiterOnce sync.Once
 // GetDefaultLimiter returns the singleton rate limiter instance
 func GetDefaultLimiter() *RateLimiter {
 	limiterOnce.Do(func() {
-		defaultLimiter = NewRateLimiter(10, time.Minute)
+		defaultLimiter = NewRateLimiter(100, time.Minute)
 	})
 	return defaultLimiter
 }
