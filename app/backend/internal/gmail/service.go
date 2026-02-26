@@ -32,7 +32,7 @@ func (e *SyncError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
 
-func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.PostgresRepository, query string, userID int) (chan *ai.AIResult, chan error) {
+func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.PostgresRepository, query string, userID string) (chan *ai.AIResult, chan error) {
 	out := make(chan *ai.AIResult)
 	errChan := make(chan error, 1) // Buffered to prevent blocking
 
