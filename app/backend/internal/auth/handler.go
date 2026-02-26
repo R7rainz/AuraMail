@@ -20,7 +20,7 @@ type refreshRequest struct {
 }
 
 type userResponse struct {
-	ID    int    `json:"id"`
+	ID    string `json:"id"`
 	Email string `json:"email"`
 	Name  string `json:"name"`
 	Image string `json:"image,omitempty"`
@@ -36,7 +36,7 @@ func NewHandler(cfg *oauth2.Config, userRepo user.Repository) *Handler {
 
 // Me returns the current authenticated user
 func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value(UserIDContextKey).(int)
+	userID, ok := r.Context().Value(UserIDContextKey).(string)
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -123,7 +123,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value(UserIDContextKey).(int)
+	userID, ok := r.Context().Value(UserIDContextKey).(string)
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
