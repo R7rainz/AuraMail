@@ -27,7 +27,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (string, err
 	if err != nil {
 		return "", ErrInvalidRefreshToken
 	}
-	
+
 	accessToken, err := GenerateAccessToken(u.ID, u.Email, u.Name)
 	if err != nil {
 		return "", err
@@ -35,7 +35,6 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (string, err
 	return accessToken, nil
 }
 
-func (s *Service) Logout(ctx context.Context, userID int) error {
+func (s *Service) Logout(ctx context.Context, userID string) error {
 	return s.users.ClearRefreshToken(ctx, userID)
 }
-
