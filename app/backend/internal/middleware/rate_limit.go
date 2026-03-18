@@ -20,8 +20,10 @@ type RateLimiter struct {
 	stopChan chan struct{}
 }
 
-var defaultLimiter *RateLimiter
-var limiterOnce sync.Once
+var (
+	defaultLimiter *RateLimiter
+	limiterOnce    sync.Once
+)
 
 // GetDefaultLimiter returns the singleton rate limiter instance
 func GetDefaultLimiter() *RateLimiter {
