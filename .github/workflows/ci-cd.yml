@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [master]
+    branches: [main, master]
   pull_request:
-    branches: [master]
+    branches: [main, master]
 
 jobs:
   build-and-test-backend:
@@ -17,14 +17,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          go-version-file: app/backend/go.mod
+          cache: true
+          cache-dependency-path: app/backend/go.sum
       - name: Install dependencies
         run: go mod download
       - name: Build
@@ -43,13 +38,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Cache node modules
-        uses: actions/cache@v4
+          cache: "pnpm"
+          cache-dependency-path: app/frontend/pnpm-lock.yaml
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
         with:
-          path: app/frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('app/frontend/package-lock.json', 'app/frontend/pnpm-lock.yaml') }}
+          version: 10
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
       - name: Lint
         run: pnpm run lint
       - name: Build
