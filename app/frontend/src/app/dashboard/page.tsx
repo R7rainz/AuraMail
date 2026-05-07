@@ -1,16 +1,8 @@
 "use client";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/lib/authContext";
+import { motion, AnimatePresence } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
   Mail,
@@ -36,48 +28,21 @@ import {
   Wrench,
   ClipboardCheck,
   UserCheck,
-  Tag,
   Zap,
   Star,
   Calendar,
   Search,
   LayoutDashboard,
   CalendarCheck,
-  TrendingUp,
   Sparkles,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  ChevronDown,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-const colors = {
-  bg: "#000000",
-  bgAlt: "#0a0a0f",
-  bgCard: "#0d0d12",
-  bgHover: "#12121a",
-  bgHighlight: "#1a1a24",
-  border: "#1f1f28",
-  fg: "#cdd6f4",
-  fgMuted: "#bac2de",
-  fgDim: "#6c7086",
-  blue: "#89b4fa",
-  cyan: "#89dceb",
-  magenta: "#cba6f7",
-  purple: "#9d7cd8",
-  orange: "#fab387",
-  yellow: "#f9e2af",
-  green: "#a6e3a1",
-  teal: "#94e2d5",
-  red: "#f38ba8",
-  pink: "#f5c2e7",
-  lavender: "#b4befe",
-  sapphire: "#74c7ec",
-  maroon: "#eba0ac",
-};
-
+// --- TYPES ---
 interface PlacementEmail {
   id: string;
   gmailMessageId: string;
@@ -90,12 +55,6 @@ interface PlacementEmail {
   deadline: string | null;
   applyLink: string | null;
   otherLinks?: string[] | null;
-  attachments?: Array<{
-    filename: string;
-    mimeType: string;
-    size: number;
-    attachmentId: string;
-  }> | null;
   eligibility: string | null;
   timings: string | null;
   salary: string | null;
@@ -120,7 +79,6 @@ interface CalendarEvent {
   isAuraMail: boolean;
 }
 
-type View = "dashboard" | "inbox";
 type EmailCategory =
   | "all"
   | "internship"
@@ -143,39 +101,46 @@ const sortOptions: { value: SortOption; label: string; icon: LucideIcon }[] = [
   { value: "deadline", label: "Deadline", icon: Calendar },
 ];
 
+// Refined subtle color mappings using Tailwind semantics
 const categoryConfig: Record<
   string,
-  { icon: LucideIcon; label: string; color: string }
+  { icon: LucideIcon; label: string; colorClass: string }
 > = {
-  all: { icon: Inbox, label: "All", color: colors.fg },
-  internship: { icon: Briefcase, label: "Internships", color: colors.sapphire },
-  "job offer": { icon: Building2, label: "Jobs", color: colors.green },
-  ppt: { icon: Presentation, label: "PPT", color: colors.magenta },
-  workshop: { icon: Wrench, label: "Workshops", color: colors.orange },
-  exam: { icon: GraduationCap, label: "Exams", color: colors.yellow },
-  interview: { icon: UserCheck, label: "Interviews", color: colors.cyan },
-  result: { icon: ClipboardCheck, label: "Results", color: colors.teal },
-  reminder: { icon: Clock, label: "Reminders", color: colors.red },
-  announcement: { icon: Bell, label: "Announcements", color: colors.lavender },
-  registration: { icon: FileText, label: "Registration", color: colors.pink },
-};
-
-const tagColors: Record<string, string> = {
-  urgent: colors.red,
-  "high-package": colors.green,
-  "dream-company": colors.yellow,
-  "mass-hiring": colors.sapphire,
-  "off-campus": colors.purple,
-  "on-campus": colors.cyan,
-  remote: colors.teal,
-  hybrid: colors.orange,
-  "tier-1": colors.yellow,
-  startup: colors.pink,
-  mnc: colors.blue,
-  govt: colors.cyan,
-  core: colors.purple,
-  it: colors.sapphire,
-  "fresher-friendly": colors.green,
+  all: { icon: Inbox, label: "All", colorClass: "text-gray-300" },
+  internship: {
+    icon: Briefcase,
+    label: "Internships",
+    colorClass: "text-blue-400",
+  },
+  "job offer": {
+    icon: Building2,
+    label: "Jobs",
+    colorClass: "text-emerald-400",
+  },
+  ppt: { icon: Presentation, label: "PPT", colorClass: "text-indigo-400" },
+  workshop: { icon: Wrench, label: "Workshops", colorClass: "text-amber-400" },
+  exam: { icon: GraduationCap, label: "Exams", colorClass: "text-yellow-400" },
+  interview: {
+    icon: UserCheck,
+    label: "Interviews",
+    colorClass: "text-cyan-400",
+  },
+  result: {
+    icon: ClipboardCheck,
+    label: "Results",
+    colorClass: "text-teal-400",
+  },
+  reminder: { icon: Clock, label: "Reminders", colorClass: "text-rose-400" },
+  announcement: {
+    icon: Bell,
+    label: "Announcements",
+    colorClass: "text-purple-400",
+  },
+  registration: {
+    icon: FileText,
+    label: "Registration",
+    colorClass: "text-pink-400",
+  },
 };
 
 export default function DashboardPage() {
@@ -186,25 +151,33 @@ export default function DashboardPage() {
   const [emailsLoading, setEmailsLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<View>("dashboard");
+
   const [selectedCategory, setSelectedCategory] =
     useState<EmailCategory>("all");
   const [selectedEmail, setSelectedEmail] = useState<PlacementEmail | null>(
     null,
   );
   const [searchQuery, setSearchQuery] = useState("");
+
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [calendarEventsMap, setCalendarEventsMap] = useState<
     Record<string, string>
   >({});
   const [addingToCalendar, setAddingToCalendar] = useState(false);
+
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<
+    string | null
+  >(null);
+
   const [sortBy, setSortBy] = useState<SortOption>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
 
   const syncingRef = useRef(false);
 
+  // --- DATA FETCHING ---
   const fetchEmails = useCallback(async (silent = false) => {
     if (!silent) setEmailsLoading(true);
     try {
@@ -212,22 +185,11 @@ export default function DashboardPage() {
       const res = await fetch(`${API_URL}/emails`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        const errorMessage =
-          data?.message || `Failed to fetch emails (${res.status})`;
-        throw new Error(errorMessage);
-      }
-
+      if (!res.ok) throw new Error("Failed to fetch emails");
       const data = await res.json();
       setEmails(data.emails || []);
     } catch (err) {
-      if (!silent) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to load emails";
-        setError(errorMessage);
-      }
+      if (!silent) setError("Failed to load emails");
     } finally {
       if (!silent) setEmailsLoading(false);
     }
@@ -262,59 +224,12 @@ export default function DashboardPage() {
       const res = await fetch(`${API_URL}/emails/sync`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      // Parse response body regardless of status
       const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        // Handle HTTP errors with response body details
-        const errorMessage =
-          data?.message || `Sync failed with status ${res.status}`;
-        throw new Error(errorMessage);
-      }
-
-      // Check for application-level errors in successful response
-      if (data && !data.success) {
-        // Handle specific error codes
-        const errorCode = data.error || "UNKNOWN_ERROR";
-        let userMessage = data.message || "Sync completed with errors";
-
-        switch (errorCode) {
-          case "NO_EMAILS_FOUND":
-            userMessage =
-              "No emails found matching your query. Try adjusting your search or check your email settings.";
-            break;
-          case "GMAIL_API_ERROR":
-            userMessage =
-              "Could not connect to Gmail. Please try again or re-authorize your account.";
-            break;
-          case "INVALID_REFRESH_TOKEN":
-            userMessage =
-              "Your Gmail authorization has expired. Please log out and log in again.";
-            break;
-          case "GMAIL_AUTH_FAILED":
-            userMessage =
-              "Failed to authenticate with Gmail. Please log out and log in again to re-authorize.";
-            break;
-        }
-
-        setError(userMessage);
-        // Still refresh emails if any were processed
-        if (data.processed > 0) {
-          await fetchEmails(true);
-          await fetchCalendarEvents();
-        }
-        return;
-      }
-
+      if (!res.ok) throw new Error(data?.message || `Sync failed`);
       await fetchEmails(true);
       await fetchCalendarEvents();
     } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Failed to sync emails. Please try again.";
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : "Failed to sync emails.");
     } finally {
       syncingRef.current = false;
       setSyncing(false);
@@ -322,27 +237,22 @@ export default function DashboardPage() {
   }, [fetchEmails, fetchCalendarEvents]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/");
-      return;
-    }
+    if (!loading && !user) router.replace("/");
     if (user) {
       fetchEmails();
       fetchCalendarEvents();
     }
   }, [user, loading, router, fetchEmails, fetchCalendarEvents]);
 
-  // Date helpers
+  // --- UTILS ---
   const getDaysDiff = (date: string): number => {
     const target = new Date(date);
     const now = new Date();
-    const targetUTC = Date.UTC(
-      target.getFullYear(),
-      target.getMonth(),
-      target.getDate(),
+    return Math.floor(
+      (Date.UTC(target.getFullYear(), target.getMonth(), target.getDate()) -
+        Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) /
+        (1000 * 60 * 60 * 24),
     );
-    const nowUTC = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-    return Math.floor((targetUTC - nowUTC) / (1000 * 60 * 60 * 24));
   };
 
   const formatRelativeDate = (date: string) => {
@@ -362,7 +272,6 @@ export default function DashboardPage() {
     if (days === 0) return { text: "Today", urgent: true };
     if (days === 1) return { text: "Tomorrow", urgent: true };
     if (days <= 3) return { text: `${days} days`, urgent: true };
-    if (days <= 7) return { text: `${days} days`, urgent: false };
     return {
       text: new Date(date).toLocaleDateString("en-US", {
         month: "short",
@@ -372,7 +281,7 @@ export default function DashboardPage() {
     };
   };
 
-  // Computed data
+  // --- COMPUTED DATA ---
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { all: emails.length };
     emails.forEach((e) => {
@@ -395,33 +304,24 @@ export default function DashboardPage() {
       return matchCat && matchSearch;
     });
 
-    // Sort function
-    const sortedEmails = [...filtered].sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       let comparison = 0;
-
       switch (sortBy) {
         case "date":
           comparison =
             new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime();
           break;
         case "priority":
-          // high > medium > low > undefined
-          const priorityOrder: Record<string, number> = {
-            high: 3,
-            medium: 2,
-            low: 1,
-          };
-          const aPriority = priorityOrder[a.priority || ""] || 0;
-          const bPriority = priorityOrder[b.priority || ""] || 0;
-          comparison = bPriority - aPriority;
+          comparison =
+            ({ high: 3, medium: 2, low: 1 }[b.priority || ""] || 0) -
+            ({ high: 3, medium: 2, low: 1 }[a.priority || ""] || 0);
           break;
         case "company":
-          const aCompany = (a.company || a.subject || "").toLowerCase();
-          const bCompany = (b.company || b.subject || "").toLowerCase();
-          comparison = aCompany.localeCompare(bCompany);
+          comparison = (a.company || a.subject || "").localeCompare(
+            b.company || b.subject || "",
+          );
           break;
         case "deadline":
-          // Emails with deadlines first, then by deadline date
           if (!a.deadline && !b.deadline) comparison = 0;
           else if (!a.deadline) comparison = 1;
           else if (!b.deadline) comparison = -1;
@@ -430,26 +330,21 @@ export default function DashboardPage() {
               new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
           break;
       }
-
-      // Apply sort direction
       return sortDirection === "asc" ? comparison : -comparison;
     });
-
-    return sortedEmails;
   }, [emails, selectedCategory, searchQuery, sortBy, sortDirection]);
 
-  const upcomingDeadlines = useMemo(() => {
-    return emails
-      .filter((e) => e.deadline && getDaysDiff(e.deadline) >= -1)
-      .sort((a, b) => getDaysDiff(a.deadline!) - getDaysDiff(b.deadline!))
-      .slice(0, 4);
-  }, [emails]);
-
+  const upcomingDeadlines = useMemo(
+    () =>
+      emails
+        .filter((e) => e.deadline && getDaysDiff(e.deadline) >= -1)
+        .sort((a, b) => getDaysDiff(a.deadline!) - getDaysDiff(b.deadline!))
+        .slice(0, 4),
+    [emails],
+  );
   const highPriorityCount = emails.filter((e) => e.priority === "high").length;
-  const overdueCount = emails.filter(
-    (e) => e.deadline && getDaysDiff(e.deadline) < 0,
-  ).length;
 
+  // ADDED FIX: upcomingEvents properly computed here
   const upcomingEvents = useMemo(() => {
     return calendarEvents
       .filter((e) => {
@@ -463,7 +358,7 @@ export default function DashboardPage() {
       .slice(0, 4);
   }, [calendarEvents]);
 
-  // Calendar helpers
+  // --- CALENDAR LOGIC ---
   const getCalendarDays = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -474,16 +369,25 @@ export default function DashboardPage() {
 
     const days: {
       date: number;
+      fullDateStr: string;
       isCurrentMonth: boolean;
       isToday: boolean;
       hasDeadline: boolean;
       hasEvent: boolean;
     }[] = [];
-
     const prevMonthLastDay = new Date(year, month, 0).getDate();
+
     for (let i = startingDay - 1; i >= 0; i--) {
+      const d = prevMonthLastDay - i;
+      let pM = month - 1,
+        pY = year;
+      if (pM < 0) {
+        pM = 11;
+        pY--;
+      }
       days.push({
-        date: prevMonthLastDay - i,
+        date: d,
+        fullDateStr: `${pY}-${String(pM + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
         isCurrentMonth: false,
         isToday: false,
         hasDeadline: false,
@@ -496,6 +400,7 @@ export default function DashboardPage() {
       const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
       days.push({
         date: i,
+        fullDateStr: dateStr,
         isCurrentMonth: true,
         isToday:
           today.getDate() === i &&
@@ -508,34 +413,35 @@ export default function DashboardPage() {
 
     const remaining = 42 - days.length;
     for (let i = 1; i <= remaining; i++) {
+      let nM = month + 1,
+        nY = year;
+      if (nM > 11) {
+        nM = 0;
+        nY++;
+      }
       days.push({
         date: i,
+        fullDateStr: `${nY}-${String(nM + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`,
         isCurrentMonth: false,
         isToday: false,
         hasDeadline: false,
         hasEvent: false,
       });
     }
-
     return days;
   };
 
-  const navigateMonth = (dir: number) => {
+  const navigateMonth = (dir: number) =>
     setCurrentMonth(
       (prev) => new Date(prev.getFullYear(), prev.getMonth() + dir, 1),
     );
-  };
 
-  // Calendar add/remove
   const getEmailTitle = (email: PlacementEmail) =>
     email.company
       ? `${email.company}${email.role ? ` - ${email.role}` : ""}`
       : email.subject;
-
-  const isInCalendar = (email: PlacementEmail) => {
-    const title = getEmailTitle(email);
-    return !!calendarEventsMap[title] || !!calendarEventsMap[email.id];
-  };
+  const isInCalendar = (email: PlacementEmail) =>
+    !!calendarEventsMap[getEmailTitle(email)] || !!calendarEventsMap[email.id];
 
   const addToCalendar = async (email: PlacementEmail) => {
     if (!email.deadline || isInCalendar(email)) return;
@@ -543,9 +449,6 @@ export default function DashboardPage() {
     try {
       const token = localStorage.getItem("accessToken");
       const title = getEmailTitle(email);
-      let startTime = email.deadline;
-      if (!startTime.includes("T")) startTime = `${startTime}T10:00:00`;
-
       const res = await fetch(`${API_URL}/calendar/events`, {
         method: "POST",
         headers: {
@@ -555,7 +458,9 @@ export default function DashboardPage() {
         body: JSON.stringify({
           title,
           description: email.summary || email.snippet,
-          startTime,
+          startTime: email.deadline.includes("T")
+            ? email.deadline
+            : `${email.deadline}T10:00:00`,
           location: email.location || "",
           emailId: email.id,
           company: email.company || "",
@@ -579,19 +484,20 @@ export default function DashboardPage() {
   };
 
   const removeFromCalendar = async (email: PlacementEmail) => {
-    const title = getEmailTitle(email);
-    const eventId = calendarEventsMap[title] || calendarEventsMap[email.id];
+    const eventId =
+      calendarEventsMap[getEmailTitle(email)] || calendarEventsMap[email.id];
     if (!eventId) return;
     setAddingToCalendar(true);
     try {
-      const token = localStorage.getItem("accessToken");
       await fetch(`${API_URL}/calendar/events?eventId=${eventId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
       });
       setCalendarEventsMap((prev) => {
         const next = { ...prev };
-        delete next[title];
+        delete next[getEmailTitle(email)];
         delete next[email.id];
         return next;
       });
@@ -603,1658 +509,778 @@ export default function DashboardPage() {
     }
   };
 
+  const activeFocusDate = hoveredDate || selectedCalendarDate;
+  const activeDateEvents = useMemo(() => {
+    if (!activeFocusDate) return { events: [], deadlines: [] };
+    return {
+      events: calendarEvents.filter((e) =>
+        e.startTime.startsWith(activeFocusDate),
+      ),
+      deadlines: emails.filter((e) => e.deadline?.startsWith(activeFocusDate)),
+    };
+  }, [activeFocusDate, calendarEvents, emails]);
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <ScrollArea className="w-64 h-32 rounded-lg border p-4 flex flex-col items-center justify-center">
-          <div className="w-10 h-10 border-2 rounded-full animate-spin border-primary border-t-blue-500 mb-2" />
-          <span className="text-sm text-muted-foreground">Loading...</span>
-        </ScrollArea>
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="w-10 h-10 rounded-full border-t-2 border-l-2 border-blue-500 animate-spin" />
       </div>
     );
   }
 
   if (!user) return null;
 
-  const renderTag = (tag: string) => (
-    <span
-      key={tag}
-      className="text-xs px-2 py-0.5 rounded-full font-medium bg-accent text-accent-foreground"
-      style={{
-        background: `${tagColors[tag] || colors.fgDim}20`,
-        color: tagColors[tag] || colors.fgDim,
-      }}
-    >
-      {tag}
-    </span>
-  );
-
-  // ============ DASHBOARD VIEW ============
-  const renderDashboard = () => (
-    <div className="flex-1 overflow-auto">
-      <div className="max-w-[1600px] mx-auto p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-1" style={{ color: colors.fg }}>
-            Good{" "}
-            {new Date().getHours() < 12
-              ? "morning"
-              : new Date().getHours() < 18
-                ? "afternoon"
-                : "evening"}
-            , {user.name?.split(" ")[0]}
-          </h1>
-          <p className="text-sm" style={{ color: colors.fgDim }}>
-            Here&apos;s what&apos;s happening with your placement emails
-          </p>
-        </div>
-
-        {/* Main Grid - Left content, Right calendar */}
-        <div className="flex gap-6">
-          {/* Left Column - Main Content */}
-          <div className="flex-1 space-y-6 min-w-0">
-            {/* Stats Row */}
-            <div className="grid grid-cols-4 gap-4">
-              {[
-                {
-                  label: "Total Emails",
-                  value: emails.length,
-                  icon: Mail,
-                  color: colors.blue,
-                  trend: "+12%",
-                },
-                {
-                  label: "Deadlines",
-                  value: upcomingDeadlines.length,
-                  icon: Clock,
-                  color: colors.yellow,
-                },
-                {
-                  label: "High Priority",
-                  value: highPriorityCount,
-                  icon: Zap,
-                  color: colors.red,
-                },
-                {
-                  label: "Overdue",
-                  value: overdueCount,
-                  icon: AlertTriangle,
-                  color: colors.orange,
-                },
-              ].map((s, i) => (
-                <div
-                  key={i}
-                  className="p-4 rounded-2xl border"
-                  style={{
-                    background: colors.bgCard,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ background: `${s.color}15` }}
-                    >
-                      <s.icon className="w-5 h-5" style={{ color: s.color }} />
-                    </div>
-                    {s.trend && (
-                      <span
-                        className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
-                        style={{
-                          background: `${colors.green}15`,
-                          color: colors.green,
-                        }}
-                      >
-                        <TrendingUp className="w-3 h-3" />
-                        {s.trend}
-                      </span>
-                    )}
-                  </div>
-                  <p
-                    className="text-2xl font-bold mb-0.5"
-                    style={{ color: colors.fg }}
-                  >
-                    {s.value}
-                  </p>
-                  <p className="text-xs" style={{ color: colors.fgDim }}>
-                    {s.label}
-                  </p>
-                </div>
-              ))}
-
-              {/* Recent Emails */}
-              <div
-                className="rounded-2xl border p-5"
-                style={{
-                  background: colors.bgCard,
-                  borderColor: colors.border,
-                }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h2
-                    className="font-semibold flex items-center gap-2"
-                    style={{ color: colors.fg }}
-                  >
-                    <Inbox className="w-4 h-4" style={{ color: colors.blue }} />
-                    Recent Emails
-                  </h2>
-                  <button
-                    onClick={() => setCurrentView("inbox")}
-                    className="text-xs flex items-center gap-1 hover:underline"
-                    style={{ color: colors.blue }}
-                  >
-                    View all <ChevronRight className="w-3 h-3" />
-                  </button>
-                </div>
-                {emailsLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div
-                      className="w-6 h-6 border-2 rounded-full animate-spin"
-                      style={{
-                        borderColor: colors.bgHighlight,
-                        borderTopColor: colors.blue,
-                      }}
-                    />
-                  </div>
-                ) : emails.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Inbox
-                      className="w-8 h-8 mx-auto mb-2 opacity-30"
-                      style={{ color: colors.fgDim }}
-                    />
-                    <p className="text-sm mb-3" style={{ color: colors.fgDim }}>
-                      No emails yet
-                    </p>
-                    <button
-                      onClick={handleSync}
-                      className="text-xs px-3 py-1.5 rounded-lg"
-                      style={{ background: colors.blue, color: "#fff" }}
-                    >
-                      Sync Now
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {emails.slice(0, 4).map((email) => {
-                      const cat =
-                        categoryConfig[
-                          email.category?.toLowerCase() || "announcement"
-                        ] || categoryConfig.announcement;
-                      const Icon = cat.icon;
-                      return (
-                        <div
-                          key={email.id}
-                          onClick={() => {
-                            setSelectedEmail(email);
-                            setCurrentView("inbox");
-                          }}
-                          className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors hover:bg-white/5"
-                        >
-                          <div
-                            className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                            style={{ background: `${cat.color}15` }}
-                          >
-                            <Icon
-                              className="w-4 h-4"
-                              style={{ color: cat.color }}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className="text-sm font-medium truncate"
-                              style={{ color: colors.fg }}
-                            >
-                              {email.company || email.subject}
-                            </p>
-                            <p
-                              className="text-xs truncate"
-                              style={{ color: colors.fgDim }}
-                            >
-                              {email.role || email.snippet}
-                            </p>
-                          </div>
-                          <span
-                            className="text-[10px] shrink-0"
-                            style={{ color: colors.fgDim }}
-                          >
-                            {formatRelativeDate(email.receivedAt)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Categories */}
-            <div
-              className="rounded-2xl border p-5"
-              style={{ background: colors.bgCard, borderColor: colors.border }}
-            >
-              <h2
-                className="font-semibold mb-4 flex items-center gap-2"
-                style={{ color: colors.fg }}
-              >
-                <Tag className="w-4 h-4" style={{ color: colors.purple }} />
-                Categories
-              </h2>
-              <div className="grid grid-cols-5 gap-3">
-                {Object.entries(categoryConfig)
-                  .filter(([key]) => key !== "all")
-                  .map(([key, config]) => {
-                    const count = categoryCounts[key] || 0;
-                    const Icon = config.icon;
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => {
-                          setSelectedCategory(key as EmailCategory);
-                          setCurrentView("inbox");
-                        }}
-                        className="p-4 rounded-xl text-center transition-all hover:scale-[1.02] border"
-                        style={{
-                          background:
-                            count > 0 ? `${config.color}08` : colors.bgHover,
-                          borderColor:
-                            count > 0 ? `${config.color}20` : "transparent",
-                        }}
-                      >
-                        <Icon
-                          className="w-5 h-5 mx-auto mb-2"
-                          style={{
-                            color: count > 0 ? config.color : colors.fgDim,
-                          }}
-                        />
-                        <p
-                          className="text-lg font-bold"
-                          style={{
-                            color: count > 0 ? colors.fg : colors.fgDim,
-                          }}
-                        >
-                          {count}
-                        </p>
-                        <p
-                          className="text-[10px]"
-                          style={{ color: colors.fgDim }}
-                        >
-                          {config.label}
-                        </p>
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Calendar & Events */}
-          <div className="w-80 shrink-0 space-y-6">
-            {/* Calendar */}
-            <div
-              className="rounded-2xl border p-5"
-              style={{ background: colors.bgCard, borderColor: colors.border }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold" style={{ color: colors.fg }}>
-                  {currentMonth.toLocaleDateString("en-US", {
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </h2>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => navigateMonth(-1)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10"
-                  >
-                    <ChevronLeft
-                      className="w-4 h-4"
-                      style={{ color: colors.fgDim }}
-                    />
-                  </button>
-                  <button
-                    onClick={() => navigateMonth(1)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10"
-                  >
-                    <ChevronRight
-                      className="w-4 h-4"
-                      style={{ color: colors.fgDim }}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d, i) => (
-                  <div
-                    key={i}
-                    className="text-center text-[10px] py-1 font-medium"
-                    style={{ color: colors.fgDim }}
-                  >
-                    {d}
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-7 gap-1">
-                {getCalendarDays().map((day, i) => (
-                  <div
-                    key={i}
-                    className="aspect-square flex items-center justify-center text-xs rounded-lg relative"
-                    style={{
-                      background: day.isToday ? colors.blue : "transparent",
-                      color: day.isToday
-                        ? "#fff"
-                        : !day.isCurrentMonth
-                          ? colors.fgDim + "40"
-                          : colors.fgMuted,
-                    }}
-                  >
-                    {day.date}
-                    {(day.hasDeadline || day.hasEvent) && !day.isToday && (
-                      <div className="absolute bottom-0.5 flex gap-0.5">
-                        {day.hasDeadline && (
-                          <div
-                            className="w-1 h-1 rounded-full"
-                            style={{ background: colors.yellow }}
-                          />
-                        )}
-                        {day.hasEvent && (
-                          <div
-                            className="w-1 h-1 rounded-full"
-                            style={{ background: colors.green }}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div
-                className="mt-4 pt-4 flex gap-4 text-[10px] border-t"
-                style={{ borderColor: colors.border }}
-              >
-                <div className="flex items-center gap-1.5">
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ background: colors.yellow }}
-                  />
-                  <span style={{ color: colors.fgDim }}>Deadlines</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ background: colors.green }}
-                  />
-                  <span style={{ color: colors.fgDim }}>Events</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Upcoming Events */}
-            <div
-              className="rounded-2xl border p-5"
-              style={{ background: colors.bgCard, borderColor: colors.border }}
-            >
-              <h2
-                className="font-semibold mb-4 flex items-center gap-2"
-                style={{ color: colors.fg }}
-              >
-                <CalendarCheck
-                  className="w-4 h-4"
-                  style={{ color: colors.green }}
-                />
-                Upcoming Events
-              </h2>
-              {upcomingEvents.length === 0 ? (
-                <div className="text-center py-6">
-                  <Calendar
-                    className="w-8 h-8 mx-auto mb-2 opacity-30"
-                    style={{ color: colors.fgDim }}
-                  />
-                  <p className="text-xs" style={{ color: colors.fgDim }}>
-                    No events this week
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {upcomingEvents.map((event) => {
-                    const eventDate = new Date(event.startTime);
-                    const days = getDaysDiff(event.startTime);
-                    return (
-                      <a
-                        key={event.id}
-                        href={event.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-start gap-3 p-3 rounded-xl transition-colors hover:bg-white/5"
-                        style={{ background: colors.bgHover }}
-                      >
-                        <div
-                          className="w-10 h-10 rounded-lg flex flex-col items-center justify-center shrink-0"
-                          style={{ background: `${colors.green}15` }}
-                        >
-                          <span
-                            className="text-[9px] uppercase font-medium"
-                            style={{ color: colors.fgDim }}
-                          >
-                            {eventDate.toLocaleDateString("en-US", {
-                              month: "short",
-                            })}
-                          </span>
-                          <span
-                            className="text-sm font-bold leading-none"
-                            style={{ color: colors.green }}
-                          >
-                            {eventDate.getDate()}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className="text-sm font-medium truncate mb-0.5"
-                            style={{ color: colors.fg }}
-                          >
-                            {event.title}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="text-xs"
-                              style={{ color: colors.fgDim }}
-                            >
-                              {eventDate.toLocaleTimeString("en-US", {
-                                hour: "numeric",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                            {days === 0 && (
-                              <span
-                                className="text-[10px] px-1.5 py-0.5 rounded-full"
-                                style={{
-                                  background: `${colors.green}20`,
-                                  color: colors.green,
-                                }}
-                              >
-                                Today
-                              </span>
-                            )}
-                            {days === 1 && (
-                              <span
-                                className="text-[10px] px-1.5 py-0.5 rounded-full"
-                                style={{
-                                  background: `${colors.cyan}20`,
-                                  color: colors.cyan,
-                                }}
-                              >
-                                Tomorrow
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {event.isAuraMail && (
-                          <Sparkles
-                            className="w-3 h-3 shrink-0 mt-1"
-                            style={{ color: colors.magenta }}
-                          />
-                        )}
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ============ INBOX VIEW ============
-  const renderInbox = () => (
-    <div className="flex flex-1 min-h-0">
-      {/* Email List */}
-      <div
-        className={`${selectedEmail ? "w-[420px]" : "flex-1 max-w-2xl"} flex flex-col border-r`}
-        style={{ borderColor: colors.border }}
-      >
-        <div
-          className="p-4 space-y-3 border-b"
-          style={{ borderColor: colors.border }}
-        >
-          {/* Search and Sort Row */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                style={{ color: colors.fgDim }}
-              />
-              <input
-                type="text"
-                placeholder="Search emails..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none border"
-                style={{
-                  background: colors.bgHover,
-                  color: colors.fg,
-                  borderColor: colors.border,
-                }}
-              />
-            </div>
-
-            {/* Sort Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowSortDropdown(!showSortDropdown)}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm border transition-colors"
-                style={{
-                  background: showSortDropdown
-                    ? colors.bgHighlight
-                    : colors.bgHover,
-                  color: colors.fgMuted,
-                  borderColor: showSortDropdown ? colors.blue : colors.border,
-                }}
-              >
-                <ArrowUpDown className="w-4 h-4" />
-                <span className="hidden sm:inline">
-                  {sortOptions.find((s) => s.value === sortBy)?.label}
-                </span>
-                <ChevronDown
-                  className={`w-3 h-3 transition-transform ${showSortDropdown ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              {showSortDropdown && (
-                <>
-                  {/* Backdrop */}
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowSortDropdown(false)}
-                  />
-
-                  {/* Dropdown Menu */}
-                  <div
-                    className="absolute right-0 top-full mt-2 w-56 rounded-xl border shadow-xl z-20 overflow-hidden"
-                    style={{
-                      background: colors.bgCard,
-                      borderColor: colors.border,
-                    }}
-                  >
-                    <div className="p-2">
-                      <div
-                        className="px-3 py-2 text-[10px] uppercase tracking-wider font-medium"
-                        style={{ color: colors.fgDim }}
-                      >
-                        Sort by
-                      </div>
-                      {sortOptions.map((option) => {
-                        const Icon = option.icon;
-                        const isActive = sortBy === option.value;
-                        return (
-                          <button
-                            key={option.value}
-                            onClick={() => {
-                              if (sortBy === option.value) {
-                                // Toggle direction if same option clicked
-                                setSortDirection((prev) =>
-                                  prev === "asc" ? "desc" : "asc",
-                                );
-                              } else {
-                                setSortBy(option.value);
-                                // Set sensible default direction for each sort type
-                                setSortDirection(
-                                  option.value === "company" ? "asc" : "desc",
-                                );
-                              }
-                              setShowSortDropdown(false);
-                            }}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors"
-                            style={{
-                              background: isActive
-                                ? colors.bgHighlight
-                                : "transparent",
-                              color: isActive ? colors.fg : colors.fgMuted,
-                            }}
-                          >
-                            <Icon
-                              className="w-4 h-4"
-                              style={{
-                                color: isActive ? colors.blue : colors.fgDim,
-                              }}
-                            />
-                            <span className="flex-1 text-left">
-                              {option.label}
-                            </span>
-                            {isActive &&
-                              (sortDirection === "desc" ? (
-                                <ArrowDown
-                                  className="w-3.5 h-3.5"
-                                  style={{ color: colors.blue }}
-                                />
-                              ) : (
-                                <ArrowUp
-                                  className="w-3.5 h-3.5"
-                                  style={{ color: colors.blue }}
-                                />
-                              ))}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div
-                      className="border-t px-2 py-2"
-                      style={{ borderColor: colors.border }}
-                    >
-                      <div
-                        className="px-3 py-2 text-[10px] uppercase tracking-wider font-medium"
-                        style={{ color: colors.fgDim }}
-                      >
-                        Direction
-                      </div>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => {
-                            setSortDirection("desc");
-                            setShowSortDropdown(false);
-                          }}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
-                          style={{
-                            background:
-                              sortDirection === "desc"
-                                ? colors.blue
-                                : colors.bgHover,
-                            color:
-                              sortDirection === "desc"
-                                ? "#fff"
-                                : colors.fgMuted,
-                          }}
-                        >
-                          <ArrowDown className="w-3 h-3" /> Descending
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSortDirection("asc");
-                            setShowSortDropdown(false);
-                          }}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
-                          style={{
-                            background:
-                              sortDirection === "asc"
-                                ? colors.blue
-                                : colors.bgHover,
-                            color:
-                              sortDirection === "asc" ? "#fff" : colors.fgMuted,
-                          }}
-                        >
-                          <ArrowUp className="w-3 h-3" /> Ascending
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Category Tabs */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
-            {Object.entries(categoryConfig)
-              .filter(
-                ([key]) => key === "all" || (categoryCounts[key] || 0) > 0,
-              )
-              .map(([key, config]) => (
-                <button
-                  key={key}
-                  onClick={() => setSelectedCategory(key as EmailCategory)}
-                  className="px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors font-medium"
-                  style={{
-                    background:
-                      selectedCategory === key ? colors.blue : colors.bgHover,
-                    color: selectedCategory === key ? "#fff" : colors.fgMuted,
-                  }}
-                >
-                  {config.label}
-                </button>
-              ))}
-          </div>
-
-          {/* Active Sort Indicator */}
-          {(sortBy !== "date" || sortDirection !== "desc") && (
-            <div
-              className="flex items-center gap-2 text-xs"
-              style={{ color: colors.fgDim }}
-            >
-              <span>Sorted by:</span>
-              <span
-                className="px-2 py-0.5 rounded-full flex items-center gap-1.5"
-                style={{ background: colors.bgHighlight, color: colors.blue }}
-              >
-                {(() => {
-                  const opt = sortOptions.find((s) => s.value === sortBy);
-                  const Icon = opt?.icon || Clock;
-                  return (
-                    <>
-                      <Icon className="w-3 h-3" />
-                      {opt?.label}
-                      {sortDirection === "asc" ? (
-                        <ArrowUp className="w-3 h-3" />
-                      ) : (
-                        <ArrowDown className="w-3 h-3" />
-                      )}
-                    </>
-                  );
-                })()}
-              </span>
-              <button
-                onClick={() => {
-                  setSortBy("date");
-                  setSortDirection("desc");
-                }}
-                className="hover:underline"
-                style={{ color: colors.fgDim }}
-              >
-                Reset
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {emailsLoading ? (
-            <div className="flex justify-center py-12">
-              <div
-                className="w-6 h-6 border-2 rounded-full animate-spin"
-                style={{
-                  borderColor: colors.bgHighlight,
-                  borderTopColor: colors.blue,
-                }}
-              />
-            </div>
-          ) : filteredEmails.length === 0 ? (
-            <div className="text-center py-12">
-              <Inbox
-                className="w-12 h-12 mx-auto mb-3 opacity-30"
-                style={{ color: colors.fgDim }}
-              />
-              <p style={{ color: colors.fgDim }}>No emails found</p>
-            </div>
-          ) : (
-            <div className="p-2">
-              {filteredEmails.map((email) => {
-                const cat =
-                  categoryConfig[
-                    email.category?.toLowerCase() || "announcement"
-                  ] || categoryConfig.announcement;
-                const Icon = cat.icon;
-                const isSelected = selectedEmail?.id === email.id;
-                return (
-                  <button
-                    key={email.id}
-                    onClick={() => setSelectedEmail(email)}
-                    className="w-full text-left p-4 rounded-xl mb-1 transition-all"
-                    style={{
-                      background: isSelected
-                        ? colors.bgHighlight
-                        : "transparent",
-                    }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ background: `${cat.color}15` }}
-                      >
-                        <Icon
-                          className="w-5 h-5"
-                          style={{ color: cat.color }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <span
-                            className="font-medium truncate"
-                            style={{ color: colors.fg }}
-                          >
-                            {email.company || email.subject}
-                          </span>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {email.priority === "high" && (
-                              <Star
-                                className="w-3.5 h-3.5"
-                                style={{
-                                  color: colors.yellow,
-                                  fill: colors.yellow,
-                                }}
-                              />
-                            )}
-                            <span
-                              className="text-[10px]"
-                              style={{ color: colors.fgDim }}
-                            >
-                              {formatRelativeDate(email.receivedAt)}
-                            </span>
-                          </div>
-                        </div>
-                        {email.role && (
-                          <p
-                            className="text-sm mb-1 truncate"
-                            style={{ color: colors.fgMuted }}
-                          >
-                            {email.role}
-                          </p>
-                        )}
-                        <p
-                          className="text-xs truncate mb-2"
-                          style={{ color: colors.fgDim }}
-                        >
-                          {email.summary || email.snippet}
-                        </p>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {email.deadline &&
-                            (() => {
-                              const dl = formatDeadline(email.deadline);
-                              return (
-                                <span
-                                  className="text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-medium"
-                                  style={{
-                                    background: `${dl.urgent ? colors.red : colors.blue}15`,
-                                    color: dl.urgent ? colors.red : colors.blue,
-                                  }}
-                                >
-                                  <Clock className="w-2.5 h-2.5" /> {dl.text}
-                                </span>
-                              );
-                            })()}
-                          {email.tags?.slice(0, 2).map(renderTag)}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Email Detail */}
-      {selectedEmail && (
-        <div
-          className="flex-1 flex flex-col min-w-0 overflow-hidden"
-          style={{ background: colors.bgAlt }}
-        >
-          {/* Header */}
-          <div
-            className="h-16 flex items-center justify-between px-6 border-b shrink-0"
-            style={{ borderColor: colors.border }}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <span
-                className="font-semibold truncate"
-                style={{ color: colors.fg }}
-              >
-                {selectedEmail.company || "Email Details"}
-              </span>
-              {selectedEmail.role && (
-                <>
-                  <ChevronRight
-                    className="w-4 h-4 shrink-0"
-                    style={{ color: colors.fgDim }}
-                  />
-                  <span className="truncate" style={{ color: colors.fgMuted }}>
-                    {selectedEmail.role}
-                  </span>
-                </>
-              )}
-            </div>
-            <button
-              onClick={() => setSelectedEmail(null)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/5"
-            >
-              <X className="w-4 h-4" style={{ color: colors.fgDim }} />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            <div className="max-w-3xl mx-auto p-6 space-y-6">
-              {/* Hero Section */}
-              <div
-                className="rounded-2xl p-6 border"
-                style={{
-                  background: colors.bgCard,
-                  borderColor: colors.border,
-                }}
-              >
-                {/* Category & Priority Badges */}
-                <div className="flex items-center gap-2 mb-4 flex-wrap">
-                  {selectedEmail.category &&
-                    (() => {
-                      const cat =
-                        categoryConfig[selectedEmail.category.toLowerCase()] ||
-                        categoryConfig.announcement;
-                      const Icon = cat.icon;
-                      return (
-                        <span
-                          className="text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium"
-                          style={{
-                            background: `${cat.color}15`,
-                            color: cat.color,
-                          }}
-                        >
-                          <Icon className="w-3.5 h-3.5" /> {cat.label}
-                        </span>
-                      );
-                    })()}
-                  {selectedEmail.priority === "high" && (
-                    <span
-                      className="text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium"
-                      style={{
-                        background: `${colors.red}15`,
-                        color: colors.red,
-                      }}
-                    >
-                      <Zap className="w-3.5 h-3.5" /> High Priority
-                    </span>
-                  )}
-                  {selectedEmail.priority === "medium" && (
-                    <span
-                      className="text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium"
-                      style={{
-                        background: `${colors.yellow}15`,
-                        color: colors.yellow,
-                      }}
-                    >
-                      <Star className="w-3.5 h-3.5" /> Medium Priority
-                    </span>
-                  )}
-                </div>
-
-                {/* Title */}
-                <h1
-                  className="text-2xl font-bold mb-2 leading-tight"
-                  style={{ color: colors.fg }}
-                >
-                  {selectedEmail.company || selectedEmail.subject}
-                </h1>
-                {selectedEmail.role && selectedEmail.company && (
-                  <p className="text-lg mb-3" style={{ color: colors.fgMuted }}>
-                    {selectedEmail.role}
-                  </p>
-                )}
-
-                {/* Meta info */}
-                <div
-                  className="flex items-center gap-4 text-sm"
-                  style={{ color: colors.fgDim }}
-                >
-                  <span>
-                    {new Date(selectedEmail.receivedAt).toLocaleDateString(
-                      "en-US",
-                      {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      },
-                    )}
-                  </span>
-                </div>
-
-                {/* Tags */}
-                {selectedEmail.tags && selectedEmail.tags.length > 0 && (
-                  <div
-                    className="flex items-center gap-2 flex-wrap mt-4 pt-4 border-t"
-                    style={{ borderColor: colors.border }}
-                  >
-                    {selectedEmail.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-xs px-2.5 py-1 rounded-full font-medium"
-                        style={{
-                          background: `${tagColors[tag] || colors.fgDim}15`,
-                          color: tagColors[tag] || colors.fgDim,
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Quick Actions */}
-              <div className="flex items-center gap-3 flex-wrap">
-                {selectedEmail.applyLink && (
-                  <a
-                    href={selectedEmail.applyLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
-                    style={{ background: colors.green, color: "#fff" }}
-                  >
-                    <ExternalLink className="w-4 h-4" /> Apply Now
-                  </a>
-                )}
-                {selectedEmail.deadline &&
-                  (isInCalendar(selectedEmail) ? (
-                    <button
-                      onClick={() => removeFromCalendar(selectedEmail)}
-                      disabled={addingToCalendar}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition-all hover:scale-105 border"
-                      style={{
-                        background: `${colors.green}15`,
-                        color: colors.green,
-                        borderColor: `${colors.green}30`,
-                      }}
-                    >
-                      <CalendarCheck className="w-4 h-4" /> Added to Calendar
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => addToCalendar(selectedEmail)}
-                      disabled={addingToCalendar}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition-all hover:scale-105"
-                      style={{ background: colors.blue, color: "#fff" }}
-                    >
-                      <CalendarPlus className="w-4 h-4" /> Add to Calendar
-                    </button>
-                  ))}
-                {selectedEmail.otherLinks &&
-                  selectedEmail.otherLinks.length > 0 && (
-                    <a
-                      href={selectedEmail.otherLinks[0]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors border"
-                      style={{
-                        background: colors.bgHover,
-                        color: colors.fg,
-                        borderColor: colors.border,
-                      }}
-                    >
-                      <ExternalLink className="w-4 h-4" /> View Link
-                    </a>
-                  )}
-              </div>
-
-              {/* Key Details Grid */}
-              {(selectedEmail.deadline ||
-                selectedEmail.location ||
-                selectedEmail.salary ||
-                selectedEmail.eligibility ||
-                selectedEmail.timings) && (
-                <div
-                  className="rounded-2xl border overflow-hidden"
-                  style={{
-                    background: colors.bgCard,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <div
-                    className="px-5 py-3 border-b"
-                    style={{ borderColor: colors.border }}
-                  >
-                    <h2
-                      className="text-sm font-semibold flex items-center gap-2"
-                      style={{ color: colors.fg }}
-                    >
-                      <FileText
-                        className="w-4 h-4"
-                        style={{ color: colors.cyan }}
-                      />{" "}
-                      Key Details
-                    </h2>
-                  </div>
-                  <div
-                    className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x"
-                    style={{ borderColor: colors.border }}
-                  >
-                    {selectedEmail.deadline && (
-                      <div className="p-4 flex items-start gap-3">
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                          style={{ background: `${colors.yellow}15` }}
-                        >
-                          <Clock
-                            className="w-5 h-5"
-                            style={{ color: colors.yellow }}
-                          />
-                        </div>
-                        <div>
-                          <p
-                            className="text-xs uppercase tracking-wider mb-1"
-                            style={{ color: colors.fgDim }}
-                          >
-                            Deadline
-                          </p>
-                          <p
-                            className="text-sm font-semibold"
-                            style={{
-                              color: formatDeadline(selectedEmail.deadline)
-                                .urgent
-                                ? colors.red
-                                : colors.fg,
-                            }}
-                          >
-                            {new Date(
-                              selectedEmail.deadline,
-                            ).toLocaleDateString("en-US", {
-                              weekday: "short",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                          </p>
-                          <p
-                            className="text-xs mt-0.5"
-                            style={{
-                              color: formatDeadline(selectedEmail.deadline)
-                                .urgent
-                                ? colors.red
-                                : colors.fgDim,
-                            }}
-                          >
-                            {formatDeadline(selectedEmail.deadline).text}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {selectedEmail.location && (
-                      <div className="p-4 flex items-start gap-3">
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                          style={{ background: `${colors.blue}15` }}
-                        >
-                          <MapPin
-                            className="w-5 h-5"
-                            style={{ color: colors.blue }}
-                          />
-                        </div>
-                        <div>
-                          <p
-                            className="text-xs uppercase tracking-wider mb-1"
-                            style={{ color: colors.fgDim }}
-                          >
-                            Location
-                          </p>
-                          <p
-                            className="text-sm font-semibold"
-                            style={{ color: colors.fg }}
-                          >
-                            {typeof selectedEmail.location === "string"
-                              ? selectedEmail.location
-                              : JSON.stringify(selectedEmail.location)}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {selectedEmail.salary && (
-                      <div className="p-4 flex items-start gap-3">
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                          style={{ background: `${colors.green}15` }}
-                        >
-                          <DollarSign
-                            className="w-5 h-5"
-                            style={{ color: colors.green }}
-                          />
-                        </div>
-                        <div>
-                          <p
-                            className="text-xs uppercase tracking-wider mb-1"
-                            style={{ color: colors.fgDim }}
-                          >
-                            Compensation
-                          </p>
-                          <p
-                            className="text-sm font-semibold"
-                            style={{ color: colors.fg }}
-                          >
-                            {typeof selectedEmail.salary === "string"
-                              ? selectedEmail.salary
-                              : JSON.stringify(selectedEmail.salary)}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {selectedEmail.timings && (
-                      <div className="p-4 flex items-start gap-3">
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                          style={{ background: `${colors.purple}15` }}
-                        >
-                          <Clock
-                            className="w-5 h-5"
-                            style={{ color: colors.purple }}
-                          />
-                        </div>
-                        <div>
-                          <p
-                            className="text-xs uppercase tracking-wider mb-1"
-                            style={{ color: colors.fgDim }}
-                          >
-                            Timings
-                          </p>
-                          <p className="text-sm" style={{ color: colors.fg }}>
-                            {typeof selectedEmail.timings === "string"
-                              ? selectedEmail.timings
-                              : JSON.stringify(selectedEmail.timings)}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {selectedEmail.eligibility && (
-                    <div
-                      className="p-4 border-t"
-                      style={{ borderColor: colors.border }}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                          style={{ background: `${colors.cyan}15` }}
-                        >
-                          <User
-                            className="w-5 h-5"
-                            style={{ color: colors.cyan }}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <p
-                            className="text-xs uppercase tracking-wider mb-2"
-                            style={{ color: colors.fgDim }}
-                          >
-                            Eligibility Criteria
-                          </p>
-                          <div
-                            className="text-sm leading-relaxed"
-                            style={{ color: colors.fg }}
-                          >
-                            {typeof selectedEmail.eligibility === "string"
-                              ? selectedEmail.eligibility
-                                  .split("\n")
-                                  .map((line, i) => (
-                                    <p
-                                      key={i}
-                                      className={
-                                        line.startsWith("•") ? "pl-2" : ""
-                                      }
-                                    >
-                                      {line}
-                                    </p>
-                                  ))
-                              : JSON.stringify(selectedEmail.eligibility)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* AI Summary */}
-              {selectedEmail.summary && (
-                <div
-                  className="rounded-2xl border overflow-hidden"
-                  style={{
-                    background: `linear-gradient(135deg, ${colors.magenta}08, ${colors.blue}08)`,
-                    borderColor: `${colors.magenta}20`,
-                  }}
-                >
-                  <div
-                    className="px-5 py-3 border-b flex items-center gap-2"
-                    style={{ borderColor: `${colors.magenta}20` }}
-                  >
-                    <Sparkles
-                      className="w-4 h-4"
-                      style={{ color: colors.magenta }}
-                    />
-                    <h2
-                      className="text-sm font-semibold"
-                      style={{ color: colors.fg }}
-                    >
-                      AI Summary
-                    </h2>
-                  </div>
-                  <div className="p-5">
-                    <p
-                      className="text-sm leading-relaxed"
-                      style={{ color: colors.fgMuted }}
-                    >
-                      {selectedEmail.summary}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Requirements */}
-              {selectedEmail.requirements && (
-                <div
-                  className="rounded-2xl border overflow-hidden"
-                  style={{
-                    background: colors.bgCard,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <div
-                    className="px-5 py-3 border-b"
-                    style={{ borderColor: colors.border }}
-                  >
-                    <h2
-                      className="text-sm font-semibold flex items-center gap-2"
-                      style={{ color: colors.fg }}
-                    >
-                      <ClipboardCheck
-                        className="w-4 h-4"
-                        style={{ color: colors.orange }}
-                      />{" "}
-                      Requirements
-                    </h2>
-                  </div>
-                  <div className="p-5">
-                    <div
-                      className="text-sm leading-relaxed"
-                      style={{ color: colors.fgMuted }}
-                    >
-                      {typeof selectedEmail.requirements === "string"
-                        ? selectedEmail.requirements
-                            .split("\n")
-                            .map((line, i) => (
-                              <p
-                                key={i}
-                                className={`${line.startsWith("•") ? "pl-2 flex items-start gap-2" : ""} ${i > 0 ? "mt-1.5" : ""}`}
-                              >
-                                {line.startsWith("•") && (
-                                  <span style={{ color: colors.orange }}>
-                                    •
-                                  </span>
-                                )}
-                                {line.startsWith("•")
-                                  ? line.substring(1).trim()
-                                  : line}
-                              </p>
-                            ))
-                        : JSON.stringify(selectedEmail.requirements)}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Event Details */}
-              {selectedEmail.eventDetails && (
-                <div
-                  className="rounded-2xl border overflow-hidden"
-                  style={{
-                    background: colors.bgCard,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <div
-                    className="px-5 py-3 border-b"
-                    style={{ borderColor: colors.border }}
-                  >
-                    <h2
-                      className="text-sm font-semibold flex items-center gap-2"
-                      style={{ color: colors.fg }}
-                    >
-                      <Calendar
-                        className="w-4 h-4"
-                        style={{ color: colors.teal }}
-                      />{" "}
-                      Event Details
-                    </h2>
-                  </div>
-                  <div className="p-5">
-                    <div
-                      className="text-sm leading-relaxed"
-                      style={{ color: colors.fgMuted }}
-                    >
-                      {typeof selectedEmail.eventDetails === "string"
-                        ? selectedEmail.eventDetails
-                            .split("\n")
-                            .map((line, i) => (
-                              <p key={i} className={i > 0 ? "mt-1.5" : ""}>
-                                {line}
-                              </p>
-                            ))
-                        : JSON.stringify(selectedEmail.eventDetails)}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Description */}
-              {selectedEmail.description && (
-                <div
-                  className="rounded-2xl border overflow-hidden"
-                  style={{
-                    background: colors.bgCard,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <div
-                    className="px-5 py-3 border-b"
-                    style={{ borderColor: colors.border }}
-                  >
-                    <h2
-                      className="text-sm font-semibold flex items-center gap-2"
-                      style={{ color: colors.fg }}
-                    >
-                      <FileText
-                        className="w-4 h-4"
-                        style={{ color: colors.blue }}
-                      />{" "}
-                      Description
-                    </h2>
-                  </div>
-                  <div className="p-5">
-                    <p
-                      className="text-sm leading-relaxed whitespace-pre-wrap"
-                      style={{ color: colors.fgMuted }}
-                    >
-                      {selectedEmail.description}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Other Links */}
-              {selectedEmail.otherLinks &&
-                selectedEmail.otherLinks.length > 0 && (
-                  <div
-                    className="rounded-2xl border overflow-hidden"
-                    style={{
-                      background: colors.bgCard,
-                      borderColor: colors.border,
-                    }}
-                  >
-                    <div
-                      className="px-5 py-3 border-b"
-                      style={{ borderColor: colors.border }}
-                    >
-                      <h2
-                        className="text-sm font-semibold flex items-center gap-2"
-                        style={{ color: colors.fg }}
-                      >
-                        <ExternalLink
-                          className="w-4 h-4"
-                          style={{ color: colors.cyan }}
-                        />{" "}
-                        Related Links
-                      </h2>
-                    </div>
-                    <div className="p-4 space-y-2">
-                      {selectedEmail.otherLinks.map((link, i) => (
-                        <a
-                          key={i}
-                          href={link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-3 p-3 rounded-xl transition-colors hover:scale-[1.01]"
-                          style={{ background: colors.bgHover }}
-                        >
-                          <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center"
-                            style={{ background: `${colors.cyan}15` }}
-                          >
-                            <ExternalLink
-                              className="w-4 h-4"
-                              style={{ color: colors.cyan }}
-                            />
-                          </div>
-                          <span
-                            className="text-sm truncate flex-1"
-                            style={{ color: colors.blue }}
-                          >
-                            {link}
-                          </span>
-                          <ChevronRight
-                            className="w-4 h-4 shrink-0"
-                            style={{ color: colors.fgDim }}
-                          />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              {/* Original Subject (if different from company) */}
-              {selectedEmail.company &&
-                selectedEmail.subject &&
-                selectedEmail.subject !== selectedEmail.company && (
-                  <div
-                    className="rounded-xl p-4 border"
-                    style={{
-                      background: colors.bgHover,
-                      borderColor: colors.border,
-                    }}
-                  >
-                    <p
-                      className="text-xs uppercase tracking-wider mb-1"
-                      style={{ color: colors.fgDim }}
-                    >
-                      Original Subject
-                    </p>
-                    <p className="text-sm" style={{ color: colors.fgMuted }}>
-                      {selectedEmail.subject}
-                    </p>
-                  </div>
-                )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ background: colors.bg }}
-    >
-      {/* Header */}
-      <header
-        className="h-16 border-b flex items-center justify-between px-6 shrink-0"
-        style={{ borderColor: colors.border, background: colors.bgAlt }}
-      >
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: `${colors.blue}20` }}
-            >
-              <Mail className="w-4 h-4" style={{ color: colors.blue }} />
+    <div className="flex flex-col h-screen overflow-hidden bg-black text-white font-sans selection:bg-blue-500/30">
+      {/* HEADER */}
+      <header className="h-16 border-b border-white/10 flex items-center justify-between px-6 shrink-0 bg-black/50 backdrop-blur-xl z-20 relative">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+              <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              <Mail className="w-4 h-4 text-gray-300" />
             </div>
-            <span className="text-lg font-bold" style={{ color: colors.fg }}>
+            <span className="text-lg font-semibold tracking-tight text-white">
               AuraMail
             </span>
           </div>
-          <nav className="flex items-center gap-1">
-            {[
-              { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-              { id: "inbox", label: "Inbox", icon: Inbox },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setCurrentView(item.id as View)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={{
-                  background:
-                    currentView === item.id
-                      ? colors.bgHighlight
-                      : "transparent",
-                  color: currentView === item.id ? colors.fg : colors.fgDim,
-                }}
-              >
-                <item.icon className="w-4 h-4" />
-                {item.label}
-              </button>
-            ))}
-          </nav>
+          <div className="h-4 w-px bg-white/20" />
+          <span className="text-sm font-medium text-gray-400">Workspace</span>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-4">
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border"
-            style={{
-              background: colors.bgHover,
-              color: colors.fg,
-              borderColor: colors.border,
-            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 hover:text-white group"
           >
-            <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`w-4 h-4 text-blue-400 group-hover:text-blue-300 ${syncing ? "animate-spin" : ""}`}
+            />
             {syncing ? "Syncing..." : "Sync"}
           </button>
-          <div className="w-px h-8" style={{ background: colors.border }} />
-          <div className="flex items-center gap-3">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
-              style={{ background: colors.bgHighlight, color: colors.fg }}
-            >
-              {user.name?.charAt(0) || "U"}
-            </div>
-            <span
-              className="text-sm font-medium"
-              style={{ color: colors.fgMuted }}
-            >
-              {user.name?.split(" ")[0]}
-            </span>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-white/10 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-200 shadow-inner">
+            {user.name?.charAt(0) || "U"}
           </div>
           <button
             onClick={() => {
               logout();
               router.push("/");
             }}
-            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/5"
+            className="p-2 rounded-lg hover:bg-white/5 text-gray-500 hover:text-gray-300 transition-colors"
           >
-            <LogOut className="w-4 h-4" style={{ color: colors.fgDim }} />
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      {/* Error Banner */}
-      {error && (
-        <div
-          className="mx-6 mt-4 p-3 rounded-xl flex items-center gap-3"
-          style={{
-            background: `${colors.red}15`,
-            borderColor: `${colors.red}30`,
-          }}
-        >
-          <AlertTriangle
-            className="w-4 h-4 shrink-0"
-            style={{ color: colors.red }}
-          />
-          <span className="text-sm flex-1" style={{ color: colors.red }}>
-            {error}
-          </span>
-          <button onClick={() => setError(null)}>
-            <X className="w-4 h-4" style={{ color: colors.red }} />
-          </button>
-        </div>
-      )}
+      {/* ERROR BANNER */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-xl flex items-center gap-3 border border-rose-500/30 bg-rose-500/10 backdrop-blur-md text-sm text-rose-200 shadow-2xl"
+          >
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+            <span>{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Content */}
-      {currentView === "dashboard" ? renderDashboard() : renderInbox()}
+      {/* MAIN 3-COLUMN WORKSPACE */}
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* COLUMN 1: INBOX LIST (Fixed Width) */}
+        <div className="w-[380px] flex flex-col border-r border-white/10 bg-[#050505] shrink-0 z-10">
+          {/* Search & Filters */}
+          <div className="p-5 space-y-4 border-b border-white/5 bg-black/40 backdrop-blur-sm">
+            <div className="flex gap-2">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
+                <input
+                  type="text"
+                  placeholder="Search emails..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm bg-white/5 border border-white/10 text-white placeholder:text-gray-600 outline-none transition-all focus:border-blue-500/50 focus:bg-white/[0.07]"
+                />
+              </div>
+              <div className="relative">
+                <button
+                  onClick={() => setShowSortDropdown(!showSortDropdown)}
+                  className={`h-full px-3 rounded-xl border transition-all flex items-center justify-center ${showSortDropdown ? "bg-white/10 border-white/20 text-white" : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-300"}`}
+                >
+                  <ArrowUpDown className="w-4 h-4" />
+                </button>
+                {showSortDropdown && (
+                  <div className="absolute right-0 top-full mt-2 w-52 rounded-xl border border-white/10 bg-[#121212] shadow-2xl z-50 overflow-hidden backdrop-blur-xl">
+                    {sortOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setSortBy(opt.value);
+                          setShowSortDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${sortBy === opt.value ? "bg-blue-500/10 text-blue-400" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
+                      >
+                        {opt.label}
+                        {sortBy === opt.value && (
+                          <ChevronRight className="w-3 h-3" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Category Pills */}
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              {Object.entries(categoryConfig)
+                .filter(
+                  ([key]) => key === "all" || (categoryCounts[key] || 0) > 0,
+                )
+                .map(([key, config]) => {
+                  const isActive = selectedCategory === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedCategory(key as EmailCategory)}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all border ${isActive ? "bg-white text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.2)]" : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-200"}`}
+                    >
+                      {config.label}
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+
+          {/* Email Feed */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1">
+            {emailsLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-6 h-6 rounded-full border-t-2 border-l-2 border-blue-500 animate-spin" />
+              </div>
+            ) : filteredEmails.length === 0 ? (
+              <div className="text-center py-16 px-4">
+                <Inbox className="w-10 h-10 mx-auto mb-4 opacity-20 text-gray-400" />
+                <p className="text-sm text-gray-500">
+                  No emails match your criteria.
+                </p>
+              </div>
+            ) : (
+              filteredEmails.map((email) => {
+                const isSelected = selectedEmail?.id === email.id;
+                const cat =
+                  categoryConfig[
+                    email.category?.toLowerCase() || "announcement"
+                  ] || categoryConfig.announcement;
+                return (
+                  <button
+                    key={email.id}
+                    onClick={() => setSelectedEmail(email)}
+                    className={`w-full text-left p-4 rounded-xl transition-all duration-200 border ${isSelected ? "bg-white/10 border-white/20 shadow-lg" : "bg-transparent border-transparent hover:bg-white/[0.04]"}`}
+                  >
+                    <div className="flex justify-between items-start mb-1.5 gap-3">
+                      <span
+                        className={`font-semibold text-sm truncate ${isSelected ? "text-white" : "text-gray-200"}`}
+                      >
+                        {email.company || email.subject}
+                      </span>
+                      <span
+                        className={`text-[10px] shrink-0 whitespace-nowrap mt-0.5 ${isSelected ? "text-blue-300" : "text-gray-500"}`}
+                      >
+                        {formatRelativeDate(email.receivedAt)}
+                      </span>
+                    </div>
+                    <p
+                      className={`text-xs truncate mb-3 ${isSelected ? "text-gray-300" : "text-gray-500"}`}
+                    >
+                      {email.role || email.snippet}
+                    </p>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      {email.priority === "high" && (
+                        <div className="flex items-center gap-1 text-[10px] text-rose-400 font-medium bg-rose-500/10 px-1.5 py-0.5 rounded">
+                          <Zap className="w-3 h-3" /> High
+                        </div>
+                      )}
+                      {email.deadline && (
+                        <div
+                          className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded ${formatDeadline(email.deadline).urgent ? "text-amber-400 bg-amber-500/10" : "text-blue-400 bg-blue-500/10"}`}
+                        >
+                          <Clock className="w-3 h-3" />{" "}
+                          {formatDeadline(email.deadline).text}
+                        </div>
+                      )}
+                      {!email.deadline && !email.priority && (
+                        <div
+                          className={`flex items-center gap-1 text-[10px] font-medium ${cat.colorClass}`}
+                        >
+                          <cat.icon className="w-3 h-3" /> {cat.label}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* COLUMN 2: CENTER WORKSPACE */}
+        <div className="flex-1 flex flex-col min-w-0 relative bg-black overflow-hidden">
+          {/* Subtle animated background (mimicking hero) */}
+          <div className="absolute inset-0 pointer-events-none opacity-40">
+            <div className="absolute top-0 left-1/3 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse"></div>
+            <div
+              className="absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-500/10 rounded-full blur-[120px] animate-pulse"
+              style={{ animationDelay: "2s" }}
+            ></div>
+          </div>
+
+          {/* Grid pattern overlay */}
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern
+                  id="grid-center"
+                  width="40"
+                  height="40"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <path
+                    d="M 40 0 L 0 0 0 40"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="1"
+                  />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid-center)" />
+            </svg>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {selectedEmail ? (
+              // --- DETAIL VIEW ---
+              <motion.div
+                key="detail"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 overflow-y-auto custom-scrollbar z-10"
+              >
+                {/* Header Actions */}
+                <div className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 bg-black/60 backdrop-blur-xl border-b border-white/5">
+                  <button
+                    onClick={() => setSelectedEmail(null)}
+                    className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors group"
+                  >
+                    <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />{" "}
+                    Back
+                  </button>
+                  <div className="flex gap-3">
+                    {selectedEmail.applyLink && (
+                      <a
+                        href={selectedEmail.applyLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-white text-black text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                      >
+                        Apply Now <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    {selectedEmail.deadline &&
+                      (isInCalendar(selectedEmail) ? (
+                        <button
+                          onClick={() => removeFromCalendar(selectedEmail)}
+                          disabled={addingToCalendar}
+                          className="px-4 py-2 bg-white/5 border border-white/10 text-emerald-400 text-sm font-medium rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2"
+                        >
+                          <CalendarCheck className="w-4 h-4" /> Added to
+                          Calendar
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => addToCalendar(selectedEmail)}
+                          disabled={addingToCalendar}
+                          className="px-4 py-2 bg-white/5 border border-white/20 text-white text-sm font-medium rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2"
+                        >
+                          <CalendarPlus className="w-4 h-4" /> Add Event
+                        </button>
+                      ))}
+                  </div>
+                </div>
+
+                <div className="p-10 max-w-4xl mx-auto space-y-10">
+                  {/* Hero Block */}
+                  <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full bg-white/5 border border-white/10">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
+                      <span className="text-xs text-gray-300 font-medium tracking-wide uppercase">
+                        {selectedEmail.category || "Announcement"}
+                      </span>
+                    </div>
+                    <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-gray-400 leading-tight mb-4 tracking-tight">
+                      {selectedEmail.company || selectedEmail.subject}
+                    </h1>
+                    {selectedEmail.role && selectedEmail.company && (
+                      <p className="text-xl text-blue-400 font-medium mb-6">
+                        {selectedEmail.role}
+                      </p>
+                    )}
+
+                    {selectedEmail.tags && selectedEmail.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedEmail.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="px-3 py-1 text-xs font-medium rounded bg-white/5 border border-white/10 text-gray-300 backdrop-blur-sm"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* AI Summary */}
+                  {selectedEmail.summary && (
+                    <div className="p-6 rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-blue-500/5 relative overflow-hidden backdrop-blur-md">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-blue-500" />
+                      <div className="flex items-center gap-2 mb-3">
+                        <Sparkles className="w-5 h-5 text-indigo-400" />
+                        <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-300">
+                          AI Intelligent Summary
+                        </h3>
+                      </div>
+                      <p className="text-gray-300 leading-relaxed text-[15px]">
+                        {selectedEmail.summary}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Quick Details Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {selectedEmail.deadline && (
+                      <div className="p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                        <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold mb-2 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-amber-400" />{" "}
+                          Deadline
+                        </p>
+                        <p className="text-[15px] text-white font-medium">
+                          {new Date(selectedEmail.deadline).toLocaleString([], {
+                            dateStyle: "long",
+                            timeStyle: "short",
+                          })}
+                        </p>
+                      </div>
+                    )}
+                    {selectedEmail.salary && (
+                      <div className="p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                        <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold mb-2 flex items-center gap-1.5">
+                          <DollarSign className="w-3.5 h-3.5 text-emerald-400" />{" "}
+                          Compensation
+                        </p>
+                        <p className="text-[15px] text-white font-medium">
+                          {typeof selectedEmail.salary === "string"
+                            ? selectedEmail.salary
+                            : JSON.stringify(selectedEmail.salary)}
+                        </p>
+                      </div>
+                    )}
+                    {selectedEmail.location && (
+                      <div className="p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                        <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold mb-2 flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-blue-400" />{" "}
+                          Location
+                        </p>
+                        <p className="text-[15px] text-white font-medium">
+                          {typeof selectedEmail.location === "string"
+                            ? selectedEmail.location
+                            : JSON.stringify(selectedEmail.location)}
+                        </p>
+                      </div>
+                    )}
+                    {selectedEmail.timings && (
+                      <div className="p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                        <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold mb-2 flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-purple-400" />{" "}
+                          Timings
+                        </p>
+                        <p className="text-[15px] text-white font-medium">
+                          {typeof selectedEmail.timings === "string"
+                            ? selectedEmail.timings
+                            : JSON.stringify(selectedEmail.timings)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Body Content */}
+                  <div className="space-y-10 pt-4 border-t border-white/10">
+                    {selectedEmail.eligibility && (
+                      <div>
+                        <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+                          <User className="w-4 h-4" /> Eligibility Criteria
+                        </h3>
+                        <div className="text-[15px] text-gray-300 leading-relaxed whitespace-pre-wrap pl-6 border-l-2 border-white/10">
+                          {typeof selectedEmail.eligibility === "string"
+                            ? selectedEmail.eligibility
+                            : JSON.stringify(selectedEmail.eligibility)}
+                        </div>
+                      </div>
+                    )}
+                    {selectedEmail.requirements && (
+                      <div>
+                        <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+                          <ClipboardCheck className="w-4 h-4" /> Requirements
+                        </h3>
+                        <div className="text-[15px] text-gray-300 leading-relaxed whitespace-pre-wrap pl-6 border-l-2 border-white/10">
+                          {typeof selectedEmail.requirements === "string"
+                            ? selectedEmail.requirements
+                            : JSON.stringify(selectedEmail.requirements)}
+                        </div>
+                      </div>
+                    )}
+                    {selectedEmail.description && (
+                      <div>
+                        <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+                          <FileText className="w-4 h-4" /> Full Description
+                        </h3>
+                        <div className="text-[15px] text-gray-400 leading-relaxed whitespace-pre-wrap bg-white/[0.02] p-6 rounded-xl border border-white/5">
+                          {selectedEmail.description}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pb-20"></div>
+                </div>
+              </motion.div>
+            ) : (
+              // --- DASHBOARD OVERVIEW ---
+              <motion.div
+                key="dashboard"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.4 }}
+                className="absolute inset-0 overflow-y-auto custom-scrollbar p-10 z-10 flex flex-col items-center justify-center min-h-full"
+              >
+                <div className="max-w-4xl w-full text-center space-y-8">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mx-auto">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                    <span className="text-sm text-gray-400">
+                      Workspace Active
+                    </span>
+                  </div>
+
+                  <h1 className="text-5xl md:text-6xl font-bold text-white tracking-tight leading-tight">
+                    Welcome back, <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500">
+                      {user.name?.split(" ")[0]}
+                    </span>
+                  </h1>
+
+                  <p className="text-lg text-gray-400 max-w-xl mx-auto">
+                    You have{" "}
+                    <span className="text-rose-400 font-semibold">
+                      {highPriorityCount} urgent
+                    </span>{" "}
+                    updates and{" "}
+                    <span className="text-amber-400 font-semibold">
+                      {upcomingDeadlines.length} deadlines
+                    </span>{" "}
+                    approaching.
+                  </p>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8">
+                    {[
+                      {
+                        label: "Total Emails",
+                        value: emails.length,
+                        text: "text-white",
+                      },
+                      {
+                        label: "Active Deadlines",
+                        value: upcomingDeadlines.length,
+                        text: "text-amber-400",
+                      },
+                      {
+                        label: "High Priority",
+                        value: highPriorityCount,
+                        text: "text-rose-400",
+                      },
+                      {
+                        label: "Synced",
+                        value: "Just now",
+                        text: "text-blue-400",
+                        isString: true,
+                      },
+                    ].map((s, i) => (
+                      <div
+                        key={i}
+                        className="p-6 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm"
+                      >
+                        <div className={`text-3xl font-bold mb-2 ${s.text}`}>
+                          {s.value}
+                        </div>
+                        <div className="text-xs uppercase tracking-wider text-gray-500 font-medium">
+                          {s.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* COLUMN 3: RIGHT CALENDAR PANEL */}
+        <div className="w-[340px] border-l border-white/10 bg-[#050505] flex flex-col shrink-0 z-20">
+          {/* Calendar Header */}
+          <div className="p-6 border-b border-white/5 bg-black/40 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+                {currentMonth.toLocaleDateString("en-US", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </h2>
+              <div className="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
+                <button
+                  onClick={() => navigateMonth(-1)}
+                  className="w-7 h-7 rounded hover:bg-white/10 flex items-center justify-center transition-colors text-gray-400 hover:text-white"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => navigateMonth(1)}
+                  className="w-7 h-7 rounded hover:bg-white/10 flex items-center justify-center transition-colors text-gray-400 hover:text-white"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Grid */}
+            <div className="grid grid-cols-7 gap-1.5 mb-2">
+              {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+                <div
+                  key={i}
+                  className="text-center text-[10px] font-bold text-gray-600"
+                >
+                  {d}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {getCalendarDays().map((day, i) => {
+                const isActiveVisual =
+                  hoveredDate === day.fullDateStr ||
+                  selectedCalendarDate === day.fullDateStr;
+                return (
+                  <div
+                    key={i}
+                    onMouseEnter={() => setHoveredDate(day.fullDateStr)}
+                    onMouseLeave={() => setHoveredDate(null)}
+                    onClick={() =>
+                      setSelectedCalendarDate(
+                        selectedCalendarDate === day.fullDateStr
+                          ? null
+                          : day.fullDateStr,
+                      )
+                    }
+                    className={`aspect-square flex items-center justify-center text-xs rounded-lg relative cursor-pointer transition-all duration-300 ease-out
+                      ${isActiveVisual ? "scale-[1.15] z-10 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/50 text-white shadow-[0_0_15px_rgba(59,130,246,0.2)]" : "border border-transparent hover:bg-white/5"}
+                      ${day.isToday && !isActiveVisual ? "bg-white/10 border-white/20 text-white font-bold" : ""}
+                      ${!day.isCurrentMonth && !isActiveVisual ? "text-gray-700" : !isActiveVisual && !day.isToday ? "text-gray-400" : ""}
+                    `}
+                  >
+                    {day.date}
+                    {/* Event Dots */}
+                    {(day.hasDeadline || day.hasEvent) && !isActiveVisual && (
+                      <div className="absolute bottom-1.5 flex gap-1">
+                        {day.hasDeadline && (
+                          <div className="w-1 h-1 rounded-full bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.5)]" />
+                        )}
+                        {day.hasEvent && (
+                          <div className="w-1 h-1 rounded-full bg-blue-400 shadow-[0_0_5px_rgba(96,165,250,0.5)]" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Dynamic Feed underneath */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-transparent">
+            <AnimatePresence mode="wait">
+              {activeFocusDate ? (
+                <motion.div
+                  key="focus"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                >
+                  <div className="flex items-center justify-between mb-5 border-b border-white/10 pb-3">
+                    <h3 className="text-sm font-semibold text-white">
+                      {new Date(activeFocusDate).toLocaleDateString("en-US", {
+                        weekday: "long",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </h3>
+                    {selectedCalendarDate && (
+                      <span className="text-[10px] font-medium tracking-wide uppercase bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">
+                        Locked
+                      </span>
+                    )}
+                  </div>
+
+                  {activeDateEvents.events.length === 0 &&
+                  activeDateEvents.deadlines.length === 0 ? (
+                    <p className="text-sm text-gray-600 text-center py-6">
+                      No scheduled items.
+                    </p>
+                  ) : (
+                    <div className="space-y-6">
+                      {activeDateEvents.deadlines.length > 0 && (
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider text-amber-500 font-bold mb-3 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5" /> Deadlines
+                          </p>
+                          <div className="space-y-2">
+                            {activeDateEvents.deadlines.map((dl) => (
+                              <div
+                                key={dl.id}
+                                className="p-3.5 rounded-xl border border-white/5 bg-white/[0.02]"
+                              >
+                                <p className="text-sm font-semibold text-white truncate">
+                                  {dl.company || dl.subject}
+                                </p>
+                                <p className="text-xs text-gray-500 truncate mt-1">
+                                  {dl.role}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {activeDateEvents.events.length > 0 && (
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider text-blue-400 font-bold mb-3 flex items-center gap-1.5">
+                            <CalendarCheck className="w-3.5 h-3.5" /> Events
+                          </p>
+                          <div className="space-y-2">
+                            {activeDateEvents.events.map((ev) => (
+                              <div
+                                key={ev.id}
+                                className="p-3.5 rounded-xl border border-white/5 bg-white/[0.02]"
+                              >
+                                <p className="text-sm font-semibold text-white truncate">
+                                  {ev.title}
+                                </p>
+                                <p className="text-xs text-blue-300 mt-1 font-medium">
+                                  {new Date(ev.startTime).toLocaleTimeString(
+                                    [],
+                                    { hour: "2-digit", minute: "2-digit" },
+                                  )}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="general"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-5 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" /> Next 7 Days
+                  </h3>
+                  {upcomingEvents.length === 0 ? (
+                    <div className="text-center py-10">
+                      <p className="text-sm text-gray-600">
+                        Your schedule is clear.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {upcomingEvents.map((event) => {
+                        const eventDate = new Date(event.startTime);
+                        return (
+                          <div
+                            key={event.id}
+                            className="p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors group cursor-default"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="flex flex-col items-center justify-center w-10 h-10 rounded-lg bg-white/5 border border-white/10 text-gray-300 group-hover:border-blue-500/30 group-hover:text-blue-400 transition-colors">
+                                <span className="text-[10px] font-medium leading-none mb-1 uppercase tracking-wider">
+                                  {eventDate.toLocaleDateString("en-US", {
+                                    month: "short",
+                                  })}
+                                </span>
+                                <span className="text-sm font-bold leading-none">
+                                  {eventDate.getDate()}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-200 truncate group-hover:text-white transition-colors">
+                                  {event.title}
+                                </p>
+                                <p className="text-[11px] text-gray-500 mt-0.5">
+                                  {eventDate.toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      {/* Global CSS for transparent modern scrollbars */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.1); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.2); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `,
+        }}
+      />
     </div>
   );
 }

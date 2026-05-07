@@ -158,7 +158,7 @@ func (c *Cache[T]) Stop() {
 
 // CacheItem represents a cached item (legacy)
 type CacheItem struct {
-	Data      interface{}
+	Data      any
 	ExpiresAt time.Time
 }
 
@@ -178,7 +178,7 @@ func NewMemoryCache() *MemoryCache {
 }
 
 // Set stores a value with the given TTL (legacy)
-func (c *MemoryCache) Set(key string, value interface{}, duration time.Duration) {
+func (c *MemoryCache) Set(key string, value any, duration time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.items[key] = CacheItem{
@@ -188,7 +188,7 @@ func (c *MemoryCache) Set(key string, value interface{}, duration time.Duration)
 }
 
 // Get retrieves an item only if it hasn't expired (legacy)
-func (c *MemoryCache) Get(key string) (interface{}, bool) {
+func (c *MemoryCache) Get(key string) (any, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 

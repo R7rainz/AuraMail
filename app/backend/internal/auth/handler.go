@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"golang.org/x/oauth2"
@@ -40,7 +41,7 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"error":   "unauthorized",
 		})
@@ -51,7 +52,7 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"error":   "user not found",
 		})
@@ -59,7 +60,7 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 		"user": userResponse{
 			ID:    foundUser.ID,
@@ -72,51 +73,35 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req refreshRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fmt.Printf("Refresh Error : Failed to decode JSON body: %v\n", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
-			"error":   "invalid request",
+			"error":   "invalid request format",
 		})
 		return
 	}
-
-	_, err := ValidateRefreshToken(req.RefreshToken)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "invalid refresh token",
-		})
-		return
+	if req.RefreshToken == "" {
+		fmt.Printf("Refresh Error : Frontend sent an empty refresh token")
 	}
-
-	foundUser, err := h.userRepo.FindByRefreshToken(r.Context(), req.RefreshToken)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error":   "invalid refresh token",
-		})
-		return
-	}
-	_ = foundUser
 
 	accessToken, err := h.service.Refresh(r.Context(), req.RefreshToken)
 	if err != nil {
+		fmt.Printf("Refresh Error from service: %v\n", err)
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"error":   "invalid refresh token",
 		})
 		return
 	}
 
+	fmt.Printf("Refresh success ! sending new access token")
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"success":     true,
 		"accessToken": accessToken,
 	})
@@ -127,7 +112,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"error":   "unauthorized",
 		})
@@ -137,7 +122,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.service.Logout(r.Context(), userID); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"error":   "logout failed",
 		})
@@ -145,7 +130,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 	})
 }

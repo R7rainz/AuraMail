@@ -88,7 +88,7 @@ func (h *Handler) AddEvent(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Found user, creating calendar service", "email", u.Email, "hasRefreshToken", u.RefreshToken != "")
 
 	// Create calendar service
-	calSvc, err := google.CreateCalendarService(ctx, u.RefreshToken)
+	calSvc, err := google.CreateCalendarService(ctx, u.GoogleRefreshToken)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to create calendar service",
 			"err", err,
@@ -249,7 +249,7 @@ func (h *Handler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create calendar service
-	calSvc, err := google.CreateCalendarService(ctx, u.RefreshToken)
+	calSvc, err := google.CreateCalendarService(ctx, u.GoogleRefreshToken)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to create calendar service", "err", err)
 		response.InternalError(w, "Failed to connect to Google Calendar")
@@ -267,7 +267,7 @@ func (h *Handler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	slog.Info("calendar event deleted", "eventId", eventID, "userId", userID)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 		"message": "Event removed from your Google Calendar",
 	})
@@ -304,7 +304,7 @@ func (h *Handler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create calendar service
-	calSvc, err := google.CreateCalendarService(ctx, u.RefreshToken)
+	calSvc, err := google.CreateCalendarService(ctx, u.GoogleRefreshToken)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to create calendar service", "err", err)
 		response.InternalError(w, "Failed to connect to Google Calendar")
@@ -332,7 +332,6 @@ func (h *Handler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		OrderBy("startTime").
 		MaxResults(50).
 		Do()
-
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to fetch calendar events", "err", err)
 		response.InternalError(w, "Failed to fetch calendar events")
@@ -382,7 +381,7 @@ func (h *Handler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	slog.Info("fetched calendar events", "count", len(calendarEvents), "userId", userID)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 		"events":  calendarEvents,
 		"total":   len(calendarEvents),

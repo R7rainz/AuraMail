@@ -87,12 +87,12 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 	emails := make([]emailResponse, 0, len(summaries))
 	for i, s := range summaries {
 		emails = append(emails, emailResponse{
-			ID:                strconv.Itoa(i + 1),
-			GmailMessageID:    "", // Would need to store this in DB
+			ID:                s.GmailMessageID,
+			GmailMessageID:    s.GmailMessageID, // Would need to store this in DB
 			Subject:           s.Summary,
-			Sender:            "",
+			Sender:            s.Sender,
 			Snippet:           s.Summary,
-			ReceivedAt:        time.Now().Format(time.RFC3339), // Would need actual time from DB
+			ReceivedAt:        s.ReceiverAt, // Would need actual time from DB
 			Company:           s.Company,
 			Role:              s.Role,
 			Deadline:          s.Deadline,
@@ -114,9 +114,9 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"success":    true,
-		"emails":     emails,
+		"emails":     summaries,
 		"total":      len(emails),
 		"page":       page,
 		"totalPages": 1,
@@ -128,7 +128,7 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 
 	userID, ok := ctx.Value(auth.UserIDContextKey).(string)
 	if !ok {
-		response.JSON(w, http.StatusUnauthorized, map[string]interface{}{
+		response.JSON(w, http.StatusUnauthorized, map[string]any{
 			"success": false,
 			"error":   "UNAUTHORIZED",
 			"message": "No UserID found in context. Please log in again.",
@@ -138,7 +138,7 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 
 	u, err := h.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		response.JSON(w, http.StatusNotFound, map[string]interface{}{
+		response.JSON(w, http.StatusNotFound, map[string]any{
 			"success": false,
 			"error":   "USER_NOT_FOUND",
 			"message": "User not found. Please log in again.",
@@ -148,7 +148,7 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 
 	// Validate refresh token exists
 	if u.RefreshToken == "" {
-		response.JSON(w, http.StatusUnauthorized, map[string]interface{}{
+		response.JSON(w, http.StatusUnauthorized, map[string]any{
 			"success": false,
 			"error":   "INVALID_REFRESH_TOKEN",
 			"message": "Your Gmail authorization has expired. Please log out and log in again to re-authorize.",
@@ -159,7 +159,7 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 	srv, err := google.CreateGmailService(ctx, u.RefreshToken)
 	if err != nil {
 		slog.ErrorContext(ctx, "gmail service init failed", "err", err)
-		response.JSON(w, http.StatusInternalServerError, map[string]interface{}{
+		response.JSON(w, http.StatusInternalServerError, map[string]any{
 			"success": false,
 			"error":   "GMAIL_AUTH_FAILED",
 			"message": "Failed to connect to Gmail. Your authorization may have expired. Please log out and log in again.",
@@ -188,14 +188,18 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 		select {
 		case summary, ok := <-emailStream:
 			if !ok {
-				done = true
-				break
+				emailStream = nil
+				continue
 			}
 			if summary != nil {
 				processedEmails = append(processedEmails, summary)
 				slog.Info("Processed email", "company", summary.Company, "category", summary.Category)
 			}
-		case err := <-errChan:
+		case err, ok := <-errChan:
+			if !ok {
+				errChan = nil
+				continue
+			}
 			if err != nil {
 				syncError = err
 				slog.Error("Sync error received", "err", err)
@@ -207,7 +211,7 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 	if syncError != nil {
 		// Check if it's a SyncError with a specific code
 		if se, ok := syncError.(*SyncError); ok {
-			response.JSON(w, http.StatusOK, map[string]interface{}{
+			response.JSON(w, http.StatusOK, map[string]any{
 				"success":   false,
 				"error":     se.Code,
 				"message":   se.Message,
@@ -216,7 +220,7 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 			})
 			return
 		}
-		response.JSON(w, http.StatusInternalServerError, map[string]interface{}{
+		response.JSON(w, http.StatusInternalServerError, map[string]any{
 			"success": false,
 			"error":   "SYNC_FAILED",
 			"message": fmt.Sprintf("Email sync failed: %v", syncError),
@@ -226,7 +230,7 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 
 	slog.Info("Email sync completed", "processed", len(processedEmails))
 
-	response.Success(w, map[string]interface{}{
+	response.Success(w, map[string]any{
 		"success":   true,
 		"processed": len(processedEmails),
 		"emails":    processedEmails,

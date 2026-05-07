@@ -66,14 +66,13 @@ func ValidateAccessToken(token string) (*AccessTokenClaims, error) {
 	parsedToken, err := jwt.ParseWithClaims(
 		token,
 		&AccessTokenClaims{},
-		func(t *jwt.Token) (interface{}, error) {
+		func(t *jwt.Token) (any, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 			}
 			return key, nil
 		},
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("invalid access token: %w", err)
 	}
@@ -95,14 +94,13 @@ func ValidateRefreshToken(token string) (*RefreshTokenClaims, error) {
 	parsedToken, err := jwt.ParseWithClaims(
 		token,
 		&RefreshTokenClaims{},
-		func(t *jwt.Token) (interface{}, error) {
+		func(t *jwt.Token) (any, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 			}
 			return key, nil
 		},
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("invalid refresh token: %w", err)
 	}
@@ -135,7 +133,7 @@ func GenerateRefreshToken(userID string, email string) (string, error) {
 
 	tokenString, err := token.SignedString(key)
 	if err != nil {
-		return "", fmt.Errorf("coult not sign the token %w", err)
+		return "", fmt.Errorf("could not sign the token %w", err)
 	}
 	return tokenString, nil
 }

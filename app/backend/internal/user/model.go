@@ -7,4 +7,5 @@ type User struct {
 	Provider     string
 	ProviderID   string
 	RefreshToken string
+	GoogleRefreshToken string `json:"googlerefreshtoken"`
 }

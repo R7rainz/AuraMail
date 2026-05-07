@@ -25,4 +25,6 @@ type Repository interface {
 	FindByID(ctx context.Context, id string) (*User, error)
 
 	Save(ctx context.Context, user *User) error
+
+	UpdateGoogleRefreshToken(ctx context.Context, userID string, token string) error
 }

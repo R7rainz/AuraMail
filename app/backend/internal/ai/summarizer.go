@@ -3,7 +3,6 @@ package ai
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -13,31 +12,8 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-// Common AI errors
-var (
-	ErrOpenAIKeyMissing       = errors.New("OPENAI_API_KEY environment variable is not set")
-	ErrAIClientNotInitialized = errors.New("AI client is not initialized")
-)
-
-type AIResult struct {
-	Summary           string   `json:"summary"`
-	Category          string   `json:"category"`
-	Tags              []string `json:"tags"`        // New: multiple tags for filtering
-	Priority          string   `json:"priority"`    // New: high, medium, low
-	Company           *string  `json:"company"`     // Pointer handles "null"
-	Role              *string  `json:"role"`        // Pointer handles "null"
-	Deadline          *string  `json:"deadline"`    // Pointer handles "null"
-	ApplyLink         *string  `json:"applyLink"`   // Pointer handles "null"
-	OtherLinks        []string `json:"otherLinks"`  // Slice handles []
-	Eligibility       any      `json:"eligibility"` // 'any' is safest for bullet points
-	Timings           any      `json:"timings"`     // 'any' is safest for bullet points
-	Salary            any      `json:"salary"`      // 'any' is safest for bullet points
-	Location          any      `json:"location"`    // 'any' is safest for bullet points
-	EventDetails      any      `json:"eventDetails"`
-	Requirements      any      `json:"requirements"`
-	Description       *string  `json:"description"`
-	AttachmentSummary *string  `json:"attachmentSummary"`
-}
+// Note: ErrOpenAIKeyMissing and ErrAIClientNotInitialized are defined in errors.go
+// Note: AIResult is defined in types.go
 
 type cacheItem struct {
 	data      *AIResult
@@ -126,7 +102,6 @@ JSON FIELD RULES:
 			Type: openai.ChatCompletionResponseFormatTypeJSONObject,
 		},
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("openai error: %w", err)
 	}
