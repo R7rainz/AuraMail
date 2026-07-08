@@ -73,7 +73,7 @@ function AuthCallbackContent() {
         clearTokens();
 
         setTimeout(() => {
-          window.location.href = "/auth?error=auth_failed";
+          window.location.href = "/?error=auth_failed";
         }, 3000);
       }
     };

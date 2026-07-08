@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/r7rainz/auramail/internal/ai"
 	"github.com/r7rainz/auramail/internal/auth"
 	"github.com/r7rainz/auramail/internal/auth/google"
 	"github.com/r7rainz/auramail/internal/config"
@@ -85,14 +84,19 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	emails := make([]emailResponse, 0, len(summaries))
-	for i, s := range summaries {
+	for _, s := range summaries {
+		subject := s.Subject
+		if subject == "" {
+			subject = s.Summary
+		}
+
 		emails = append(emails, emailResponse{
 			ID:                s.GmailMessageID,
-			GmailMessageID:    s.GmailMessageID, // Would need to store this in DB
-			Subject:           s.Summary,
+			GmailMessageID:    s.GmailMessageID,
+			Subject:           subject,
 			Sender:            s.Sender,
 			Snippet:           s.Summary,
-			ReceivedAt:        s.ReceiverAt, // Would need actual time from DB
+			ReceivedAt:        s.ReceiverAt,
 			Company:           s.Company,
 			Role:              s.Role,
 			Deadline:          s.Deadline,
@@ -116,7 +120,7 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
 		"success":    true,
-		"emails":     summaries,
+		"emails":     emails,
 		"total":      len(emails),
 		"page":       page,
 		"totalPages": 1,
@@ -146,8 +150,8 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Validate refresh token exists
-	if u.RefreshToken == "" {
+	// Validate Google refresh token exists.
+	if u.GoogleRefreshToken == "" {
 		response.JSON(w, http.StatusUnauthorized, map[string]any{
 			"success": false,
 			"error":   "INVALID_REFRESH_TOKEN",
@@ -156,7 +160,7 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	srv, err := google.CreateGmailService(ctx, u.RefreshToken)
+	srv, err := google.CreateGmailService(ctx, u.GoogleRefreshToken)
 	if err != nil {
 		slog.ErrorContext(ctx, "gmail service init failed", "err", err)
 		response.JSON(w, http.StatusInternalServerError, map[string]any{
@@ -175,37 +179,10 @@ func (h *GmailHandler) SyncPlacementEmails(w http.ResponseWriter, r *http.Reques
 
 	slog.Info("Starting email sync with AI processing", "query", query, "userID", userID)
 
-	// Use FetchAndSummarize to get AI-processed emails with error handling
-	emailStream, errChan := FetchAndSummarize(ctx, srv, h.userRepo, query, u.ID)
-
-	// Collect all processed emails
-	var processedEmails []*ai.AIResult
-	var syncError error
-
-	// Read from both channels
-	done := false
-	for !done {
-		select {
-		case summary, ok := <-emailStream:
-			if !ok {
-				emailStream = nil
-				continue
-			}
-			if summary != nil {
-				processedEmails = append(processedEmails, summary)
-				slog.Info("Processed email", "company", summary.Company, "category", summary.Category)
-			}
-		case err, ok := <-errChan:
-			if !ok {
-				errChan = nil
-				continue
-			}
-			if err != nil {
-				syncError = err
-				slog.Error("Sync error received", "err", err)
-			}
-		}
-	}
+	processedEmails, syncError := SyncUserPlacementEmails(ctx, srv, h.userRepo, query, u.ID, SyncOptions{
+		MaxResults:            h.cfg.SyncMaxResults,
+		IncludeThreadMessages: h.cfg.SyncIncludeThreads,
+	})
 
 	// Check for errors after processing
 	if syncError != nil {
@@ -264,7 +241,12 @@ func (h *GmailHandler) StreamPlacementEmails(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	srv, err := google.CreateGmailService(ctx, u.RefreshToken)
+	if u.GoogleRefreshToken == "" {
+		sendSSEError(w, "auth_error", "Missing Google refresh token")
+		return
+	}
+
+	srv, err := google.CreateGmailService(ctx, u.GoogleRefreshToken)
 	if err != nil {
 		sendSSEError(w, "auth_error", "Failed to initialize Gmail service")
 		return
@@ -285,7 +267,10 @@ func (h *GmailHandler) StreamPlacementEmails(w http.ResponseWriter, r *http.Requ
 	w.(http.Flusher).Flush()
 
 	// Start live stream for new emails
-	emailStream, errChan := FetchAndSummarize(ctx, srv, h.userRepo, query, u.ID)
+	emailStream, errChan := FetchAndSummarize(ctx, srv, h.userRepo, query, u.ID, SyncOptions{
+		MaxResults:            h.cfg.SyncMaxResults,
+		IncludeThreadMessages: h.cfg.SyncIncludeThreads,
+	})
 
 	foundAny := false
 
@@ -297,7 +282,11 @@ func (h *GmailHandler) StreamPlacementEmails(w http.ResponseWriter, r *http.Requ
 		case <-ctx.Done():
 			// User closed connection
 			return
-		case err := <-errChan:
+		case err, ok := <-errChan:
+			if !ok {
+				errChan = nil
+				continue
+			}
 			if err != nil {
 				if se, ok := err.(*SyncError); ok {
 					sendSSEError(w, se.Code, se.Message)

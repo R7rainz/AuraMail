@@ -27,4 +27,6 @@ type Repository interface {
 	Save(ctx context.Context, user *User) error
 
 	UpdateGoogleRefreshToken(ctx context.Context, userID string, token string) error
+
+	ListUsersWithGoogleRefreshToken(ctx context.Context) ([]*User, error)
 }

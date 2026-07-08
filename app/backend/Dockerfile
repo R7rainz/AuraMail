@@ -16,6 +16,5 @@ WORKDIR /app
 COPY --from=builder /app/backend ./backend
 COPY ./migrations ./migrations
 COPY ./internal/config ./internal/config
-COPY .env .env
 EXPOSE 8080
 CMD ["./backend"]

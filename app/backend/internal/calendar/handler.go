@@ -85,7 +85,7 @@ func (h *Handler) AddEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("Found user, creating calendar service", "email", u.Email, "hasRefreshToken", u.RefreshToken != "")
+	slog.Info("Found user, creating calendar service", "email", u.Email, "hasGoogleRefreshToken", u.GoogleRefreshToken != "")
 
 	// Create calendar service
 	calSvc, err := google.CreateCalendarService(ctx, u.GoogleRefreshToken)
@@ -93,7 +93,7 @@ func (h *Handler) AddEvent(w http.ResponseWriter, r *http.Request) {
 		slog.ErrorContext(ctx, "failed to create calendar service",
 			"err", err,
 			"userID", userID,
-			"hasRefreshToken", u.RefreshToken != "",
+			"hasGoogleRefreshToken", u.GoogleRefreshToken != "",
 		)
 		response.InternalError(w, "Failed to connect to Google Calendar. You may need to re-login to grant calendar permissions.")
 		return
