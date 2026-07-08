@@ -170,7 +170,9 @@ export default function DashboardPage() {
   >(null);
 
   const [sortBy, setSortBy] = useState<SortOption>("date");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  // Default to ascending so the newest emails appear at the top
+  // (the date comparator uses b - a, so "asc" = newest first).
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
 
   const syncingRef = useRef(false);
