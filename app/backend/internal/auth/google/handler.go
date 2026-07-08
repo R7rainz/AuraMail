@@ -150,8 +150,6 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	// C. Handle Google's Refresh Token (Requires a separate DB column!)
 	if googleToken.RefreshToken != "" {
 		slog.Info("Received new Google Refresh Token. Saving to google_refresh_token column.")
-		
-		// UNCOMMENT THIS LINE:
 		if err := h.userRepo.UpdateGoogleRefreshToken(ctx, u.ID, googleToken.RefreshToken); err != nil {
 			slog.Error("failed to save google refresh token", "err", err)
 		}

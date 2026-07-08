@@ -63,7 +63,13 @@ OPENAI_API_KEY=your-openai-api-key
 FRONTEND_URL=http://localhost:3000
 
 # Email Query (optional - customize which emails to fetch)
-DEFAULT_EMAIL_QUERY=from:placementoffice@vitbhopal.ac.in OR subject:placement
+DEFAULT_EMAIL_QUERY=(from:placementoffice@vitbhopal.ac.in OR subject:placement OR subject:internship OR subject:interview OR subject:recruitment OR subject:hiring OR subject:assessment OR subject:shortlist) newer_than:30d
+
+# Background sync (optional)
+SYNC_ENABLED=true
+SYNC_INTERVAL=30m
+SYNC_MAX_RESULTS=25
+SYNC_INCLUDE_THREADS=true
 ```
 
 ### Database Setup

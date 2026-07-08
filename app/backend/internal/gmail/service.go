@@ -6,6 +6,7 @@ import (
 	"log"
 	"log/slog"
 	"math"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,23 +29,95 @@ type SyncError struct {
 	Message string
 }
 
+type SyncOptions struct {
+	MaxResults            int64
+	IncludeThreadMessages bool
+}
+
 func (e *SyncError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
 
-func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.PostgresRepository, query string, userID string) (chan *ai.AIResult, chan error) {
+func (o SyncOptions) withDefaults() SyncOptions {
+	if o.MaxResults <= 0 {
+		o.MaxResults = 25
+	}
+	return o
+}
+
+func headerValue(msg *gmail.Message, name string) string {
+	if msg == nil || msg.Payload == nil {
+		return ""
+	}
+	for _, h := range msg.Payload.Headers {
+		if strings.EqualFold(h.Name, name) {
+			return h.Value
+		}
+	}
+	return ""
+}
+
+func messageReceivedAt(msg *gmail.Message) string {
+	if msg != nil && msg.InternalDate > 0 {
+		return time.UnixMilli(msg.InternalDate).Format(time.RFC3339)
+	}
+	return headerValue(msg, "Date")
+}
+
+func collectMessageIDs(srv *gmail.Service, messages []*gmail.Message, includeThreads bool) []string {
+	seenMessages := make(map[string]struct{})
+	seenThreads := make(map[string]struct{})
+	ids := make([]string, 0, len(messages))
+
+	addMessage := func(id string) {
+		if id == "" {
+			return
+		}
+		if _, ok := seenMessages[id]; ok {
+			return
+		}
+		seenMessages[id] = struct{}{}
+		ids = append(ids, id)
+	}
+
+	for _, msg := range messages {
+		addMessage(msg.Id)
+
+		if !includeThreads || msg.ThreadId == "" {
+			continue
+		}
+		if _, ok := seenThreads[msg.ThreadId]; ok {
+			continue
+		}
+		seenThreads[msg.ThreadId] = struct{}{}
+
+		thread, err := srv.Users.Threads.Get("me", msg.ThreadId).Format("minimal").Do()
+		if err != nil {
+			slog.Warn("failed to expand gmail thread", "threadID", msg.ThreadId, "err", err)
+			continue
+		}
+		for _, threadMsg := range thread.Messages {
+			addMessage(threadMsg.Id)
+		}
+	}
+
+	return ids
+}
+
+func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.PostgresRepository, query string, userID string, opts SyncOptions) (chan *ai.AIResult, chan error) {
 	out := make(chan *ai.AIResult)
 	errChan := make(chan error, 1) // Buffered to prevent blocking
 
+	opts = opts.withDefaults()
 	var aiSemaphore = make(chan struct{}, 10) //limit to 10 concurrent AI requests
 	go func() {
 		defer close(out)
 		defer close(errChan)
 
-		slog.Info("FetchAndSummarize started", "query", query, "userID", userID)
+		slog.Info("FetchAndSummarize started", "query", query, "userID", userID, "maxResults", opts.MaxResults, "includeThreads", opts.IncludeThreadMessages)
 
 		// 1. Safety check: Ensure list is not nil
-		list, err := srv.Users.Messages.List("me").Q(query).MaxResults(10).Do()
+		list, err := srv.Users.Messages.List("me").Q(query).MaxResults(opts.MaxResults).Do()
 		if err != nil {
 			slog.Error("Gmail API error", "err", err)
 			errChan <- &SyncError{Code: "GMAIL_API_ERROR", Message: fmt.Sprintf("Failed to fetch emails from Gmail: %v", err)}
@@ -56,10 +129,11 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.Postg
 			return
 		}
 
-		slog.Info("Found messages to process", "count", len(list.Messages))
+		messageIDs := collectMessageIDs(srv, list.Messages, opts.IncludeThreadMessages)
+		slog.Info("Found messages to process", "matched", len(list.Messages), "expanded", len(messageIDs))
 
 		var wg sync.WaitGroup
-		jobs := make(chan string, len(list.Messages))
+		jobs := make(chan string, len(messageIDs))
 
 		// 2. Start workers
 		workerCount := 5 // 10 might hit OpenAI rate limits too fast, 5 is safer
@@ -89,11 +163,7 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.Postg
 					}
 
 					subject := ""
-					for _, h := range msg.Payload.Headers {
-						if h.Name == "Subject" {
-							subject = h.Value
-						}
-					}
+					subject = headerValue(msg, "Subject")
 
 					slog.Info("Analyzing email with AI", "id", id, "subject", subject)
 
@@ -130,6 +200,12 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.Postg
 						continue
 					}
 
+					summary.GmailMessageID = id
+					summary.Subject = subject
+					summary.Sender = headerValue(msg, "From")
+					summary.Snippet = msg.Snippet
+					summary.ReceiverAt = messageReceivedAt(msg)
+
 					err = repo.SaveSummary(ctx, userID, id, summary)
 					if err != nil {
 						slog.Error("Error saving summary to DB", "err", err)
@@ -148,8 +224,8 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.Postg
 		}
 
 		// 4. Feed the jobs
-		for _, m := range list.Messages {
-			jobs <- m.Id
+		for _, id := range messageIDs {
+			jobs <- id
 		}
 		close(jobs)
 
@@ -158,4 +234,36 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.Postg
 		slog.Info("FetchAndSummarize completed")
 	}()
 	return out, errChan
+}
+
+func SyncUserPlacementEmails(ctx context.Context, srv *gmail.Service, repo *user.PostgresRepository, query string, userID string, opts SyncOptions) ([]*ai.AIResult, error) {
+	emailStream, errChan := FetchAndSummarize(ctx, srv, repo, query, userID, opts)
+
+	var processedEmails []*ai.AIResult
+	var syncError error
+
+	for emailStream != nil || errChan != nil {
+		select {
+		case summary, ok := <-emailStream:
+			if !ok {
+				emailStream = nil
+				continue
+			}
+			if summary != nil {
+				processedEmails = append(processedEmails, summary)
+			}
+		case err, ok := <-errChan:
+			if !ok {
+				errChan = nil
+				continue
+			}
+			if err != nil {
+				syncError = err
+			}
+		case <-ctx.Done():
+			return processedEmails, ctx.Err()
+		}
+	}
+
+	return processedEmails, syncError
 }

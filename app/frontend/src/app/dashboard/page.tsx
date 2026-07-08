@@ -29,10 +29,8 @@ import {
   ClipboardCheck,
   UserCheck,
   Zap,
-  Star,
   Calendar,
   Search,
-  LayoutDashboard,
   CalendarCheck,
   Sparkles,
   ArrowUpDown,
@@ -188,7 +186,7 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error("Failed to fetch emails");
       const data = await res.json();
       setEmails(data.emails || []);
-    } catch (err) {
+    } catch {
       if (!silent) setError("Failed to load emails");
     } finally {
       if (!silent) setEmailsLoading(false);
@@ -237,11 +235,19 @@ export default function DashboardPage() {
   }, [fetchEmails, fetchCalendarEvents]);
 
   useEffect(() => {
-    if (!loading && !user) router.replace("/");
-    if (user) {
-      fetchEmails();
-      fetchCalendarEvents();
+    if (!loading && !user) {
+      router.replace("/");
+      return;
     }
+
+    if (!user) return;
+
+    const timeoutID = window.setTimeout(() => {
+      void fetchEmails();
+      void fetchCalendarEvents();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutID);
   }, [user, loading, router, fetchEmails, fetchCalendarEvents]);
 
   // --- UTILS ---
@@ -636,6 +642,22 @@ export default function DashboardPage() {
                         )}
                       </button>
                     ))}
+                    <div className="h-px bg-white/10" />
+                    <button
+                      onClick={() =>
+                        setSortDirection((prev) =>
+                          prev === "asc" ? "desc" : "asc",
+                        )
+                      }
+                      className="w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between text-gray-400 hover:bg-white/5 hover:text-white"
+                    >
+                      {sortDirection === "asc" ? "Ascending" : "Descending"}
+                      {sortDirection === "asc" ? (
+                        <ArrowUp className="w-3 h-3" />
+                      ) : (
+                        <ArrowDown className="w-3 h-3" />
+                      )}
+                    </button>
                   </div>
                 )}
               </div>
