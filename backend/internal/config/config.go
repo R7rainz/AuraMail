@@ -67,7 +67,7 @@ func (c *Config) Validate() error {
 		return errors.New("JWT_SECRET is required")
 	}
 	if c.GoogleClientID == "" || c.GoogleClientSecret == "" || c.GoogleRedirectURL == "" {
-		return errors.New("Google OAuth client configuration is required")
+		return errors.New("google OAuth client configuration is required")
 	}
 	if c.SyncEnabled && c.SyncInterval <= 0 {
 		return errors.New("SYNC_INTERVAL must be positive when sync is enabled")
