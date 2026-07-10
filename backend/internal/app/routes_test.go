@@ -22,11 +22,13 @@ func TestRegisterRoutes_ProtectedWithoutAuth(t *testing.T) {
 		{http.MethodGet, "/emails"},
 		{http.MethodGet, "/emails/sync"},
 		{http.MethodGet, "/emails/stream"},
+		{http.MethodGet, "/emails/msg-1/attachments/att-1"},
 		{http.MethodGet, "/calendar/events"},
 		{http.MethodPost, "/calendar/events"},
 		{http.MethodDelete, "/calendar/events"},
 		{http.MethodGet, "/auth/me"},
 		{http.MethodPost, "/auth/logout"},
+		{http.MethodPatch, "/auth/me/notifications"},
 	}
 	for _, p := range paths {
 		req := httptest.NewRequest(p.method, p.path, nil)
