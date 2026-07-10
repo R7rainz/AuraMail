@@ -93,7 +93,7 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to fetch user info", http.StatusInternalServerError)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		http.Error(w, "invalid google response", http.StatusUnauthorized)
