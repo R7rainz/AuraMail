@@ -16,7 +16,7 @@ import (
 // Common errors for OAuth operations
 var (
 	ErrEmptyRefreshToken  = errors.New("refresh token is empty or invalid")
-	ErrMissingOAuthConfig = errors.New("Google OAuth configuration is incomplete")
+	ErrMissingOAuthConfig = errors.New("google OAuth configuration is incomplete")
 )
 
 func NewOAuthConfig() *oauth2.Config {
