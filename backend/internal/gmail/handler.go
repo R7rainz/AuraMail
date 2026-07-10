@@ -1,27 +1,43 @@
 package gmail
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/r7rainz/auramail/internal/ai"
 	"github.com/r7rainz/auramail/internal/auth"
 	"github.com/r7rainz/auramail/internal/auth/google"
 	"github.com/r7rainz/auramail/internal/config"
 	"github.com/r7rainz/auramail/internal/response"
 	"github.com/r7rainz/auramail/internal/user"
+	"github.com/r7rainz/auramail/internal/utils"
 )
 
+// UserRepository is the subset of user.Repository (plus email-summary
+// storage) that the gmail package depends on. Narrowing to an interface
+// here (rather than reusing *user.PostgresRepository directly) lets tests
+// substitute a fake without needing a real database.
+type UserRepository interface {
+	FindByID(ctx context.Context, id string) (*user.User, error)
+	GetSummariesByQuery(ctx context.Context, userID string, searchQuery string) ([]*ai.AIResult, error)
+	GetSummary(ctx context.Context, gmailID string) (*ai.AIResult, error)
+	SaveSummary(ctx context.Context, userID string, gmailID string, res *ai.AIResult) error
+}
+
 type GmailHandler struct {
-	userRepo *user.PostgresRepository
+	userRepo UserRepository
 	cfg      *config.Config
 }
 
-func NewHandler(cfg *config.Config, repo *user.PostgresRepository) *GmailHandler {
+func NewHandler(cfg *config.Config, repo UserRepository) *GmailHandler {
 	return &GmailHandler{
 		userRepo: repo,
 		cfg:      cfg,
@@ -60,6 +76,7 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 	type emailResponse struct {
 		ID                string   `json:"id"`
 		GmailMessageID    string   `json:"gmailMessageId"`
+		ThreadID          string   `json:"threadId"`
 		Subject           string   `json:"subject"`
 		Sender            string   `json:"sender"`
 		Snippet           string   `json:"snippet"`
@@ -75,12 +92,13 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 		Location          any      `json:"location"`
 		EventDetails      any      `json:"eventDetails"`
 		Requirements      any      `json:"requirements"`
-		Description       *string  `json:"description"`
-		AttachmentSummary *string  `json:"attachmentSummary"`
-		Category          string   `json:"category"`
-		Tags              []string `json:"tags"`
-		Priority          string   `json:"priority"`
-		Summary           string   `json:"summary"`
+		Description       *string                `json:"description"`
+		AttachmentSummary *string                `json:"attachmentSummary"`
+		Attachments       []utils.AttachmentMeta `json:"attachments"`
+		Category          string                 `json:"category"`
+		Tags              []string               `json:"tags"`
+		Priority          string                 `json:"priority"`
+		Summary           string                 `json:"summary"`
 	}
 
 	emails := make([]emailResponse, 0, len(summaries))
@@ -93,6 +111,7 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 		emails = append(emails, emailResponse{
 			ID:                s.GmailMessageID,
 			GmailMessageID:    s.GmailMessageID,
+			ThreadID:          s.ThreadID,
 			Subject:           subject,
 			Sender:            s.Sender,
 			Snippet:           s.Summary,
@@ -110,6 +129,7 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 			Requirements:      s.Requirements,
 			Description:       s.Description,
 			AttachmentSummary: s.AttachmentSummary,
+			Attachments:       s.Attachments,
 			Category:          s.Category,
 			Tags:              s.Tags,
 			Priority:          s.Priority,
@@ -118,7 +138,7 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	_ = json.NewEncoder(w).Encode(map[string]any{
 		"success":    true,
 		"emails":     emails,
 		"total":      len(emails),
@@ -262,7 +282,7 @@ func (h *GmailHandler) StreamPlacementEmails(w http.ResponseWriter, r *http.Requ
 	history, _ := h.userRepo.GetSummariesByQuery(ctx, u.ID, "")
 	for _, hist := range history {
 		jsonData, _ := json.Marshal(hist)
-		fmt.Fprintf(w, "data: %s\n\n", jsonData)
+		_, _ = fmt.Fprintf(w, "data: %s\n\n", jsonData)
 	}
 	w.(http.Flusher).Flush()
 
@@ -301,7 +321,7 @@ func (h *GmailHandler) StreamPlacementEmails(w http.ResponseWriter, r *http.Requ
 					sendSSEError(w, "no_emails", "No emails found matching the query")
 				}
 				// Send completion event
-				fmt.Fprintf(w, "event: complete\ndata: {\"status\": \"done\"}\n\n")
+				_, _ = fmt.Fprintf(w, "event: complete\ndata: {\"status\": \"done\"}\n\n")
 				w.(http.Flusher).Flush()
 				return
 			}
@@ -312,14 +332,91 @@ func (h *GmailHandler) StreamPlacementEmails(w http.ResponseWriter, r *http.Requ
 				log.Printf("Error marshaling AI result: %v", err)
 				continue
 			}
-			fmt.Fprintf(w, "data: %s\n\n", jsonData)
+			_, _ = fmt.Fprintf(w, "data: %s\n\n", jsonData)
 			w.(http.Flusher).Flush()
 		case <-ticker.C:
 			// Heartbeat to keep connection alive
-			fmt.Fprintf(w, ": heartbeat\n\n")
+			_, _ = fmt.Fprintf(w, ": heartbeat\n\n")
 			w.(http.Flusher).Flush()
 		}
 	}
+}
+
+// GetAttachment proxies a single Gmail attachment's bytes to the client,
+// fetched live from Gmail on each request (nothing is stored server-side).
+func (h *GmailHandler) GetAttachment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userID, ok := ctx.Value(auth.UserIDContextKey).(string)
+	if !ok {
+		response.Unauthorized(w, "No UserID found in context")
+		return
+	}
+
+	gmailMessageID := r.PathValue("gmailMessageId")
+	attachmentID := r.PathValue("attachmentId")
+	if gmailMessageID == "" || attachmentID == "" {
+		response.BadRequest(w, "gmailMessageId and attachmentId are required", nil)
+		return
+	}
+
+	u, err := h.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		response.NotFound(w, "User not found")
+		return
+	}
+	if u.GoogleRefreshToken == "" {
+		response.Unauthorized(w, "Your Gmail authorization has expired. Please log out and log in again.")
+		return
+	}
+
+	// Resolve filename/mimetype from the cached summary (server-derived,
+	// not trusted from the client) rather than re-fetching the full message.
+	var filename, mimeType string
+	if summary, err := h.userRepo.GetSummary(ctx, gmailMessageID); err == nil && summary != nil {
+		for _, att := range summary.Attachments {
+			if att.AttachmentId == attachmentID {
+				filename = att.Filename
+				mimeType = att.MimeType
+				break
+			}
+		}
+	}
+	if filename == "" {
+		response.NotFound(w, "Attachment not found")
+		return
+	}
+
+	srv, err := google.CreateGmailService(ctx, u.GoogleRefreshToken)
+	if err != nil {
+		slog.ErrorContext(ctx, "gmail service init failed", "err", err)
+		response.InternalError(w, "Failed to connect to Gmail")
+		return
+	}
+
+	att, err := srv.Users.Messages.Attachments.Get("me", gmailMessageID, attachmentID).Do()
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to fetch attachment", "err", err)
+		response.InternalError(w, "Failed to fetch attachment")
+		return
+	}
+
+	decoded, err := base64.URLEncoding.DecodeString(att.Data)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to decode attachment", "err", err)
+		response.InternalError(w, "Failed to decode attachment")
+		return
+	}
+
+	disposition := "attachment"
+	if strings.HasPrefix(mimeType, "image/") || mimeType == "application/pdf" {
+		disposition = "inline"
+	}
+
+	w.Header().Set("Content-Type", mimeType)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"`, disposition, filename))
+	w.Header().Set("Content-Length", strconv.Itoa(len(decoded)))
+	_, _ = w.Write(decoded)
 }
 
 // sendSSEError sends an error message via SSE
@@ -329,6 +426,6 @@ func sendSSEError(w http.ResponseWriter, code, message string) {
 		"message": message,
 	}
 	jsonData, _ := json.Marshal(errData)
-	fmt.Fprintf(w, "event: error\ndata: %s\n\n", jsonData)
+	_, _ = fmt.Fprintf(w, "event: error\ndata: %s\n\n", jsonData)
 	w.(http.Flusher).Flush()
 }
