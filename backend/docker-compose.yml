@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ai_email
+      POSTGRES_USER: ai_email_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_email_user -d ai_email"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  backend:
+    build:
+      context: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://ai_email_user:${POSTGRES_PASSWORD}@postgres:5432/ai_email?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
