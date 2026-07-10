@@ -11,17 +11,22 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: app/backend
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: app/backend/go.mod
+          go-version-file: backend/go.mod
           cache: true
-          cache-dependency-path: app/backend/go.sum
+          cache-dependency-path: backend/go.sum
       - name: Install dependencies
         run: go mod download
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: backend
       - name: Build
         run: go build -o backend ./cmd/backend/
       - name: Run tests
@@ -31,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: app/frontend
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -39,7 +44,7 @@ jobs:
         with:
           node-version: "20"
           cache: "pnpm"
-          cache-dependency-path: app/frontend/pnpm-lock.yaml
+          cache-dependency-path: frontend/pnpm-lock.yaml
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -48,6 +53,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Lint
         run: pnpm run lint
+      - name: Test
+        run: pnpm run test
       - name: Build
         run: pnpm run build
 
@@ -57,8 +64,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build backend Docker image
-        run: docker build -t auramail-backend ./app/backend
+        run: docker build -t auramail-backend ./backend
       - name: Build frontend Docker image
-        run: docker build -t auramail-frontend ./app/frontend
+        run: docker build -t auramail-frontend ./frontend
 
 # To enable deployment, add a deploy job here (e.g., push to Docker registry, SSH to server, or use cloud provider actions)
