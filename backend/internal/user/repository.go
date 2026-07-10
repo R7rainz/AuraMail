@@ -29,4 +29,6 @@ type Repository interface {
 	UpdateGoogleRefreshToken(ctx context.Context, userID string, token string) error
 
 	ListUsersWithGoogleRefreshToken(ctx context.Context) ([]*User, error)
+
+	UpdateNotificationsEnabled(ctx context.Context, userID string, enabled bool) error
 }
