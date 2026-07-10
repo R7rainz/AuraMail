@@ -5,6 +5,7 @@ export interface User {
   email: string;
   name?: string;
   image?: string;
+  notificationsEnabled?: boolean;
 }
 
 export interface AuthTokens {
@@ -176,6 +177,30 @@ export async function logoutUser(): Promise<void> {
 //check if user is authenticated
 export function isAuthenticated(): boolean {
   return getStoredTokens() !== null;
+}
+
+//toggle the notification preference on the backend
+export async function updateNotificationPreference(
+  enabled: boolean,
+): Promise<boolean> {
+  const tokens = getStoredTokens();
+  if (!tokens) return false;
+
+  try {
+    const response = await fetch(`${API_URL}/auth/me/notifications`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${tokens.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ enabled }),
+    });
+    const data = await response.json();
+    return !!data.success;
+  } catch (error) {
+    console.error("Update notification preference error:", error);
+    return false;
+  }
 }
 
 // Clear sensitive data from URL (used after OAuth callback)
