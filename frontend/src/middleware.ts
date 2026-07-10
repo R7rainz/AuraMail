@@ -4,9 +4,6 @@ import type { NextRequest } from "next/server";
 // Routes that require authentication
 const protectedRoutes = ["/dashboard"];
 
-// Routes that should redirect to dashboard if already authenticated
-const authRoutes = ["/auth"];
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
@@ -32,15 +29,6 @@ export function middleware(request: NextRequest) {
     return response;
   }
   
-  // For auth routes, prevent caching and let client handle redirect
-  if (authRoutes.some(route => pathname === route)) {
-    const response = NextResponse.next();
-    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
-    response.headers.set("Pragma", "no-cache");
-    response.headers.set("Expires", "0");
-    return response;
-  }
-
   return NextResponse.next();
 }
 
