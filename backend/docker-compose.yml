@@ -23,6 +23,8 @@ services:
       - .env
     environment:
       DATABASE_URL: postgres://ai_email_user:${POSTGRES_PASSWORD}@postgres:5432/ai_email?sslmode=disable
+      GOOSE_DRIVER: postgres
+      GOOSE_DBSTRING: "user=ai_email_user password=${POSTGRES_PASSWORD} host=postgres port=5432 dbname=ai_email sslmode=disable"
     depends_on:
       postgres:
         condition: service_healthy
