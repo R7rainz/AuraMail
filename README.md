@@ -25,15 +25,12 @@ AI-powered placement email analyzer for students. Syncs with Gmail, summarizes e
 
 ```
 AuraMail/
-├── app/
-│   ├── backend/          # Go backend API
-│   │   ├── cmd/          # Entry point
-│   │   ├── internal/     # Core logic (auth, gmail, ai, calendar)
-│   │   └── migrations/   # Database migrations
-│   └── frontend/         # Next.js frontend
-│       └── src/app/      # App router pages
-└── packages/
-    └── database/         # Shared database package
+├── backend/          # Go backend API
+│   ├── cmd/          # Entry point
+│   ├── internal/     # Core logic (auth, gmail, ai, calendar)
+│   └── migrations/   # Database migrations
+└── frontend/         # Next.js frontend
+    └── src/app/      # App router pages
 ```
 
 ## Quick Start
@@ -55,7 +52,7 @@ cd auramail
 
 ### 2. Configure Environment
 
-**Backend** (`app/backend/.env`):
+**Backend** (`backend/.env`):
 ```bash
 PORT=8080
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/auramail
@@ -68,7 +65,7 @@ FRONTEND_URL=http://localhost:3000
 ALLOWED_ORIGINS=http://localhost:3000
 ```
 
-**Frontend** (`app/frontend/.env.local`):
+**Frontend** (`frontend/.env.local`):
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
@@ -76,7 +73,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8080
 ### 3. Start Database
 
 ```bash
-cd app/backend
+cd backend
 make docker-up      # Start PostgreSQL
 make migrate-up     # Run migrations
 ```
@@ -85,13 +82,13 @@ make migrate-up     # Run migrations
 
 **Terminal 1 - Backend:**
 ```bash
-cd app/backend
+cd backend
 make dev
 ```
 
 **Terminal 2 - Frontend:**
 ```bash
-cd app/frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -128,6 +125,12 @@ AuraMail automatically categorizes emails into:
 - Registration
 
 ## Development
+
+### Deployment Roots
+
+- Frontend: deploy `frontend/` on Vercel.
+- Backend: deploy `backend/` as the Go service.
+- Database migrations live in `backend/migrations`.
 
 ### Backend Commands
 

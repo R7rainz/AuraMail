@@ -1,5 +1,4 @@
 
-version: '3.8'
 services:
   postgres:
     image: postgres:15
@@ -11,24 +10,31 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_email_user -d ai_email"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
   backend:
     build:
-      context: ./app/backend
+      context: ./backend
     env_file:
-      - ./app/backend/.env
+      - ./backend/.env
     environment:
-      DATABASE_URL: postgres://ai_email_user:brainz1826@postgres:5432/ai_email
+      DATABASE_URL: postgres://ai_email_user:brainz1826@postgres:5432/ai_email?sslmode=disable
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     ports:
       - "8080:8080"
 
   frontend:
     build:
-      context: ./app/frontend
+      context: ./frontend
     env_file:
-      - ./app/frontend/.env
+      - ./frontend/.env
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8080
     depends_on:

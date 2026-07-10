@@ -1,7 +1,6 @@
 # Dependencies
 node_modules/
 */node_modules/
-pnpm-lock.yaml
 package-lock.json
 yarn.lock
 
@@ -20,10 +19,10 @@ build/
 */build/
 .next/           # Next.js
 out/             # Next.js static export
-app/frontend/.next/
-app/frontend/out/
-app/frontend/coverage/
-app/frontend/dist/
+frontend/.next/
+frontend/out/
+frontend/coverage/
+frontend/dist/
 
 # Logs
 *.log
@@ -58,9 +57,9 @@ Thumbs.db
 *.tmp
 
 # Secrets and tokens (backend)
-app/backend/credentials.json
-app/backend/token.json
-app/backend/.env.backup
+backend/credentials.json
+backend/token.json
+backend/.env.backup
 
 # TypeScript
 *.tsbuildinfo
