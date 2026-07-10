@@ -1,8 +1,0 @@
-.env
-.git
-.gitignore
-Dockerfile
-.dockerignore
-/backend
-coverage.out
-coverage.html
