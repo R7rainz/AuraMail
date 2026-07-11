@@ -28,4 +28,5 @@ type AIResult struct {
 	Description       *string                `json:"description"`
 	AttachmentSummary *string                `json:"attachmentSummary"`
 	Attachments       []utils.AttachmentMeta `json:"attachments"`
+	Important         bool                   `json:"important"`
 }

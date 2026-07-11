@@ -103,6 +103,33 @@ export function useCalendarEvents(setError: (msg: string | null) => void) {
     }
   };
 
+  // Removes an AuraMail-added event directly by its Google Calendar event
+  // ID, for the "My Events" list where there's no originating email object
+  // at hand (just the raw calendar event).
+  const removeEventById = async (eventId: string) => {
+    setAddingToCalendar(true);
+    const previous = calendarEvents;
+    setCalendarEvents((prev) => prev.filter((e) => e.id !== eventId));
+    try {
+      const res = await fetch(
+        `${API_URL}/calendar/events?eventId=${eventId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        },
+      );
+      if (!res.ok) throw new Error("Failed");
+      fetchCalendarEvents();
+    } catch {
+      setCalendarEvents(previous);
+      setError("Failed to remove event");
+    } finally {
+      setAddingToCalendar(false);
+    }
+  };
+
   return {
     calendarEvents,
     calendarEventsMap,
@@ -112,5 +139,6 @@ export function useCalendarEvents(setError: (msg: string | null) => void) {
     isInCalendar,
     addToCalendar,
     removeFromCalendar,
+    removeEventById,
   };
 }

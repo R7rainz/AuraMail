@@ -39,6 +39,7 @@ export interface PlacementEmail {
   tags?: string[];
   priority?: string;
   summary?: string;
+  important?: boolean;
   attachments?: EmailAttachment[];
   threadMessages?: PlacementEmail[];
   followupCount?: number;

@@ -48,10 +48,10 @@ export function DashboardOverview({
 
         <div className="mt-14 grid gap-px border bg-[var(--aura-line)] sm:grid-cols-3" style={{ borderColor: "var(--aura-line)" }}>
           {stats.map(({ label, value, icon: Icon }) => (
-            <div key={label} className="bg-[var(--aura-surface-solid)] p-6">
+            <div key={label} className="aura-hover-lift group bg-[var(--aura-surface-solid)] p-6">
               <div className="flex items-start justify-between">
                 <span className="text-3xl font-semibold tabular-nums">{value}</span>
-                <Icon className="h-4 w-4 aura-accent" />
+                <Icon className="h-4 w-4 aura-accent transition-transform duration-300 group-hover:scale-110" />
               </div>
               <p className="mt-8 text-[10px] font-semibold uppercase aura-muted">{label}</p>
             </div>
@@ -60,7 +60,7 @@ export function DashboardOverview({
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-5 text-xs aura-faint" style={{ borderColor: "var(--aura-line)" }}>
           <span>Automatic sync checks every minute while this workspace is open.</span>
-          <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Live</span>
+          <span className="flex items-center gap-2"><span className="status-dot status-dot--online" /> Live</span>
         </div>
       </div>
     </motion.div>

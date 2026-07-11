@@ -60,6 +60,44 @@ export function useEmails(
     return () => clearInterval(interval);
   }, [fetchEmails]);
 
+  const toggleImportant = useCallback(
+    async (email: PlacementEmail) => {
+      const next = !email.important;
+      setEmails((prev) =>
+        prev.map((e) =>
+          e.gmailMessageId === email.gmailMessageId
+            ? { ...e, important: next }
+            : e,
+        ),
+      );
+      try {
+        const token = localStorage.getItem("accessToken");
+        const res = await fetch(
+          `${API_URL}/emails/${email.gmailMessageId}/important`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ important: next }),
+          },
+        );
+        if (!res.ok) throw new Error("Failed to update email");
+      } catch {
+        setEmails((prev) =>
+          prev.map((e) =>
+            e.gmailMessageId === email.gmailMessageId
+              ? { ...e, important: !next }
+              : e,
+          ),
+        );
+        setError("Failed to update important flag");
+      }
+    },
+    [setError],
+  );
+
   const handleSync = useCallback(async () => {
     if (syncingRef.current) return;
     syncingRef.current = true;
@@ -82,5 +120,12 @@ export function useEmails(
     }
   }, [fetchEmails, fetchCalendarEvents, setError]);
 
-  return { emails, emailsLoading, syncing, fetchEmails, handleSync };
+  return {
+    emails,
+    emailsLoading,
+    syncing,
+    fetchEmails,
+    handleSync,
+    toggleImportant,
+  };
 }
