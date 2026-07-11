@@ -18,6 +18,7 @@ import {
   Eye,
   MessagesSquare,
   Check,
+  Star,
 } from "lucide-react";
 import type { EmailAttachment, PlacementEmail } from "../types";
 import {
@@ -35,6 +36,7 @@ interface EmailDetailViewProps {
   addingToCalendar: boolean;
   onAddToCalendar: () => void;
   onRemoveFromCalendar: () => void;
+  onToggleImportant: () => void;
 }
 
 function AttachmentRow({
@@ -154,6 +156,7 @@ export function EmailDetailView({
   addingToCalendar,
   onAddToCalendar,
   onRemoveFromCalendar,
+  onToggleImportant,
 }: EmailDetailViewProps) {
   const messages = email.threadMessages || [email];
   const [selectedMessageId, setSelectedMessageId] = useState(email.id);
@@ -179,14 +182,22 @@ export function EmailDetailView({
           Back
         </button>
         <div className="flex gap-3">
+          <button
+            onClick={onToggleImportant}
+            aria-pressed={!!email.important}
+            title={email.important ? "Unmark as important" : "Mark as important"}
+            className={`aura-hover-glow px-3 py-2 border text-sm font-medium rounded-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-2 ${email.important ? "bg-amber-500/15 border-amber-500/40 text-amber-300" : "bg-white/5 border-white/10 text-gray-300 hover:text-white"}`}
+          >
+            <Star className="w-4 h-4" fill={email.important ? "currentColor" : "none"} />
+          </button>
           {selectedEmail.applyLink && (
             <a
               href={selectedEmail.applyLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 bg-white text-black text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+              className="group px-4 py-2 bg-[var(--aura-accent)] text-[#0a0b18] text-sm font-semibold rounded-lg hover:brightness-110 transition-all hover:-translate-y-0.5 flex items-center gap-2 shadow-[0_0_20px_-4px_var(--aura-glow)] hover:shadow-[0_10px_30px_-8px_var(--aura-glow)]"
             >
-              Apply Now <ExternalLink className="w-3.5 h-3.5" />
+              Apply Now <ExternalLink className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </a>
           )}
           {selectedEmail.deadline &&
@@ -194,7 +205,7 @@ export function EmailDetailView({
               <button
                 onClick={onRemoveFromCalendar}
                 disabled={addingToCalendar}
-                className="px-4 py-2 bg-white/5 border border-white/10 text-emerald-400 text-sm font-medium rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2"
+                className="aura-hover-glow px-4 py-2 bg-white/5 border border-white/10 text-emerald-400 text-sm font-medium rounded-lg hover:bg-white/10 transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-2"
               >
                 <CalendarCheck className="w-4 h-4" /> Added to Calendar
               </button>
@@ -202,7 +213,7 @@ export function EmailDetailView({
               <button
                 onClick={onAddToCalendar}
                 disabled={addingToCalendar}
-                className="px-4 py-2 bg-white/5 border border-white/20 text-white text-sm font-medium rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2"
+                className="aura-hover-glow px-4 py-2 bg-white/5 border border-white/20 text-white text-sm font-medium rounded-lg hover:bg-white/10 transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-2"
               >
                 <CalendarPlus className="w-4 h-4" /> Add Event
               </button>

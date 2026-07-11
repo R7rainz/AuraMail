@@ -1,7 +1,37 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* This app toggles [data-theme="eclipse"|"dawn"], not a .dark class — point
+   shadcn's dark: variant at the real theme attribute so components that
+   lean on it (Input, Switch, Button, ...) get their intended fine-tuning
+   instead of the utility silently never firing. */
+@custom-variant dark (&:is([data-theme="eclipse"] *));
+
+/* A modest bump over Tailwind's default type scale (roughly +1-2px per
+   step). Deliberately only the --text-* tokens, not root font-size — the
+   latter would also scale spacing/sizing utilities (they share the same
+   rem base) and could overflow the fixed-width sidebar/calendar panels. */
+@theme {
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.375rem;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.625rem;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.3125rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.625rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 2.25rem;
+  --text-4xl: 2.375rem;
+  --text-4xl--line-height: 2.5rem;
+  --text-5xl: 3.125rem;
+  --text-6xl: 3.875rem;
+  --text-7xl: 4.625rem;
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -50,110 +80,92 @@
   --font-geist-mono:
     "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  /* shadcn/ui tokens, rebound to the aura-* design tokens above so every
+     generated component (present and future, via `shadcn add`) tracks the
+     app's actual [data-theme] toggle instead of the unused .dark class /
+     prefers-color-scheme that shadcn assumes by default. These re-resolve
+     live off the aura-* values, so they only need to be set once. */
+  --background: var(--aura-canvas);
+  --foreground: var(--aura-text);
+  --card: var(--aura-surface-solid);
+  --card-foreground: var(--aura-text);
+  --popover: var(--aura-surface-solid);
+  --popover-foreground: var(--aura-text);
+  --primary: var(--aura-accent-strong);
+  --primary-foreground: #ffffff;
+  --secondary: var(--aura-surface-hover);
+  --secondary-foreground: var(--aura-text);
+  --muted: var(--aura-surface-hover);
+  --muted-foreground: var(--aura-muted);
+  --accent: var(--aura-surface-hover);
+  --accent-foreground: var(--aura-text);
+  --destructive: var(--aura-danger);
+  --border: var(--aura-line);
+  --input: var(--aura-line-strong);
+  --ring: var(--aura-accent-strong);
+  --chart-1: var(--aura-accent-strong);
+  --chart-2: var(--aura-secondary);
+  --chart-3: var(--aura-tertiary);
+  --chart-4: var(--aura-success);
+  --chart-5: var(--aura-warning);
+  --sidebar: var(--aura-surface-solid);
+  --sidebar-foreground: var(--aura-text);
+  --sidebar-primary: var(--aura-accent-strong);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--aura-surface-hover);
+  --sidebar-accent-foreground: var(--aura-text);
+  --sidebar-border: var(--aura-line);
+  --sidebar-ring: var(--aura-accent-strong);
 }
 
 :root,
 [data-theme="eclipse"] {
   color-scheme: dark;
-  --aura-canvas: #080a0d;
-  --aura-canvas-raised: #0c0f13;
-  --aura-surface: rgba(18, 22, 27, 0.78);
-  --aura-surface-solid: #11151a;
-  --aura-surface-hover: rgba(255, 255, 255, 0.055);
-  --aura-line: rgba(226, 232, 240, 0.09);
-  --aura-line-strong: rgba(226, 232, 240, 0.16);
-  --aura-text: #e7ebee;
-  --aura-muted: #8a949f;
-  --aura-faint: #59636e;
-  --aura-accent: #6ee7d2;
-  --aura-accent-strong: #2dd4bf;
-  --aura-accent-soft: rgba(45, 212, 191, 0.12);
-  --aura-secondary: #8fb7ff;
-  --aura-glow: rgba(45, 212, 191, 0.1);
+  --aura-canvas: #06070b;
+  --aura-canvas-raised: #0a0c12;
+  --aura-surface: rgba(15, 17, 25, 0.82);
+  --aura-surface-solid: #0e1017;
+  --aura-surface-hover: rgba(255, 255, 255, 0.05);
+  --aura-line: rgba(148, 163, 184, 0.09);
+  --aura-line-strong: rgba(148, 163, 184, 0.17);
+  --aura-text: #e9eaf0;
+  --aura-muted: #8d92a3;
+  --aura-faint: #565a6b;
+  --aura-accent: #a5b4fc;
+  --aura-accent-strong: #6366f1;
+  --aura-accent-soft: rgba(99, 102, 241, 0.12);
+  --aura-secondary: #67e8f9;
+  --aura-tertiary: #c4b5fd;
+  --aura-glow: rgba(99, 102, 241, 0.12);
+  --aura-fluid-opacity: 0.55;
+  --aura-success: #34d399;
+  --aura-warning: #fbbf24;
+  --aura-danger: #fb7185;
 }
 
 [data-theme="dawn"] {
   color-scheme: light;
-  --aura-canvas: #eef1f2;
-  --aura-canvas-raised: #f7f8f8;
-  --aura-surface: rgba(255, 255, 255, 0.78);
+  --aura-canvas: #f0f1f5;
+  --aura-canvas-raised: #f8f8fb;
+  --aura-surface: rgba(255, 255, 255, 0.8);
   --aura-surface-solid: #ffffff;
-  --aura-surface-hover: rgba(15, 23, 42, 0.055);
-  --aura-line: rgba(15, 23, 42, 0.1);
-  --aura-line-strong: rgba(15, 23, 42, 0.18);
-  --aura-text: #172026;
-  --aura-muted: #5d6871;
-  --aura-faint: #89939b;
-  --aura-accent: #087f73;
-  --aura-accent-strong: #0f766e;
-  --aura-accent-soft: rgba(13, 148, 136, 0.1);
-  --aura-secondary: #3567b7;
-  --aura-glow: rgba(13, 148, 136, 0.08);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --aura-surface-hover: rgba(15, 23, 42, 0.05);
+  --aura-line: rgba(30, 27, 75, 0.09);
+  --aura-line-strong: rgba(30, 27, 75, 0.16);
+  --aura-text: #191b2a;
+  --aura-muted: #5c5f75;
+  --aura-faint: #8b8ea3;
+  --aura-accent: #4338ca;
+  --aura-accent-strong: #4f46e5;
+  --aura-accent-soft: rgba(79, 70, 229, 0.1);
+  --aura-secondary: #0e7490;
+  --aura-tertiary: #7c3aed;
+  --aura-glow: rgba(79, 70, 229, 0.08);
+  --aura-fluid-opacity: 0.05;
+  --aura-success: #0f9d6c;
+  --aura-warning: #b7791f;
+  --aura-danger: #c0364a;
 }
 
 @layer base {
@@ -161,15 +173,39 @@
     @apply border-border outline-ring/50;
   }
   body {
-    background: var(--aura-canvas);
+    background: transparent;
     color: var(--aura-text);
-    transition: background-color 240ms ease, color 240ms ease;
+    transition: color 240ms ease;
   }
 }
 
 ::selection { background: var(--aura-accent-soft); color: var(--aura-text); }
 
-.aura-shell { background: var(--aura-canvas); color: var(--aura-text); }
+/* Fixed full-viewport WebGL fluid gradient. Painted as the first child of
+   body at z-index:0; every page shell below sits at z-index:1 with a
+   transparent background so the shader shows through. Its own background
+   color is the theme canvas color, so it also acts as the paint fallback
+   before the canvas mounts / if WebGL is unavailable. */
+.fluid-bg-root {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background-color: var(--aura-canvas);
+  transition: background-color 240ms ease;
+}
+.fluid-bg-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: var(--aura-fluid-opacity);
+  filter: blur(64px);
+  transform: scale(1.08);
+  transition: opacity 480ms ease;
+}
+
+.aura-shell { position: relative; z-index: 1; background: transparent; color: var(--aura-text); }
 .aura-panel { background: var(--aura-surface); border-color: var(--aura-line); }
 .aura-surface { background: var(--aura-surface-solid); border-color: var(--aura-line); }
 .aura-muted { color: var(--aura-muted); }
@@ -187,14 +223,23 @@
   opacity: .025;
 }
 .theme-toggle { display: inline-flex; align-items: center; gap: .55rem; color: var(--aura-muted); font-size: .75rem; font-weight: 600; }
-.theme-toggle-track { width: 2.3rem; height: 1.3rem; padding: .15rem; border: 1px solid var(--aura-line-strong); background: var(--aura-surface-solid); display: flex; align-items: center; border-radius: 999px; }
-.theme-toggle-thumb { width: .9rem; height: .9rem; display: grid; place-items: center; color: var(--aura-accent); transition: transform 240ms cubic-bezier(.2,.8,.2,1); }
-[data-theme="dawn"] .theme-toggle-thumb { transform: translateX(.95rem); }
+.theme-toggle-track {
+  width: 2.3rem; height: 1.3rem; padding: .15rem;
+  border: 1px solid var(--aura-line-strong);
+  background: var(--aura-surface-solid);
+  display: flex; align-items: center; border-radius: 999px;
+  position: relative; overflow: hidden;
+  transition: border-color 220ms ease, box-shadow 220ms ease;
+}
+.theme-toggle:hover .theme-toggle-track {
+  border-color: var(--aura-accent-strong);
+  box-shadow: 0 0 14px -2px var(--aura-glow);
+}
+.theme-toggle-thumb {
+  width: .9rem; height: .9rem; display: grid; place-items: center;
+  color: var(--aura-accent); position: relative;
+}
 .theme-toggle-thumb svg { width: .75rem; height: .75rem; }
-.theme-icon-dawn { display: none; }
-[data-theme="dawn"] .theme-icon-eclipse { display: none; }
-[data-theme="dawn"] .theme-icon-dawn { display: block; }
-.theme-toggle-compact > span:last-child { display: none; }
 
 [data-theme="dawn"] .bg-black,
 [data-theme="dawn"] .bg-\[\#050505\] { background-color: var(--aura-canvas) !important; }
@@ -206,6 +251,50 @@
 [data-theme="dawn"] .text-gray-500 { color: var(--aura-muted) !important; }
 [data-theme="dawn"] [class*="bg-white/"] { background-color: rgba(15, 23, 42, .045) !important; }
 [data-theme="dawn"] [class*="border-white/"] { border-color: var(--aura-line) !important; }
+
+/* Hover / interaction primitives, reused across landing + dashboard */
+.aura-hover-lift {
+  transition: transform 220ms cubic-bezier(.2,.8,.2,1), box-shadow 220ms ease, border-color 220ms ease;
+}
+.aura-hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 40px -18px rgba(0,0,0,.55);
+  border-color: var(--aura-line-strong);
+}
+.aura-hover-glow {
+  transition: box-shadow 220ms ease, border-color 220ms ease, background-color 220ms ease;
+}
+.aura-hover-glow:hover {
+  box-shadow: 0 0 0 1px var(--aura-line-strong), 0 0 28px -4px var(--aura-glow);
+  border-color: var(--aura-accent-strong);
+}
+
+/* Status indicators */
+@keyframes aura-pulse-ring {
+  0% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  70% { box-shadow: 0 0 0 6px transparent; opacity: 0; }
+  100% { box-shadow: 0 0 0 0 transparent; opacity: 0; }
+}
+.status-dot {
+  position: relative;
+  display: inline-flex;
+  width: .5rem;
+  height: .5rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.status-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  animation: aura-pulse-ring 1.8s cubic-bezier(0,0,.2,1) infinite;
+}
+.status-dot--online { background: var(--aura-success); color: var(--aura-success); box-shadow: 0 0 8px 0 var(--aura-success); }
+.status-dot--syncing { background: var(--aura-accent-strong); color: var(--aura-accent-strong); box-shadow: 0 0 8px 0 var(--aura-accent-strong); }
+.status-dot--error { background: var(--aura-danger); color: var(--aura-danger); box-shadow: 0 0 8px 0 var(--aura-danger); }
+.status-dot--idle { background: var(--aura-faint); color: transparent; box-shadow: none; }
+.status-dot--idle::after { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }

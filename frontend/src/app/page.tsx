@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   CalendarDays,
-  Check,
   Clock3,
   Mail,
   MessagesSquare,
@@ -35,7 +34,7 @@ export default function LandingPage() {
 
   return (
     <main className="aura-shell min-h-screen overflow-hidden">
-      <div className="fixed inset-0 aura-grid pointer-events-none opacity-35" />
+      <div className="fixed inset-0 aura-grid pointer-events-none opacity-15" />
       <div className="fixed inset-0 aura-noise pointer-events-none" />
 
       <header className="fixed inset-x-0 top-0 z-50 border-b aura-panel backdrop-blur-xl">
@@ -48,18 +47,25 @@ export default function LandingPage() {
             <span className="hidden border-l pl-3 text-[10px] font-semibold uppercase text-[var(--aura-faint)] sm:inline" style={{ borderColor: "var(--aura-line)" }}>VIT beta</span>
           </a>
           <nav className="hidden items-center gap-8 md:flex" aria-label="Primary navigation">
-            <a href="#system" className="text-xs aura-muted transition-colors hover:text-[var(--aura-text)]">System</a>
-            <a href="#workflow" className="text-xs aura-muted transition-colors hover:text-[var(--aura-text)]">Workflow</a>
-            <a href="#access" className="text-xs aura-muted transition-colors hover:text-[var(--aura-text)]">Access</a>
+            {[["#system", "System"], ["#workflow", "Workflow"], ["#access", "Access"]].map(([href, label]) => (
+              <a key={href} href={href} className="group relative text-xs aura-muted transition-colors hover:text-[var(--aura-text)]">
+                {label}
+                <span className="absolute -bottom-1 left-0 h-px w-0 bg-[var(--aura-accent)] transition-all duration-300 group-hover:w-full" />
+              </a>
+            ))}
           </nav>
           <div className="flex items-center gap-4">
             <ThemeToggle compact />
-            <button onClick={login} className="h-9 border px-4 text-xs font-semibold aura-surface transition-colors hover:bg-[var(--aura-surface-hover)]">Sign in</button>
+            <button onClick={login} className="aura-hover-glow h-9 border px-4 text-xs font-semibold aura-surface transition-colors hover:bg-[var(--aura-surface-hover)]">Sign in</button>
           </div>
         </div>
       </header>
 
       <section id="top" className="relative mx-auto grid min-h-[92vh] max-w-7xl items-center gap-12 px-5 pb-14 pt-28 lg:grid-cols-[.82fr_1.18fr] lg:px-8">
+        <div
+          className="pointer-events-none absolute -inset-x-24 -inset-y-16 -z-10 lg:right-[38%]"
+          style={{ background: "radial-gradient(60% 55% at 32% 42%, var(--aura-canvas) 0%, transparent 72%)" }}
+        />
         <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .7 }} className="relative z-10 max-w-xl">
           <div className="mb-7 flex items-center gap-2 text-[11px] font-semibold uppercase aura-accent">
             <span className="h-px w-8 bg-[var(--aura-accent)]" />
@@ -72,7 +78,7 @@ export default function LandingPage() {
             AuraMail turns crowded campus mail into a focused stream of opportunities, follow-ups, files, and deadlines.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">
-            <button onClick={login} className="group flex h-12 items-center gap-3 bg-[var(--aura-accent)] px-5 text-sm font-semibold text-[#06110f] transition-all hover:bg-[var(--aura-accent-strong)] active:scale-[.98]">
+            <button onClick={login} className="group flex h-12 items-center gap-3 bg-[var(--aura-accent)] px-5 text-sm font-semibold text-[#0a0b18] shadow-[0_0_0_rgba(0,0,0,0)] transition-all hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_16px_40px_-12px_var(--aura-glow)] active:translate-y-0 active:scale-[.98]">
               Continue with Google
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
@@ -81,10 +87,9 @@ export default function LandingPage() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, scale: .97, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: .8, delay: .12 }} className="relative min-w-0">
-          <div className="absolute -inset-12 bg-[radial-gradient(circle,var(--aura-glow),transparent_65%)] pointer-events-none" />
-          <div className="relative overflow-hidden border aura-surface shadow-[0_32px_100px_rgba(0,0,0,.28)]">
+          <div className="relative overflow-hidden border aura-surface shadow-[0_32px_100px_rgba(0,0,0,.4)]">
             <div className="flex h-11 items-center justify-between border-b px-4" style={{ borderColor: "var(--aura-line)" }}>
-              <div className="flex items-center gap-2 text-[11px] aura-muted"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Inbox synchronized</div>
+              <div className="flex items-center gap-2 text-[11px] aura-muted"><span className="status-dot status-dot--online" /> Inbox synchronized</div>
               <div className="flex items-center gap-3"><Search className="h-3.5 w-3.5 aura-faint" /><span className="font-mono text-[10px] aura-faint">11 JUL 2026</span></div>
             </div>
             <div className="grid min-h-[460px] sm:grid-cols-[230px_1fr]">
@@ -115,7 +120,7 @@ export default function LandingPage() {
 
       <section id="system" className="relative border-y py-24" style={{ borderColor: "var(--aura-line)" }}>
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-[.7fr_1.3fr]"><div><p className="text-[11px] font-semibold uppercase aura-accent">Built for attention</p><h2 className="mt-4 max-w-md text-3xl font-semibold sm:text-4xl">Less inbox maintenance. More informed decisions.</h2></div><div className="grid gap-px border bg-[var(--aura-line)] sm:grid-cols-2" style={{ borderColor: "var(--aura-line)" }}>{features.map(({ icon: Icon, title, text }) => <article key={title} className="bg-[var(--aura-canvas-raised)] p-6 transition-colors hover:bg-[var(--aura-surface-solid)]"><Icon className="h-5 w-5 aura-accent" /><h3 className="mt-8 text-sm font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 aura-muted">{text}</p></article>)}</div></div>
+          <div className="grid gap-10 lg:grid-cols-[.7fr_1.3fr]"><div><p className="text-[11px] font-semibold uppercase aura-accent">Built for attention</p><h2 className="mt-4 max-w-md text-3xl font-semibold sm:text-4xl">Less inbox maintenance. More informed decisions.</h2></div><div className="grid gap-px border bg-[var(--aura-line)] sm:grid-cols-2" style={{ borderColor: "var(--aura-line)" }}>{features.map(({ icon: Icon, title, text }) => <article key={title} className="aura-hover-lift group bg-[var(--aura-canvas-raised)] p-6 transition-colors hover:bg-[var(--aura-surface-solid)]"><Icon className="h-5 w-5 aura-accent transition-transform duration-300 group-hover:scale-110" /><h3 className="mt-8 text-sm font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 aura-muted">{text}</p></article>)}</div></div>
         </div>
       </section>
 
@@ -123,9 +128,9 @@ export default function LandingPage() {
         <div className="grid gap-12 lg:grid-cols-3">{[["01", "Connect", "Authorize your VIT Gmail account with scoped Google access."], ["02", "Understand", "AuraMail classifies messages and extracts the details that matter."], ["03", "Act", "Review follow-ups, open files, and schedule deadlines from one workspace."]].map(([step, title, text]) => <div key={step} className="border-t pt-5" style={{ borderColor: "var(--aura-line-strong)" }}><span className="font-mono text-xs aura-accent">{step}</span><h3 className="mt-8 text-lg font-semibold">{title}</h3><p className="mt-3 max-w-sm text-sm leading-6 aura-muted">{text}</p></div>)}</div>
       </section>
 
-      <section id="access" className="border-t" style={{ borderColor: "var(--aura-line)" }}><div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-5 py-20 sm:flex-row sm:items-end lg:px-8"><div><p className="text-[11px] font-semibold uppercase aura-accent">Private beta</p><h2 className="mt-4 text-3xl font-semibold">Start with the inbox you already have.</h2><p className="mt-3 text-sm aura-muted">Free for VIT students during beta.</p></div><button onClick={login} className="flex h-12 items-center gap-3 border border-[var(--aura-line-strong)] px-5 text-sm font-semibold transition-colors hover:bg-[var(--aura-surface-hover)]">Open AuraMail <ArrowRight className="h-4 w-4" /></button></div></section>
+      <section id="access" className="border-t" style={{ borderColor: "var(--aura-line)" }}><div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-5 py-20 sm:flex-row sm:items-end lg:px-8"><div><p className="text-[11px] font-semibold uppercase aura-accent">Private beta</p><h2 className="mt-4 text-3xl font-semibold">Start with the inbox you already have.</h2><p className="mt-3 text-sm aura-muted">Free for VIT students during beta.</p></div><button onClick={login} className="group aura-hover-glow flex h-12 items-center gap-3 border border-[var(--aura-line-strong)] px-5 text-sm font-semibold transition-colors hover:bg-[var(--aura-surface-hover)]">Open AuraMail <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></button></div></section>
 
-      <footer className="border-t" style={{ borderColor: "var(--aura-line)" }}><div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-6 text-xs aura-faint lg:px-8"><span>AuraMail / VIT beta</span><div className="flex items-center gap-2"><Check className="h-3 w-3 aura-accent" /> Systems operational</div></div></footer>
+      <footer className="border-t" style={{ borderColor: "var(--aura-line)" }}><div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-6 text-xs aura-faint lg:px-8"><span>AuraMail / VIT beta</span><div className="flex items-center gap-2"><span className="status-dot status-dot--online" /> Systems operational</div></div></footer>
     </main>
   );
 }

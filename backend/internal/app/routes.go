@@ -35,6 +35,7 @@ func RegisterRoutes(mux *http.ServeMux, cfg *config.Config, db *pgxpool.Pool) {
 	mux.Handle("GET /emails/sync", auth.AuthMiddleware(http.HandlerFunc(gmailHandler.SyncPlacementEmails)))
 	mux.Handle("GET /emails/stream", auth.AuthMiddleware(http.HandlerFunc(gmailHandler.StreamPlacementEmails)))
 	mux.Handle("GET /emails/{gmailMessageId}/attachments/{attachmentId}", auth.AuthMiddleware(http.HandlerFunc(gmailHandler.GetAttachment)))
+	mux.Handle("PATCH /emails/{gmailMessageId}/important", auth.AuthMiddleware(http.HandlerFunc(gmailHandler.SetImportant)))
 
 	mux.Handle("GET /calendar/events", auth.AuthMiddleware(http.HandlerFunc(calendarHandler.GetEvents)))
 	mux.Handle("POST /calendar/events", auth.AuthMiddleware(http.HandlerFunc(calendarHandler.AddEvent)))

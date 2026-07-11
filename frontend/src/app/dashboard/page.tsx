@@ -48,8 +48,14 @@ export default function DashboardPage() {
   };
 
   const calendar = useCalendarEvents(setError);
-  const { emails, emailsLoading, syncing, fetchEmails, handleSync } =
-    useEmails(setError, calendar.fetchCalendarEvents, notificationsEnabled);
+  const {
+    emails,
+    emailsLoading,
+    syncing,
+    fetchEmails,
+    handleSync,
+    toggleImportant,
+  } = useEmails(setError, calendar.fetchCalendarEvents, notificationsEnabled);
   const filters = useEmailFilters(emails);
 
   useEffect(() => {
@@ -75,10 +81,18 @@ export default function DashboardPage() {
   );
   const highPriorityCount = emails.filter((e) => e.priority === "high").length;
 
+  // Re-derive the selected email from the live `emails` list (rather than
+  // trusting the snapshot captured at selection time) so toggling
+  // "important" is reflected immediately in the detail view too.
+  const liveSelectedEmail = selectedEmail
+    ? emails.find((e) => e.gmailMessageId === selectedEmail.gmailMessageId) ||
+      selectedEmail
+    : null;
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="w-10 h-10 rounded-full border-t-2 border-l-2 border-blue-500 animate-spin" />
+      <div className="aura-shell min-h-screen flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-t-2 border-l-2 border-[var(--aura-accent-strong)] animate-spin" />
       </div>
     );
   }
@@ -101,7 +115,12 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="h-4 w-px bg-white/20" />
-          <span className="hidden text-xs font-medium uppercase aura-muted sm:inline">Student workspace</span>
+          <span className="hidden items-center gap-2 text-xs font-medium uppercase aura-muted sm:flex">
+            <span
+              className={`status-dot ${syncing ? "status-dot--syncing" : error ? "status-dot--error" : "status-dot--online"}`}
+            />
+            {syncing ? "Syncing" : error ? "Sync error" : "Live"}
+          </span>
         </div>
 
         <div className="flex items-center gap-4">
@@ -113,7 +132,7 @@ export default function DashboardPage() {
                 ? "Notifications on — click to mute"
                 : "Notifications off — click to enable"
             }
-            className={`p-2 rounded-lg border transition-colors ${notificationsEnabled ? "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white" : "bg-white/5 border-white/10 text-gray-600 hover:text-gray-400"}`}
+            className={`aura-hover-glow p-2 rounded-lg border transition-all hover:scale-105 active:scale-95 ${notificationsEnabled ? "bg-white/5 border-white/10 text-gray-300 hover:text-white" : "bg-white/5 border-white/10 text-gray-600 hover:text-gray-400"}`}
           >
             {notificationsEnabled ? (
               <Bell className="w-4 h-4" />
@@ -124,14 +143,14 @@ export default function DashboardPage() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 hover:text-white group"
+            className="aura-hover-glow flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:scale-[1.03] active:scale-95 disabled:hover:scale-100 group"
           >
             <RefreshCw
-              className={`w-4 h-4 text-blue-400 group-hover:text-blue-300 ${syncing ? "animate-spin" : ""}`}
+              className={`w-4 h-4 text-[var(--aura-accent)] group-hover:text-[var(--aura-accent-strong)] ${syncing ? "animate-spin" : ""}`}
             />
             {syncing ? "Syncing..." : "Sync"}
           </button>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-white/10 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-200 shadow-inner">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-white/10 bg-gradient-to-br from-[var(--aura-accent)]/20 to-[var(--aura-secondary)]/20 text-[var(--aura-text)] shadow-inner transition-shadow hover:shadow-[0_0_16px_-2px_var(--aura-glow)]">
             {user.name?.charAt(0) || "U"}
           </div>
           <button
@@ -139,7 +158,7 @@ export default function DashboardPage() {
               logout();
               router.push("/");
             }}
-            className="p-2 rounded-lg hover:bg-white/5 text-gray-500 hover:text-gray-300 transition-colors"
+            className="p-2 rounded-lg hover:bg-white/5 text-gray-500 hover:text-rose-300 transition-all hover:scale-105 active:scale-95"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -182,6 +201,10 @@ export default function DashboardPage() {
           selectedCategory={filters.selectedCategory}
           setSelectedCategory={filters.setSelectedCategory}
           categoryCounts={filters.categoryCounts}
+          showImportantOnly={filters.showImportantOnly}
+          setShowImportantOnly={filters.setShowImportantOnly}
+          importantCount={filters.importantCount}
+          onToggleImportant={toggleImportant}
           emailsLoading={emailsLoading}
           filteredEmails={filters.filteredEmails}
           selectedEmail={selectedEmail}
@@ -189,20 +212,25 @@ export default function DashboardPage() {
         />
 
         {/* COLUMN 2: CENTER WORKSPACE */}
-        <div className="flex-1 flex flex-col min-w-0 relative bg-[var(--aura-canvas-raised)] overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 relative bg-[var(--aura-canvas-raised)]/75 backdrop-blur-2xl overflow-hidden">
           <div className="absolute inset-0 aura-grid pointer-events-none opacity-20" />
 
           <AnimatePresence mode="wait">
-            {selectedEmail ? (
+            {liveSelectedEmail ? (
               <EmailDetailView
                 key="detail"
-                email={selectedEmail}
+                email={liveSelectedEmail}
                 onBack={() => setSelectedEmail(null)}
-                inCalendar={calendar.isInCalendar(selectedEmail)}
+                inCalendar={calendar.isInCalendar(liveSelectedEmail)}
                 addingToCalendar={calendar.addingToCalendar}
-                onAddToCalendar={() => calendar.addToCalendar(selectedEmail)}
+                onAddToCalendar={() =>
+                  calendar.addToCalendar(liveSelectedEmail)
+                }
                 onRemoveFromCalendar={() =>
-                  calendar.removeFromCalendar(selectedEmail)
+                  calendar.removeFromCalendar(liveSelectedEmail)
+                }
+                onToggleImportant={() =>
+                  toggleImportant(liveSelectedEmail)
                 }
               />
             ) : (
@@ -218,7 +246,11 @@ export default function DashboardPage() {
         </div>
 
         {/* COLUMN 3: RIGHT CALENDAR PANEL */}
-        <CalendarPanel emails={emails} calendarEvents={calendar.calendarEvents} />
+        <CalendarPanel
+          emails={emails}
+          calendarEvents={calendar.calendarEvents}
+          onRemoveEvent={calendar.removeEventById}
+        />
       </div>
 
       {/* Global CSS for transparent modern scrollbars */}

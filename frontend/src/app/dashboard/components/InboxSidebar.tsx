@@ -10,7 +10,14 @@ import {
   Clock,
   MessagesSquare,
   Paperclip,
+  Star,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   categoryConfig,
   sortOptions,
@@ -33,6 +40,10 @@ interface InboxSidebarProps {
   selectedCategory: EmailCategory;
   setSelectedCategory: Dispatch<SetStateAction<EmailCategory>>;
   categoryCounts: Record<string, number>;
+  showImportantOnly: boolean;
+  setShowImportantOnly: Dispatch<SetStateAction<boolean>>;
+  importantCount: number;
+  onToggleImportant: (email: PlacementEmail) => void;
   emailsLoading: boolean;
   filteredEmails: PlacementEmail[];
   selectedEmail: PlacementEmail | null;
@@ -51,6 +62,10 @@ export function InboxSidebar({
   selectedCategory,
   setSelectedCategory,
   categoryCounts,
+  showImportantOnly,
+  setShowImportantOnly,
+  importantCount,
+  onToggleImportant,
   emailsLoading,
   filteredEmails,
   selectedEmail,
@@ -68,13 +83,36 @@ export function InboxSidebar({
               placeholder="Search emails..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 text-sm bg-[var(--aura-surface-solid)] border text-[var(--aura-text)] placeholder:text-[var(--aura-faint)] outline-none transition-all focus:border-[var(--aura-accent)]"
+              className="w-full pl-9 pr-4 py-2.5 text-sm bg-[var(--aura-surface-solid)] border text-[var(--aura-text)] placeholder:text-[var(--aura-faint)] outline-none transition-all focus:border-[var(--aura-accent)] focus:shadow-[0_0_0_3px_var(--aura-accent-soft)]"
             />
           </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setShowImportantOnly((prev) => !prev)}
+                aria-pressed={showImportantOnly}
+                className={`relative h-full px-3 rounded-xl border transition-all flex items-center justify-center hover:scale-105 active:scale-95 ${showImportantOnly ? "bg-amber-500/15 border-amber-500/40 text-amber-300 shadow-[0_0_14px_-4px_rgba(245,158,11,0.5)]" : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-300"}`}
+              >
+                <Star
+                  className="w-4 h-4"
+                  fill={showImportantOnly ? "currentColor" : "none"}
+                />
+                {importantCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="absolute -top-1.5 -right-1.5 h-4 min-w-4 rounded-full px-1 text-[9px] leading-none"
+                  >
+                    {importantCount}
+                  </Badge>
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Important only</TooltipContent>
+          </Tooltip>
           <div className="relative">
             <button
               onClick={() => setShowSortDropdown(!showSortDropdown)}
-              className={`h-full px-3 rounded-xl border transition-all flex items-center justify-center ${showSortDropdown ? "bg-white/10 border-white/20 text-white" : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-300"}`}
+              className={`h-full px-3 rounded-xl border transition-all flex items-center justify-center hover:scale-105 active:scale-95 ${showSortDropdown ? "bg-white/10 border-white/20 text-white" : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-300"}`}
             >
               <ArrowUpDown className="w-4 h-4" />
             </button>
@@ -128,7 +166,7 @@ export function InboxSidebar({
                 <button
                   key={key}
                   onClick={() => setSelectedCategory(key as EmailCategory)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all border ${isActive ? "bg-white text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.2)]" : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-200"}`}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all border hover:scale-105 active:scale-95 ${isActive ? "bg-[var(--aura-accent)] text-[#06110f] border-[var(--aura-accent)] shadow-[0_0_14px_-2px_var(--aura-glow)]" : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-200"}`}
                 >
                   {config.label}
                 </button>
@@ -161,9 +199,35 @@ export function InboxSidebar({
               <button
                 key={email.id}
                 onClick={() => setSelectedEmail(email)}
-                className={`w-full text-left p-4 transition-all duration-200 border-l-2 border-y-0 border-r-0 ${isSelected ? "bg-[var(--aura-accent-soft)] border-[var(--aura-accent)]" : "bg-transparent border-transparent hover:bg-[var(--aura-surface-hover)]"}`}
+                className={`group/row relative w-full text-left p-4 rounded-r-lg transition-all duration-200 border-l-2 border-y-0 border-r-0 ${isSelected ? "bg-[var(--aura-accent-soft)] border-[var(--aura-accent)]" : "bg-transparent border-transparent hover:translate-x-0.5 hover:border-[var(--aura-line-strong)] hover:bg-[var(--aura-surface-hover)]"}`}
               >
-                <div className="flex justify-between items-start mb-1.5 gap-3">
+                <span
+                  role="button"
+                  tabIndex={0}
+                  aria-label={
+                    email.important
+                      ? "Unmark as important"
+                      : "Mark as important"
+                  }
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onToggleImportant(email);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      onToggleImportant(email);
+                    }
+                  }}
+                  className={`absolute top-3 right-3 z-10 p-1 rounded-md transition-all hover:scale-110 active:scale-95 ${email.important ? "text-amber-400 opacity-100" : "text-gray-600 opacity-0 group-hover/row:opacity-100 hover:text-amber-300"}`}
+                >
+                  <Star
+                    className="w-3.5 h-3.5"
+                    fill={email.important ? "currentColor" : "none"}
+                  />
+                </span>
+                <div className="flex justify-between items-start mb-1.5 gap-3 pr-6">
                   <span
                     className={`font-semibold text-sm truncate ${isSelected ? "text-white" : "text-gray-200"}`}
                   >

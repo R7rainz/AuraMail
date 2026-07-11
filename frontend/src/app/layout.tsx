@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "./lib/authContext";
+import { FluidBackground } from "@/components/FluidBackground";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "AuraMail - Placement intelligence for students",
@@ -22,9 +24,12 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <FluidBackground />
+        <TooltipProvider delayDuration={200}>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </TooltipProvider>
       </body>
     </html>
   );

@@ -1,12 +1,25 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Calendar, Clock, CalendarCheck } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  Clock,
+  CalendarCheck,
+  MapPin,
+  ExternalLink,
+  Trash2,
+  CalendarX,
+} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import type { CalendarEvent, PlacementEmail } from "../types";
 import { getDaysDiff } from "../lib/dateUtils";
 
 interface CalendarPanelProps {
   emails: PlacementEmail[];
   calendarEvents: CalendarEvent[];
+  onRemoveEvent: (eventId: string) => void;
 }
 
 interface CalendarDay {
@@ -87,12 +100,27 @@ function getCalendarDays(
   return days;
 }
 
-export function CalendarPanel({ emails, calendarEvents }: CalendarPanelProps) {
+export function CalendarPanel({
+  emails,
+  calendarEvents,
+  onRemoveEvent,
+}: CalendarPanelProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<
     string | null
   >(null);
+
+  const myEvents = useMemo(
+    () =>
+      calendarEvents
+        .filter((e) => e.isAuraMail)
+        .sort(
+          (a, b) =>
+            new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+        ),
+    [calendarEvents],
+  );
 
   const navigateMonth = (dir: number) =>
     setCurrentMonth(
@@ -127,6 +155,27 @@ export function CalendarPanel({ emails, calendarEvents }: CalendarPanelProps) {
 
   return (
     <div className="aura-panel hidden w-[320px] border-l flex-col shrink-0 z-20 2xl:flex">
+      <Tabs defaultValue="month" className="flex-1 min-h-0 gap-0">
+        <div className="p-3 border-b">
+          <TabsList className="w-full">
+            <TabsTrigger value="month" className="gap-1.5">
+              <Calendar className="w-3.5 h-3.5" /> Calendar
+            </TabsTrigger>
+            <TabsTrigger value="mine" className="gap-1.5">
+              <CalendarCheck className="w-3.5 h-3.5" /> My Events
+              {myEvents.length > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="h-4 min-w-4 rounded-full px-1 text-[9px] leading-none"
+                >
+                  {myEvents.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="month" className="flex flex-col min-h-0 m-0">
       {/* Calendar Header */}
       <div className="p-5 border-b backdrop-blur-sm">
         <div className="flex items-center justify-between mb-6">
@@ -139,13 +188,13 @@ export function CalendarPanel({ emails, calendarEvents }: CalendarPanelProps) {
           <div className="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
             <button
               onClick={() => navigateMonth(-1)}
-              className="w-7 h-7 rounded hover:bg-white/10 flex items-center justify-center transition-colors text-gray-400 hover:text-white"
+              className="w-7 h-7 rounded hover:bg-white/10 flex items-center justify-center transition-all hover:scale-110 active:scale-90 text-gray-400 hover:text-white"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => navigateMonth(1)}
-              className="w-7 h-7 rounded hover:bg-white/10 flex items-center justify-center transition-colors text-gray-400 hover:text-white"
+              className="w-7 h-7 rounded hover:bg-white/10 flex items-center justify-center transition-all hover:scale-110 active:scale-90 text-gray-400 hover:text-white"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -344,6 +393,89 @@ export function CalendarPanel({ emails, calendarEvents }: CalendarPanelProps) {
           )}
         </AnimatePresence>
       </div>
+        </TabsContent>
+
+        <TabsContent
+          value="mine"
+          className="min-h-0 overflow-y-auto custom-scrollbar p-4 m-0"
+        >
+          {myEvents.length === 0 ? (
+            <div className="text-center py-16 px-4">
+              <CalendarX className="w-9 h-9 mx-auto mb-4 opacity-20 text-gray-400" />
+              <p className="text-sm text-gray-500">
+                No events added yet.
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                Add a deadline to your calendar from any email to see it
+                here.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {myEvents.map((event) => {
+                const eventDate = new Date(event.startTime);
+                const isPast = getDaysDiff(event.startTime) < 0;
+                return (
+                  <div
+                    key={event.id}
+                    className={`group relative p-4 rounded-xl border bg-white/[0.02] transition-all hover:bg-white/[0.05] ${isPast ? "border-white/5 opacity-50" : "border-white/5 hover:border-[var(--aura-line-strong)]"}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex flex-col items-center justify-center w-10 h-10 shrink-0 rounded-lg bg-[var(--aura-accent-soft)] border border-[var(--aura-line)] text-[var(--aura-accent)]">
+                        <span className="text-[10px] font-medium leading-none mb-1 uppercase tracking-wider">
+                          {eventDate.toLocaleDateString("en-US", {
+                            month: "short",
+                          })}
+                        </span>
+                        <span className="text-sm font-bold leading-none">
+                          {eventDate.getDate()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-200 truncate pr-6">
+                          {event.title}
+                        </p>
+                        <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <Clock className="w-3 h-3 shrink-0" />
+                          {eventDate.toLocaleString([], {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </p>
+                        {event.location && (
+                          <p className="text-[11px] text-gray-500 mt-1 flex items-center gap-1.5 truncate">
+                            <MapPin className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{event.location}</span>
+                          </p>
+                        )}
+                        {event.link && (
+                          <a
+                            href={event.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-[var(--aura-accent)] mt-1 flex items-center gap-1.5 hover:underline w-fit"
+                          >
+                            <ExternalLink className="w-3 h-3 shrink-0" /> Open
+                            link
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onRemoveEvent(event.id)}
+                      title="Remove from calendar"
+                      aria-label="Remove from calendar"
+                      className="absolute top-3 right-3 p-1 rounded-md text-gray-600 opacity-0 group-hover:opacity-100 transition-all hover:text-rose-400 hover:scale-110 active:scale-95"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

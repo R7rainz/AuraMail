@@ -6,6 +6,7 @@ export function useEmailFilters(emails: PlacementEmail[]) {
   const conversations = useMemo(() => groupEmailThreads(emails), [emails]);
   const [selectedCategory, setSelectedCategory] =
     useState<EmailCategory>("all");
+  const [showImportantOnly, setShowImportantOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("date");
   // Default to ascending so the newest emails appear at the top
@@ -21,11 +22,17 @@ export function useEmailFilters(emails: PlacementEmail[]) {
     return counts;
   }, [conversations]);
 
+  const importantCount = useMemo(
+    () => conversations.filter((e) => e.important).length,
+    [conversations],
+  );
+
   const filteredEmails = useMemo(() => {
     const filtered = conversations.filter((e) => {
       const matchCat =
         selectedCategory === "all" ||
         e.category?.toLowerCase() === selectedCategory;
+      const matchImportant = !showImportantOnly || !!e.important;
       const matchSearch =
         !searchQuery ||
         e.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -36,7 +43,7 @@ export function useEmailFilters(emails: PlacementEmail[]) {
             message.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
             message.snippet.toLowerCase().includes(searchQuery.toLowerCase()),
         );
-      return matchCat && matchSearch;
+      return matchCat && matchImportant && matchSearch;
     });
 
     return [...filtered].sort((a, b) => {
@@ -67,11 +74,20 @@ export function useEmailFilters(emails: PlacementEmail[]) {
       }
       return sortDirection === "asc" ? comparison : -comparison;
     });
-  }, [conversations, selectedCategory, searchQuery, sortBy, sortDirection]);
+  }, [
+    conversations,
+    selectedCategory,
+    showImportantOnly,
+    searchQuery,
+    sortBy,
+    sortDirection,
+  ]);
 
   return {
     selectedCategory,
     setSelectedCategory,
+    showImportantOnly,
+    setShowImportantOnly,
     searchQuery,
     setSearchQuery,
     sortBy,
@@ -79,6 +95,7 @@ export function useEmailFilters(emails: PlacementEmail[]) {
     sortDirection,
     setSortDirection,
     categoryCounts,
+    importantCount,
     filteredEmails,
   };
 }
