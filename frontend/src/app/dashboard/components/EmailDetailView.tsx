@@ -170,7 +170,7 @@ export function EmailDetailView({
       className="absolute inset-0 overflow-y-auto custom-scrollbar z-10"
     >
       {/* Header Actions */}
-      <div className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 bg-black/60 backdrop-blur-xl border-b border-white/5">
+      <div className="aura-panel sticky top-0 z-20 flex items-center justify-between px-6 xl:px-8 py-4 backdrop-blur-xl border-b">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors group"
@@ -210,16 +210,16 @@ export function EmailDetailView({
         </div>
       </div>
 
-      <div className="p-10 max-w-4xl mx-auto space-y-10">
+      <div className="p-6 xl:p-10 max-w-4xl mx-auto space-y-10">
         {/* Hero Block */}
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full bg-white/5 border border-white/10">
-            <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 bg-[var(--aura-accent-soft)] border border-[var(--aura-line)]">
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--aura-accent)]"></div>
             <span className="text-xs text-gray-300 font-medium tracking-wide uppercase">
               {selectedEmail.category || "Announcement"}
             </span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-gray-400 leading-tight mb-4 tracking-tight">
+          <h1 className="text-3xl md:text-4xl font-semibold text-[var(--aura-text)] leading-tight mb-4">
             {selectedEmail.company || selectedEmail.subject}
           </h1>
           {selectedEmail.role && selectedEmail.company && (
@@ -305,12 +305,12 @@ export function EmailDetailView({
 
         {/* AI Summary */}
         {selectedEmail.summary && (
-          <div className="p-6 rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-blue-500/5 relative overflow-hidden backdrop-blur-md">
-            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-blue-500" />
+          <div className="p-6 border border-[var(--aura-line)] bg-[var(--aura-accent-soft)] relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-[var(--aura-accent)]" />
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-300">
-                AI Intelligent Summary
+              <Sparkles className="w-5 h-5 aura-accent" />
+              <h3 className="text-sm font-semibold uppercase tracking-wider aura-accent">
+                AI brief
               </h3>
             </div>
             <p className="text-gray-300 leading-relaxed text-[15px]">
