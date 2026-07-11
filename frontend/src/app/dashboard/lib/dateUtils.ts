@@ -19,6 +19,19 @@ export function formatRelativeDate(date: string) {
   });
 }
 
+export function formatMailDateTime(date: string): string {
+  const value = new Date(date);
+  if (Number.isNaN(value.getTime())) return date || "Date unavailable";
+  return value.toLocaleString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function formatDeadline(date: string) {
   const days = getDaysDiff(date);
   if (days < 0) return { text: `${Math.abs(days)}d overdue`, urgent: true };

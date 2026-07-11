@@ -16,6 +16,8 @@ import {
   Paperclip,
   Download,
   Eye,
+  MessagesSquare,
+  Check,
 } from "lucide-react";
 import type { EmailAttachment, PlacementEmail } from "../types";
 import {
@@ -24,6 +26,7 @@ import {
   formatFileSize,
   isPreviewable,
 } from "../lib/attachments";
+import { formatMailDateTime } from "../lib/dateUtils";
 
 interface EmailDetailViewProps {
   email: PlacementEmail;
@@ -145,13 +148,18 @@ function AttachmentRow({
 }
 
 export function EmailDetailView({
-  email: selectedEmail,
+  email,
   onBack,
   inCalendar,
   addingToCalendar,
   onAddToCalendar,
   onRemoveFromCalendar,
 }: EmailDetailViewProps) {
+  const messages = email.threadMessages || [email];
+  const [selectedMessageId, setSelectedMessageId] = useState(email.id);
+  const selectedEmail =
+    messages.find((message) => message.id === selectedMessageId) || messages[0];
+
   return (
     <motion.div
       key="detail"
@@ -232,7 +240,68 @@ export function EmailDetailView({
               ))}
             </div>
           )}
+          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-400">
+            <span className="text-gray-200">
+              {selectedEmail.sender || "Unknown sender"}
+            </span>
+            <span className="text-gray-700">|</span>
+            <time dateTime={selectedEmail.receivedAt}>
+              {formatMailDateTime(selectedEmail.receivedAt)}
+            </time>
+          </div>
         </div>
+
+        {messages.length > 1 && (
+          <section aria-label="Email conversation">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+              <MessagesSquare className="w-4 h-4" /> Conversation -{" "}
+              {messages.length} messages
+            </h2>
+            <div className="border-y border-white/10 divide-y divide-white/5">
+              {messages.map((message, index) => {
+                const active = message.id === selectedEmail.id;
+                return (
+                  <button
+                    key={message.id}
+                    onClick={() => setSelectedMessageId(message.id)}
+                    className={`w-full px-3 py-4 flex items-center gap-4 text-left transition-colors ${active ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"}`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 ${active ? "border-cyan-400/40 bg-cyan-500/10 text-cyan-300" : "border-white/10 bg-white/5 text-gray-500"}`}
+                    >
+                      {active ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <span className="text-xs font-semibold">
+                          {messages.length - index}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-sm font-medium text-gray-200 truncate">
+                          {message.sender || "Unknown sender"}
+                        </span>
+                        <time
+                          dateTime={message.receivedAt}
+                          className="text-xs text-gray-500 shrink-0"
+                        >
+                          {formatMailDateTime(message.receivedAt)}
+                        </time>
+                      </div>
+                      <p className="text-xs text-gray-500 truncate mt-1">
+                        {message.summary || message.snippet}
+                      </p>
+                    </div>
+                    {!!message.attachments?.length && (
+                      <Paperclip className="w-4 h-4 text-gray-500 shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* AI Summary */}
         {selectedEmail.summary && (

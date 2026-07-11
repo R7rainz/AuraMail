@@ -8,6 +8,8 @@ import {
   Inbox,
   Zap,
   Clock,
+  MessagesSquare,
+  Paperclip,
 } from "lucide-react";
 import {
   categoryConfig,
@@ -179,6 +181,28 @@ export function InboxSidebar({
                   {email.role || email.snippet}
                 </p>
                 <div className="flex items-center gap-2.5 flex-wrap">
+                  {!!email.followupCount && (
+                    <div className="flex items-center gap-1 text-[10px] text-cyan-300 font-medium bg-cyan-500/10 px-1.5 py-0.5 rounded">
+                      <MessagesSquare className="w-3 h-3" />
+                      {email.followupCount}{" "}
+                      {email.followupCount === 1 ? "reply" : "replies"}
+                    </div>
+                  )}
+                  {!!email.threadMessages?.some(
+                    (message) => message.attachments?.length,
+                  ) && (
+                    <div
+                      className="flex items-center gap-1 text-[10px] text-gray-300 font-medium bg-white/5 px-1.5 py-0.5 rounded"
+                      title="Conversation has attachments"
+                    >
+                      <Paperclip className="w-3 h-3" />
+                      {email.threadMessages.reduce(
+                        (count, message) =>
+                          count + (message.attachments?.length || 0),
+                        0,
+                      )}
+                    </div>
+                  )}
                   {email.priority === "high" && (
                     <div className="flex items-center gap-1 text-[10px] text-rose-400 font-medium bg-rose-500/10 px-1.5 py-0.5 rounded">
                       <Zap className="w-3 h-3" /> High
