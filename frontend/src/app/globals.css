@@ -26,11 +26,19 @@
   --text-2xl--line-height: 2rem;
   --text-3xl: 2rem;
   --text-3xl--line-height: 2.25rem;
+  --text-3xl--letter-spacing: -0.01em;
   --text-4xl: 2.375rem;
   --text-4xl--line-height: 2.5rem;
+  --text-4xl--letter-spacing: -0.018em;
   --text-5xl: 3.125rem;
+  --text-5xl--line-height: 1.05;
+  --text-5xl--letter-spacing: -0.024em;
   --text-6xl: 3.875rem;
-  --text-7xl: 4.625rem;
+  --text-6xl--line-height: 1.03;
+  --text-6xl--letter-spacing: -0.03em;
+  --text-7xl: 4.75rem;
+  --text-7xl--line-height: 1;
+  --text-7xl--letter-spacing: -0.035em;
 }
 
 @theme inline {
@@ -122,23 +130,23 @@
 :root,
 [data-theme="eclipse"] {
   color-scheme: dark;
-  --aura-canvas: #06070b;
-  --aura-canvas-raised: #0a0c12;
-  --aura-surface: rgba(15, 17, 25, 0.82);
-  --aura-surface-solid: #0e1017;
-  --aura-surface-hover: rgba(255, 255, 255, 0.05);
-  --aura-line: rgba(148, 163, 184, 0.09);
-  --aura-line-strong: rgba(148, 163, 184, 0.17);
-  --aura-text: #e9eaf0;
-  --aura-muted: #8d92a3;
-  --aura-faint: #565a6b;
+  --aura-canvas: #07080c;
+  --aura-canvas-raised: #0b0d13;
+  --aura-surface: rgba(16, 18, 26, 0.72);
+  --aura-surface-solid: #0f1117;
+  --aura-surface-hover: rgba(255, 255, 255, 0.045);
+  --aura-line: rgba(150, 163, 190, 0.1);
+  --aura-line-strong: rgba(150, 163, 190, 0.19);
+  --aura-text: #edeef3;
+  --aura-muted: #979cad;
+  --aura-faint: #5c6172;
   --aura-accent: #a5b4fc;
   --aura-accent-strong: #6366f1;
   --aura-accent-soft: rgba(99, 102, 241, 0.12);
   --aura-secondary: #67e8f9;
   --aura-tertiary: #c4b5fd;
-  --aura-glow: rgba(99, 102, 241, 0.12);
-  --aura-fluid-opacity: 0.55;
+  --aura-glow: rgba(99, 102, 241, 0.13);
+  --aura-fluid-opacity: 0.42;
   --aura-success: #34d399;
   --aura-warning: #fbbf24;
   --aura-danger: #fb7185;
@@ -200,9 +208,24 @@
   height: 100%;
   display: block;
   opacity: var(--aura-fluid-opacity);
-  filter: blur(64px);
+  filter: blur(52px) saturate(1.1);
   transform: scale(1.08);
   transition: opacity 480ms ease;
+}
+/* Vertical fade so the mesh reads at the top and dissolves into flat canvas
+   lower down, keeping long-form / footer content on solid contrast. */
+.fluid-bg-root::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 45%,
+    var(--aura-canvas) 100%
+  );
+  opacity: 0.6;
 }
 
 .aura-shell { position: relative; z-index: 1; background: transparent; color: var(--aura-text); }
@@ -251,6 +274,41 @@
 [data-theme="dawn"] .text-gray-500 { color: var(--aura-muted) !important; }
 [data-theme="dawn"] [class*="bg-white/"] { background-color: rgba(15, 23, 42, .045) !important; }
 [data-theme="dawn"] [class*="border-white/"] { border-color: var(--aura-line) !important; }
+
+/* Monospace technical label — dates, counts, categories, section markers.
+   The restrained, precise "data" voice of the interface. */
+.mono-label {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--aura-faint);
+}
+.mono-num {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* One accessible focus ring for every keyboard-focusable element that isn't
+   a shadcn control (those bring their own). */
+:where(a, button, [role="button"], input, [tabindex]):focus-visible {
+  outline: 2px solid var(--aura-accent-strong);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Radial scrim that sits between the WebGL background and hero text, so
+   copy always meets contrast regardless of where the mesh drifts. */
+.aura-scrim {
+  background: radial-gradient(
+    60% 60% at 30% 40%,
+    var(--aura-canvas) 0%,
+    color-mix(in oklab, var(--aura-canvas) 55%, transparent) 45%,
+    transparent 78%
+  );
+}
 
 /* Hover / interaction primitives, reused across landing + dashboard */
 .aura-hover-lift {
