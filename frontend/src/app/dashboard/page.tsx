@@ -6,6 +6,7 @@ import { updateNotificationPreference } from "@/app/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, LogOut, RefreshCw, AlertTriangle, X, Bell, BellOff } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 import type { PlacementEmail } from "./types";
 import { getDaysDiff } from "./lib/dateUtils";
@@ -85,25 +86,26 @@ export default function DashboardPage() {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-black text-white font-sans selection:bg-blue-500/30">
+    <div className="aura-shell flex flex-col h-screen overflow-hidden font-sans">
       <Toaster position="top-right" />
       {/* HEADER */}
-      <header className="h-16 border-b border-white/10 flex items-center justify-between px-6 shrink-0 bg-black/50 backdrop-blur-xl z-20 relative">
+      <header className="aura-panel h-16 border-b flex items-center justify-between px-4 sm:px-6 shrink-0 backdrop-blur-xl z-20 relative">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
-            <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-              <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-              <Mail className="w-4 h-4 text-gray-300" />
+            <div className="aura-surface relative flex items-center justify-center w-8 h-8 border shadow-[0_0_18px_var(--aura-glow)]">
+              <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[var(--aura-accent)] animate-pulse" />
+              <Mail className="w-4 h-4 aura-accent" />
             </div>
             <span className="text-lg font-semibold tracking-tight text-white">
               AuraMail
             </span>
           </div>
           <div className="h-4 w-px bg-white/20" />
-          <span className="text-sm font-medium text-gray-400">Workspace</span>
+          <span className="hidden text-xs font-medium uppercase aura-muted sm:inline">Student workspace</span>
         </div>
 
         <div className="flex items-center gap-4">
+          <ThemeToggle compact />
           <button
             onClick={toggleNotifications}
             title={
@@ -187,37 +189,8 @@ export default function DashboardPage() {
         />
 
         {/* COLUMN 2: CENTER WORKSPACE */}
-        <div className="flex-1 flex flex-col min-w-0 relative bg-black overflow-hidden">
-          {/* Subtle animated background (mimicking hero) */}
-          <div className="absolute inset-0 pointer-events-none opacity-40">
-            <div className="absolute top-0 left-1/3 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse"></div>
-            <div
-              className="absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-500/10 rounded-full blur-[120px] animate-pulse"
-              style={{ animationDelay: "2s" }}
-            ></div>
-          </div>
-
-          {/* Grid pattern overlay */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
-            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern
-                  id="grid-center"
-                  width="40"
-                  height="40"
-                  patternUnits="userSpaceOnUse"
-                >
-                  <path
-                    d="M 40 0 L 0 0 0 40"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="1"
-                  />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid-center)" />
-            </svg>
-          </div>
+        <div className="flex-1 flex flex-col min-w-0 relative bg-[var(--aura-canvas-raised)] overflow-hidden">
+          <div className="absolute inset-0 aura-grid pointer-events-none opacity-20" />
 
           <AnimatePresence mode="wait">
             {selectedEmail ? (

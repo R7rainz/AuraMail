@@ -83,6 +83,45 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+:root,
+[data-theme="eclipse"] {
+  color-scheme: dark;
+  --aura-canvas: #080a0d;
+  --aura-canvas-raised: #0c0f13;
+  --aura-surface: rgba(18, 22, 27, 0.78);
+  --aura-surface-solid: #11151a;
+  --aura-surface-hover: rgba(255, 255, 255, 0.055);
+  --aura-line: rgba(226, 232, 240, 0.09);
+  --aura-line-strong: rgba(226, 232, 240, 0.16);
+  --aura-text: #e7ebee;
+  --aura-muted: #8a949f;
+  --aura-faint: #59636e;
+  --aura-accent: #6ee7d2;
+  --aura-accent-strong: #2dd4bf;
+  --aura-accent-soft: rgba(45, 212, 191, 0.12);
+  --aura-secondary: #8fb7ff;
+  --aura-glow: rgba(45, 212, 191, 0.1);
+}
+
+[data-theme="dawn"] {
+  color-scheme: light;
+  --aura-canvas: #eef1f2;
+  --aura-canvas-raised: #f7f8f8;
+  --aura-surface: rgba(255, 255, 255, 0.78);
+  --aura-surface-solid: #ffffff;
+  --aura-surface-hover: rgba(15, 23, 42, 0.055);
+  --aura-line: rgba(15, 23, 42, 0.1);
+  --aura-line-strong: rgba(15, 23, 42, 0.18);
+  --aura-text: #172026;
+  --aura-muted: #5d6871;
+  --aura-faint: #89939b;
+  --aura-accent: #087f73;
+  --aura-accent-strong: #0f766e;
+  --aura-accent-soft: rgba(13, 148, 136, 0.1);
+  --aura-secondary: #3567b7;
+  --aura-glow: rgba(13, 148, 136, 0.08);
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -122,6 +161,52 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    background: var(--aura-canvas);
+    color: var(--aura-text);
+    transition: background-color 240ms ease, color 240ms ease;
   }
+}
+
+::selection { background: var(--aura-accent-soft); color: var(--aura-text); }
+
+.aura-shell { background: var(--aura-canvas); color: var(--aura-text); }
+.aura-panel { background: var(--aura-surface); border-color: var(--aura-line); }
+.aura-surface { background: var(--aura-surface-solid); border-color: var(--aura-line); }
+.aura-muted { color: var(--aura-muted); }
+.aura-faint { color: var(--aura-faint); }
+.aura-accent { color: var(--aura-accent); }
+.aura-grid {
+  background-image:
+    linear-gradient(var(--aura-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--aura-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, black, transparent 82%);
+}
+.aura-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E");
+  opacity: .025;
+}
+.theme-toggle { display: inline-flex; align-items: center; gap: .55rem; color: var(--aura-muted); font-size: .75rem; font-weight: 600; }
+.theme-toggle-track { width: 2.3rem; height: 1.3rem; padding: .15rem; border: 1px solid var(--aura-line-strong); background: var(--aura-surface-solid); display: flex; align-items: center; border-radius: 999px; }
+.theme-toggle-thumb { width: .9rem; height: .9rem; display: grid; place-items: center; color: var(--aura-accent); transition: transform 240ms cubic-bezier(.2,.8,.2,1); }
+[data-theme="dawn"] .theme-toggle-thumb { transform: translateX(.95rem); }
+.theme-toggle-thumb svg { width: .75rem; height: .75rem; }
+.theme-icon-dawn { display: none; }
+[data-theme="dawn"] .theme-icon-eclipse { display: none; }
+[data-theme="dawn"] .theme-icon-dawn { display: block; }
+.theme-toggle-compact > span:last-child { display: none; }
+
+[data-theme="dawn"] .bg-black,
+[data-theme="dawn"] .bg-\[\#050505\] { background-color: var(--aura-canvas) !important; }
+[data-theme="dawn"] .bg-\[\#121212\] { background-color: var(--aura-surface-solid) !important; }
+[data-theme="dawn"] .text-white { color: var(--aura-text) !important; }
+[data-theme="dawn"] .text-gray-200,
+[data-theme="dawn"] .text-gray-300 { color: #35414a !important; }
+[data-theme="dawn"] .text-gray-400,
+[data-theme="dawn"] .text-gray-500 { color: var(--aura-muted) !important; }
+[data-theme="dawn"] [class*="bg-white/"] { background-color: rgba(15, 23, 42, .045) !important; }
+[data-theme="dawn"] [class*="border-white/"] { border-color: var(--aura-line) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

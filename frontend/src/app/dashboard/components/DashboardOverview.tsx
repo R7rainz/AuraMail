@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { ArrowLeft, CalendarClock, Inbox, ShieldAlert } from "lucide-react";
 
 interface DashboardOverviewProps {
   userFirstName: string;
@@ -14,77 +15,52 @@ export function DashboardOverview({
   upcomingDeadlinesCount,
 }: DashboardOverviewProps) {
   const stats = [
-    {
-      label: "Total Emails",
-      value: totalEmails,
-      text: "text-white",
-    },
-    {
-      label: "Active Deadlines",
-      value: upcomingDeadlinesCount,
-      text: "text-amber-400",
-    },
-    {
-      label: "High Priority",
-      value: highPriorityCount,
-      text: "text-rose-400",
-    },
-    {
-      label: "Synced",
-      value: "Just now",
-      text: "text-blue-400",
-      isString: true,
-    },
+    { label: "Conversations", value: totalEmails, icon: Inbox },
+    { label: "Active deadlines", value: upcomingDeadlinesCount, icon: CalendarClock },
+    { label: "Needs attention", value: highPriorityCount, icon: ShieldAlert },
   ];
 
   return (
     <motion.div
-      key="dashboard"
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.4 }}
-      className="absolute inset-0 overflow-y-auto custom-scrollbar p-10 z-10 flex flex-col items-center justify-center min-h-full"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className="absolute inset-0 z-10 overflow-y-auto custom-scrollbar"
     >
-      <div className="max-w-4xl w-full text-center space-y-8">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mx-auto">
-          <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-          <span className="text-sm text-gray-400">Workspace Active</span>
+      <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col justify-center px-8 py-12 xl:px-14">
+        <div className="mb-12 flex items-center gap-3 text-[11px] font-semibold uppercase aura-accent">
+          <span className="h-px w-8 bg-[var(--aura-accent)]" />
+          Inbox intelligence online
         </div>
 
-        <h1 className="text-5xl md:text-6xl font-bold text-white tracking-tight leading-tight">
-          Welcome back, <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500">
-            {userFirstName}
-          </span>
-        </h1>
+        <div className="grid items-end gap-10 lg:grid-cols-[1fr_auto]">
+          <div>
+            <p className="mb-3 text-sm aura-muted">Good to see you, {userFirstName}.</p>
+            <h1 className="max-w-2xl text-4xl font-semibold leading-tight text-[var(--aura-text)] lg:text-5xl">
+              Your next important update is already organized.
+            </h1>
+          </div>
+          <div className="hidden items-center gap-2 pb-2 text-xs aura-faint lg:flex">
+            <ArrowLeft className="h-4 w-4" /> Select a conversation
+          </div>
+        </div>
 
-        <p className="text-lg text-gray-400 max-w-xl mx-auto">
-          You have{" "}
-          <span className="text-rose-400 font-semibold">
-            {highPriorityCount} urgent
-          </span>{" "}
-          updates and{" "}
-          <span className="text-amber-400 font-semibold">
-            {upcomingDeadlinesCount} deadlines
-          </span>{" "}
-          approaching.
-        </p>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8">
-          {stats.map((s, i) => (
-            <div
-              key={i}
-              className="p-6 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm"
-            >
-              <div className={`text-3xl font-bold mb-2 ${s.text}`}>
-                {s.value}
+        <div className="mt-14 grid gap-px border bg-[var(--aura-line)] sm:grid-cols-3" style={{ borderColor: "var(--aura-line)" }}>
+          {stats.map(({ label, value, icon: Icon }) => (
+            <div key={label} className="bg-[var(--aura-surface-solid)] p-6">
+              <div className="flex items-start justify-between">
+                <span className="text-3xl font-semibold tabular-nums">{value}</span>
+                <Icon className="h-4 w-4 aura-accent" />
               </div>
-              <div className="text-xs uppercase tracking-wider text-gray-500 font-medium">
-                {s.label}
-              </div>
+              <p className="mt-8 text-[10px] font-semibold uppercase aura-muted">{label}</p>
             </div>
           ))}
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-5 text-xs aura-faint" style={{ borderColor: "var(--aura-line)" }}>
+          <span>Automatic sync checks every minute while this workspace is open.</span>
+          <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Live</span>
         </div>
       </div>
     </motion.div>

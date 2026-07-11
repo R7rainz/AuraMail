@@ -126,11 +126,11 @@ export function CalendarPanel({ emails, calendarEvents }: CalendarPanelProps) {
   const calendarDays = getCalendarDays(currentMonth, emails, calendarEvents);
 
   return (
-    <div className="w-[340px] border-l border-white/10 bg-[#050505] flex flex-col shrink-0 z-20">
+    <div className="aura-panel hidden w-[320px] border-l flex-col shrink-0 z-20 2xl:flex">
       {/* Calendar Header */}
-      <div className="p-6 border-b border-white/5 bg-black/40 backdrop-blur-sm">
+      <div className="p-5 border-b backdrop-blur-sm">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+          <h2 className="text-base font-semibold text-[var(--aura-text)]">
             {currentMonth.toLocaleDateString("en-US", {
               month: "long",
               year: "numeric",

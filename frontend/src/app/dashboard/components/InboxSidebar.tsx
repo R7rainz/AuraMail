@@ -57,9 +57,9 @@ export function InboxSidebar({
   setSelectedEmail,
 }: InboxSidebarProps) {
   return (
-    <div className="w-[380px] flex flex-col border-r border-white/10 bg-[#050505] shrink-0 z-10">
+    <div className="aura-panel w-[340px] xl:w-[380px] flex flex-col border-r shrink-0 z-10">
       {/* Search & Filters */}
-      <div className="p-5 space-y-4 border-b border-white/5 bg-black/40 backdrop-blur-sm">
+      <div className="p-4 xl:p-5 space-y-4 border-b backdrop-blur-sm">
         <div className="flex gap-2">
           <div className="relative flex-1 group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
@@ -68,7 +68,7 @@ export function InboxSidebar({
               placeholder="Search emails..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm bg-white/5 border border-white/10 text-white placeholder:text-gray-600 outline-none transition-all focus:border-blue-500/50 focus:bg-white/[0.07]"
+              className="w-full pl-9 pr-4 py-2.5 text-sm bg-[var(--aura-surface-solid)] border text-[var(--aura-text)] placeholder:text-[var(--aura-faint)] outline-none transition-all focus:border-[var(--aura-accent)]"
             />
           </div>
           <div className="relative">
@@ -161,7 +161,7 @@ export function InboxSidebar({
               <button
                 key={email.id}
                 onClick={() => setSelectedEmail(email)}
-                className={`w-full text-left p-4 rounded-xl transition-all duration-200 border ${isSelected ? "bg-white/10 border-white/20 shadow-lg" : "bg-transparent border-transparent hover:bg-white/[0.04]"}`}
+                className={`w-full text-left p-4 transition-all duration-200 border-l-2 border-y-0 border-r-0 ${isSelected ? "bg-[var(--aura-accent-soft)] border-[var(--aura-accent)]" : "bg-transparent border-transparent hover:bg-[var(--aura-surface-hover)]"}`}
               >
                 <div className="flex justify-between items-start mb-1.5 gap-3">
                   <span
