@@ -1,0 +1,77 @@
+import { useMemo, useState } from "react";
+import type { EmailCategory, PlacementEmail, SortDirection, SortOption } from "../types";
+
+export function useEmailFilters(emails: PlacementEmail[]) {
+  const [selectedCategory, setSelectedCategory] =
+    useState<EmailCategory>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("date");
+  // Default to ascending so the newest emails appear at the top
+  // (the date comparator uses b - a, so "asc" = newest first).
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: emails.length };
+    emails.forEach((e) => {
+      const cat = e.category?.toLowerCase() || "announcement";
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [emails]);
+
+  const filteredEmails = useMemo(() => {
+    const filtered = emails.filter((e) => {
+      const matchCat =
+        selectedCategory === "all" ||
+        e.category?.toLowerCase() === selectedCategory;
+      const matchSearch =
+        !searchQuery ||
+        e.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.role?.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchCat && matchSearch;
+    });
+
+    return [...filtered].sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case "date":
+          comparison =
+            new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime();
+          break;
+        case "priority":
+          comparison =
+            ({ high: 3, medium: 2, low: 1 }[b.priority || ""] || 0) -
+            ({ high: 3, medium: 2, low: 1 }[a.priority || ""] || 0);
+          break;
+        case "company":
+          comparison = (a.company || a.subject || "").localeCompare(
+            b.company || b.subject || "",
+          );
+          break;
+        case "deadline":
+          if (!a.deadline && !b.deadline) comparison = 0;
+          else if (!a.deadline) comparison = 1;
+          else if (!b.deadline) comparison = -1;
+          else
+            comparison =
+              new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+          break;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [emails, selectedCategory, searchQuery, sortBy, sortDirection]);
+
+  return {
+    selectedCategory,
+    setSelectedCategory,
+    searchQuery,
+    setSearchQuery,
+    sortBy,
+    setSortBy,
+    sortDirection,
+    setSortDirection,
+    categoryCounts,
+    filteredEmails,
+  };
+}

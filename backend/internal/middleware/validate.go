@@ -30,7 +30,7 @@ func ValidateBody[T any](next http.Handler) http.Handler {
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ValidationErrorResponse{
+			_ = json.NewEncoder(w).Encode(ValidationErrorResponse{
 				Success: false,
 				Error:   "Invalid JSON",
 				Details: []FieldError{{Path: "body", Message: err.Error()}},
@@ -59,7 +59,7 @@ func ValidateBody[T any](next http.Handler) http.Handler {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ValidationErrorResponse{
+			_ = json.NewEncoder(w).Encode(ValidationErrorResponse{
 				Success: false,
 				Error:   "Validation Error",
 				Details: details,
@@ -82,7 +82,7 @@ func ValidateQuery[T any](next http.Handler) http.Handler {
 		if err := json.Unmarshal(b, &query); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ValidationErrorResponse{
+			_ = json.NewEncoder(w).Encode(ValidationErrorResponse{
 				Success: false,
 				Error:   "Invalid Query",
 				Details: []FieldError{{Path: "query", Message: err.Error()}},
@@ -108,7 +108,7 @@ func ValidateQuery[T any](next http.Handler) http.Handler {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ValidationErrorResponse{
+			_ = json.NewEncoder(w).Encode(ValidationErrorResponse{
 				Success: false,
 				Error:   "Validation Error",
 				Details: details,

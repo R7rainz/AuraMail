@@ -1,6 +1,7 @@
 package calendar
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -16,11 +17,18 @@ import (
 	gcalendar "google.golang.org/api/calendar/v3"
 )
 
-type Handler struct {
-	userRepo *user.PostgresRepository
+// UserRepository is the subset of user.Repository that the calendar package
+// depends on. Narrowing to an interface lets tests substitute a fake without
+// needing a real database.
+type UserRepository interface {
+	FindByID(ctx context.Context, id string) (*user.User, error)
 }
 
-func NewHandler(repo *user.PostgresRepository) *Handler {
+type Handler struct {
+	userRepo UserRepository
+}
+
+func NewHandler(repo UserRepository) *Handler {
 	return &Handler{
 		userRepo: repo,
 	}
@@ -199,7 +207,7 @@ func (h *Handler) AddEvent(w http.ResponseWriter, r *http.Request) {
 	)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(AddEventResponse{
+	_ = json.NewEncoder(w).Encode(AddEventResponse{
 		Success:   true,
 		EventID:   createdEvent.Id,
 		EventLink: createdEvent.HtmlLink,
@@ -267,7 +275,7 @@ func (h *Handler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	slog.Info("calendar event deleted", "eventId", eventID, "userId", userID)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	_ = json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 		"message": "Event removed from your Google Calendar",
 	})
@@ -381,7 +389,7 @@ func (h *Handler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	slog.Info("fetched calendar events", "count", len(calendarEvents), "userId", userID)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	_ = json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 		"events":  calendarEvents,
 		"total":   len(calendarEvents),

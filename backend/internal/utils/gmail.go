@@ -110,6 +110,42 @@ func ParseBody(payload *gmail.MessagePart) string {
 
 }
 
+// AttachmentMeta describes a real Gmail attachment (filename + Gmail API
+// identifiers needed to fetch its content later), as opposed to
+// AttachmentSummary which is an AI-generated text guess.
+type AttachmentMeta struct {
+	Filename     string `json:"filename"`
+	MimeType     string `json:"mimeType"`
+	AttachmentId string `json:"attachmentId"`
+	Size         int64  `json:"size"`
+}
+
+// ExtractAttachments walks the full MIME part tree of a Gmail message and
+// collects every part that represents a real attachment (has a filename and
+// an attachment ID), unlike ParseBody which only extracts the first
+// text/plain body part.
+func ExtractAttachments(payload *gmail.MessagePart) []AttachmentMeta {
+	var out []AttachmentMeta
+	if payload == nil {
+		return out
+	}
+
+	if payload.Filename != "" && payload.Body != nil && payload.Body.AttachmentId != "" {
+		out = append(out, AttachmentMeta{
+			Filename:     payload.Filename,
+			MimeType:     payload.MimeType,
+			AttachmentId: payload.Body.AttachmentId,
+			Size:         payload.Body.Size,
+		})
+	}
+
+	for _, part := range payload.Parts {
+		out = append(out, ExtractAttachments(part)...)
+	}
+
+	return out
+}
+
 func FormatForAI(emails []*EmailMessage) string {
 	var builder strings.Builder
 	builder.WriteString("Here are the latest placement emails:\n\n")

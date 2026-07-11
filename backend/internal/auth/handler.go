@@ -21,10 +21,15 @@ type refreshRequest struct {
 }
 
 type userResponse struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
-	Name  string `json:"name"`
-	Image string `json:"image,omitempty"`
+	ID                   string `json:"id"`
+	Email                string `json:"email"`
+	Name                 string `json:"name"`
+	Image                string `json:"image,omitempty"`
+	NotificationsEnabled bool   `json:"notificationsEnabled"`
+}
+
+type updateNotificationsRequest struct {
+	Enabled bool `json:"enabled"`
 }
 
 func NewHandler(cfg *oauth2.Config, userRepo user.Repository) *Handler {
@@ -41,7 +46,7 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"error":   "unauthorized",
 		})
@@ -52,7 +57,7 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"error":   "user not found",
 		})
@@ -60,13 +65,55 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	_ = json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 		"user": userResponse{
-			ID:    foundUser.ID,
-			Email: foundUser.Email,
-			Name:  foundUser.Name,
+			ID:                   foundUser.ID,
+			Email:                foundUser.Email,
+			Name:                 foundUser.Name,
+			NotificationsEnabled: foundUser.NotificationsEnabled,
 		},
+	})
+}
+
+// UpdateNotifications toggles the authenticated user's notification preference
+func (h *Handler) UpdateNotifications(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(UserIDContextKey).(string)
+	if !ok {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"error":   "unauthorized",
+		})
+		return
+	}
+
+	var req updateNotificationsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"error":   "invalid request format",
+		})
+		return
+	}
+
+	if err := h.userRepo.UpdateNotificationsEnabled(r.Context(), userID, req.Enabled); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"error":   "failed to update notification preference",
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"success":              true,
+		"notificationsEnabled": req.Enabled,
 	})
 }
 
@@ -76,7 +123,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Refresh Error : Failed to decode JSON body: %v\n", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"error":   "invalid request format",
 		})
@@ -92,7 +139,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"error":   "invalid refresh token",
 		})
@@ -101,7 +148,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("Refresh success ! sending new access token")
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	_ = json.NewEncoder(w).Encode(map[string]any{
 		"success":     true,
 		"accessToken": accessToken,
 	})
@@ -112,7 +159,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"error":   "unauthorized",
 		})
@@ -122,7 +169,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.service.Logout(r.Context(), userID); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]any{
+		_ = json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
 			"error":   "logout failed",
 		})
@@ -130,7 +177,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	_ = json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 	})
 }

@@ -9,13 +9,22 @@ import (
 	"strconv"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/r7rainz/auramail/internal/ai"
 )
 
+// dbConn is the subset of *pgxpool.Pool used by PostgresRepository. Narrowing
+// to an interface allows tests to substitute a mock (e.g. pgxmock) in place
+// of a real connection pool.
+type dbConn interface {
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 type PostgresRepository struct {
-	db *pgxpool.Pool
+	db dbConn
 }
 
 func scanUser(row pgx.Row) (*User, error) {
@@ -36,6 +45,7 @@ func scanUser(row pgx.Row) (*User, error) {
 		&u.ProviderID,
 		&refreshToken,
 		&googleRefreshToken,
+		&u.NotificationsEnabled,
 	)
 	if err != nil {
 		return nil, err
@@ -65,7 +75,7 @@ func (r *PostgresRepository) FindByID(ctx context.Context, id string) (*User, er
 		return nil, err
 	}
 
-	query := `SELECT id, email, name, provider, provider_id, refresh_token, google_refresh_token
+	query := `SELECT id, email, name, provider, provider_id, refresh_token, google_refresh_token, notifications_enabled
 	          FROM users WHERE id = $1;`
 
 	u, err := scanUser(r.db.QueryRow(ctx, query, userID))
@@ -91,12 +101,12 @@ func (r *PostgresRepository) Save(ctx context.Context, user *User) error {
 	return err
 }
 
-func NewPostgresRepository(db *pgxpool.Pool) *PostgresRepository {
+func NewPostgresRepository(db dbConn) *PostgresRepository {
 	return &PostgresRepository{db: db}
 }
 
 func (r *PostgresRepository) FindOrCreateGoogleUser(ctx context.Context, email, name, sub string) (*User, error) {
-	query := `SELECT id, email, name, provider, provider_id, refresh_token, google_refresh_token
+	query := `SELECT id, email, name, provider, provider_id, refresh_token, google_refresh_token, notifications_enabled
 	          FROM users WHERE email = $1`
 	u, err := scanUser(r.db.QueryRow(ctx, query, email))
 
@@ -106,7 +116,7 @@ func (r *PostgresRepository) FindOrCreateGoogleUser(ctx context.Context, email, 
 
 	insertQuery := `INSERT INTO users (email, name, provider, provider_id)
 	                VALUES ($1, $2, 'google', $3)
-	                RETURNING id, email, name, provider, provider_id, refresh_token, google_refresh_token`
+	                RETURNING id, email, name, provider, provider_id, refresh_token, google_refresh_token, notifications_enabled`
 	u, err = scanUser(r.db.QueryRow(ctx, insertQuery, email, name, sub))
 	if err != nil {
 		return nil, err
@@ -136,7 +146,7 @@ func (r *PostgresRepository) UpdateRefreshToken(
 }
 
 func (r *PostgresRepository) FindByRefreshToken(ctx context.Context, token string) (*User, error) {
-	query := `SELECT id, email, name, provider, provider_id, refresh_token, google_refresh_token
+	query := `SELECT id, email, name, provider, provider_id, refresh_token, google_refresh_token, notifications_enabled
 	          FROM users WHERE refresh_token = $1;`
 
 	u, err := scanUser(r.db.QueryRow(ctx, query, token))
@@ -193,8 +203,8 @@ func (r *PostgresRepository) SaveSummary(ctx context.Context, userID string, gma
 	}
 
 	query := `
-		INSERT INTO email_summaries (user_id, gmail_id, category, company, role, summary, deadline, apply_link, data)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO email_summaries (user_id, gmail_id, thread_id, category, company, role, summary, deadline, apply_link, data)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		ON CONFLICT (gmail_id) DO NOTHING`
 
 	// eligibility, _ := json.Marshal(res.Eligibility)
@@ -205,13 +215,14 @@ func (r *PostgresRepository) SaveSummary(ctx context.Context, userID string, gma
 	_, err = r.db.Exec(ctx, query,
 		id,            // $1
 		gmailID,       // $2
-		res.Category,  // $3
-		res.Company,   // $4
-		res.Role,      // $5
-		res.Summary,   // $6
-		res.Deadline,  // $7
-		res.ApplyLink, // $8
-		jsonData,      // $9 (The JSONB payload)
+		res.ThreadID,  // $3
+		res.Category,  // $4
+		res.Company,   // $5
+		res.Role,      // $6
+		res.Summary,   // $7
+		res.Deadline,  // $8
+		res.ApplyLink, // $9
+		jsonData,      // $10 (The JSONB payload)
 	)
 	if err != nil {
 		return fmt.Errorf("failed to save summary to db: %w", err)
@@ -273,8 +284,20 @@ func (r *PostgresRepository) UpdateGoogleRefreshToken(ctx context.Context, userI
 	return err
 }
 
+func (r *PostgresRepository) UpdateNotificationsEnabled(ctx context.Context, userID string, enabled bool) error {
+	id, err := parseUserID(userID)
+	if err != nil {
+		return err
+	}
+
+	query := `UPDATE users SET notifications_enabled = $1 WHERE id = $2`
+
+	_, err = r.db.Exec(ctx, query, enabled, id)
+	return err
+}
+
 func (r *PostgresRepository) ListUsersWithGoogleRefreshToken(ctx context.Context) ([]*User, error) {
-	query := `SELECT id, email, name, provider, provider_id, refresh_token, google_refresh_token
+	query := `SELECT id, email, name, provider, provider_id, refresh_token, google_refresh_token, notifications_enabled
 	          FROM users
 	          WHERE google_refresh_token IS NOT NULL AND google_refresh_token <> ''`
 

@@ -121,7 +121,7 @@ func TestUnauthorized(t *testing.T) {
 	}
 
 	var result APIResponse
-	json.NewDecoder(rr.Body).Decode(&result)
+	_ = json.NewDecoder(rr.Body).Decode(&result)
 
 	if result.Error.Code != ErrCodeUnauthorized {
 		t.Errorf("expected code 'unauthorized', got '%s'", result.Error.Code)
@@ -142,7 +142,7 @@ func TestNotFound(t *testing.T) {
 	}
 
 	var result APIResponse
-	json.NewDecoder(rr.Body).Decode(&result)
+	_ = json.NewDecoder(rr.Body).Decode(&result)
 
 	if result.Error.Message != "User not found" {
 		t.Errorf("expected 'User not found', got '%s'", result.Error.Message)
@@ -182,7 +182,7 @@ func TestSuccessWithMeta(t *testing.T) {
 	}
 
 	var result APIResponse
-	json.NewDecoder(rr.Body).Decode(&result)
+	_ = json.NewDecoder(rr.Body).Decode(&result)
 
 	if result.Meta == nil {
 		t.Fatal("expected meta to be present")

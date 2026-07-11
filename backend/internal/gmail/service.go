@@ -13,7 +13,6 @@ import (
 	"google.golang.org/api/gmail/v1"
 
 	"github.com/r7rainz/auramail/internal/ai"
-	"github.com/r7rainz/auramail/internal/user"
 	"github.com/r7rainz/auramail/internal/utils"
 )
 
@@ -104,7 +103,7 @@ func collectMessageIDs(srv *gmail.Service, messages []*gmail.Message, includeThr
 	return ids
 }
 
-func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.PostgresRepository, query string, userID string, opts SyncOptions) (chan *ai.AIResult, chan error) {
+func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo UserRepository, query string, userID string, opts SyncOptions) (chan *ai.AIResult, chan error) {
 	out := make(chan *ai.AIResult)
 	errChan := make(chan error, 1) // Buffered to prevent blocking
 
@@ -168,6 +167,7 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.Postg
 					slog.Info("Analyzing email with AI", "id", id, "subject", subject)
 
 					body := utils.ParseBody(msg.Payload)
+					attachments := utils.ExtractAttachments(msg.Payload)
 
 					var summary *ai.AIResult
 
@@ -201,10 +201,12 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.Postg
 					}
 
 					summary.GmailMessageID = id
+					summary.ThreadID = msg.ThreadId
 					summary.Subject = subject
 					summary.Sender = headerValue(msg, "From")
 					summary.Snippet = msg.Snippet
 					summary.ReceiverAt = messageReceivedAt(msg)
+					summary.Attachments = attachments
 
 					err = repo.SaveSummary(ctx, userID, id, summary)
 					if err != nil {
@@ -236,7 +238,7 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo *user.Postg
 	return out, errChan
 }
 
-func SyncUserPlacementEmails(ctx context.Context, srv *gmail.Service, repo *user.PostgresRepository, query string, userID string, opts SyncOptions) ([]*ai.AIResult, error) {
+func SyncUserPlacementEmails(ctx context.Context, srv *gmail.Service, repo UserRepository, query string, userID string, opts SyncOptions) ([]*ai.AIResult, error) {
 	emailStream, errChan := FetchAndSummarize(ctx, srv, repo, query, userID, opts)
 
 	var processedEmails []*ai.AIResult
