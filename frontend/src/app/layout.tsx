@@ -3,8 +3,8 @@ import "./globals.css";
 import { AuthProvider } from "./lib/authContext";
 
 export const metadata: Metadata = {
-  title: "AuraMail - AI-Powered Placement Mail Assistant",
-  description: "Automatically fetch, summarize, and organize your college placement emails — powered by AI & n8n automation.",
+  title: "AuraMail - Placement intelligence for students",
+  description: "A focused inbox for placement opportunities, deadlines, and campus updates.",
 };
 
 export default function RootLayout({
@@ -13,7 +13,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="eclipse" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{document.documentElement.dataset.theme=localStorage.getItem('auramail-theme')||'eclipse'}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="font-sans antialiased">
         <AuthProvider>
           {children}
