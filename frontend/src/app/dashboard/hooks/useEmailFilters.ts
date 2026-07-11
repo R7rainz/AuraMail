@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import type { EmailCategory, PlacementEmail, SortDirection, SortOption } from "../types";
+import { groupEmailThreads } from "../lib/emailThreads";
 
 export function useEmailFilters(emails: PlacementEmail[]) {
+  const conversations = useMemo(() => groupEmailThreads(emails), [emails]);
   const [selectedCategory, setSelectedCategory] =
     useState<EmailCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -11,16 +13,16 @@ export function useEmailFilters(emails: PlacementEmail[]) {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: emails.length };
-    emails.forEach((e) => {
+    const counts: Record<string, number> = { all: conversations.length };
+    conversations.forEach((e) => {
       const cat = e.category?.toLowerCase() || "announcement";
       counts[cat] = (counts[cat] || 0) + 1;
     });
     return counts;
-  }, [emails]);
+  }, [conversations]);
 
   const filteredEmails = useMemo(() => {
-    const filtered = emails.filter((e) => {
+    const filtered = conversations.filter((e) => {
       const matchCat =
         selectedCategory === "all" ||
         e.category?.toLowerCase() === selectedCategory;
@@ -28,7 +30,12 @@ export function useEmailFilters(emails: PlacementEmail[]) {
         !searchQuery ||
         e.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
         e.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.role?.toLowerCase().includes(searchQuery.toLowerCase());
+        e.role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.threadMessages?.some(
+          (message) =>
+            message.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            message.snippet.toLowerCase().includes(searchQuery.toLowerCase()),
+        );
       return matchCat && matchSearch;
     });
 
@@ -60,7 +67,7 @@ export function useEmailFilters(emails: PlacementEmail[]) {
       }
       return sortDirection === "asc" ? comparison : -comparison;
     });
-  }, [emails, selectedCategory, searchQuery, sortBy, sortDirection]);
+  }, [conversations, selectedCategory, searchQuery, sortBy, sortDirection]);
 
   return {
     selectedCategory,

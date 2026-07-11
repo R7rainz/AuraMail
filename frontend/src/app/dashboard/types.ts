@@ -40,6 +40,8 @@ export interface PlacementEmail {
   priority?: string;
   summary?: string;
   attachments?: EmailAttachment[];
+  threadMessages?: PlacementEmail[];
+  followupCount?: number;
 }
 
 export interface EmailAttachment {
