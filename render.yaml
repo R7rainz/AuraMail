@@ -1,0 +1,59 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Import this from the Render dashboard (New → Blueprint) and it provisions the
+# backend with the right build settings. Secrets are left unset on purpose:
+# `sync: false` makes Render prompt for them instead of storing them in git.
+services:
+  - type: web
+    name: auramail-backend
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    # Render probes this to decide the deploy succeeded. It checks the database
+    # pool, so a 200 means the service can actually reach Neon.
+    healthCheckPath: /health
+    envVars:
+      # --- prompted at deploy time -------------------------------------
+      # Neon pooled connection string (keep ?sslmode=require).
+      - key: DATABASE_URL
+        sync: false
+      # Neon DIRECT connection, key=value form — no `-pooler` in the host.
+      # Migrations need session state that PgBouncer's transaction pooling
+      # cannot guarantee.
+      - key: GOOSE_DBSTRING
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      # Set these once the Render and Vercel URLs exist.
+      - key: GOOGLE_OAUTH_REDIRECT_URI
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+
+      # --- safe to commit ----------------------------------------------
+      - key: GOOSE_DRIVER
+        value: postgres
+      - key: NODE_ENV
+        value: production
+      - key: JWT_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: SYNC_ENABLED
+        value: "true"
+      - key: SYNC_INTERVAL
+        value: 30m
