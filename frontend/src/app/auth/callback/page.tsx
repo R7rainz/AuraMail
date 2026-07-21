@@ -83,46 +83,36 @@ function AuthCallbackContent() {
   }, [searchParams]);
 
   return (
-    <div className="max-w-md w-full text-center space-y-6">
+    <div className="w-full max-w-sm space-y-4 text-center">
       {status === "loading" && (
         <>
-          <div className="flex justify-center">
-            <LoaderCircle className="animate-spin h-10 w-10 aura-accent" />
-          </div>
-          <h2 className="text-2xl font-semibold text-white">
-            Completing authentication...
-          </h2>
-          <p className="text-gray-400">
-            Please wait while we set up your account
+          <LoaderCircle className="mx-auto size-8 animate-spin text-primary" />
+          <h1 className="display text-2xl">Signing you in</h1>
+          <p className="text-sm text-muted-foreground">
+            Setting up your workspace.
           </p>
         </>
       )}
 
       {status === "success" && (
         <>
-          <div className="flex justify-center">
-            <CheckCircle2 className="h-14 w-14 text-emerald-400" />
-          </div>
-          <h2 className="text-2xl font-semibold text-white">
-            Successfully authenticated!
-          </h2>
-          <p className="text-gray-400">
-            Redirecting you to your dashboard...
+          <CheckCircle2 className="mx-auto size-8 text-open" />
+          <h1 className="display text-2xl">You&#39;re in</h1>
+          <p className="text-sm text-muted-foreground">
+            Opening your inbox.
           </p>
         </>
       )}
 
       {status === "error" && (
         <>
-          <div className="flex justify-center">
-            <TriangleAlert className="h-14 w-14 text-rose-400" />
-          </div>
-          <h2 className="text-2xl font-semibold text-white">
-            Authentication failed
-          </h2>
-          <p className="text-gray-400">{errorMessage}</p>
-          <p className="text-gray-500 text-sm">
-            Redirecting you back to the login page...
+          <TriangleAlert className="mx-auto size-8 text-destructive" />
+          <h1 className="display text-2xl">
+            Sign-in didn&#39;t complete
+          </h1>
+          <p className="text-sm text-muted-foreground">{errorMessage}</p>
+          <p className="text-xs text-muted-foreground">
+            Taking you back to the sign-in page.
           </p>
         </>
       )}
@@ -132,19 +122,16 @@ function AuthCallbackContent() {
 
 function LoadingFallback() {
   return (
-    <div className="max-w-md w-full text-center space-y-6">
-      <div className="flex justify-center">
-        <LoaderCircle className="animate-spin h-10 w-10 aura-accent" />
-      </div>
-      <h2 className="text-2xl font-semibold text-white">Loading...</h2>
+    <div className="w-full max-w-sm space-y-4 text-center">
+      <LoaderCircle className="mx-auto size-8 animate-spin text-primary" />
+      <h1 className="display text-2xl">Loading</h1>
     </div>
   );
 }
 
 export default function AuthCallbackPage() {
   return (
-    <div className="aura-shell min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 aura-grid opacity-30" />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Suspense fallback={<LoadingFallback />}>
         <AuthCallbackContent />
       </Suspense>

@@ -18,6 +18,12 @@ const badgeVariants = cva(
           "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
+        // Urgency variants read from the deadline scale. Tinted rather than
+        // filled, so several can sit in one inbox row without competing.
+        urgent: "border-urgent/25 bg-urgent/10 text-urgent [a&]:hover:bg-urgent/15",
+        soon: "border-soon/25 bg-soon/10 text-soon [a&]:hover:bg-soon/15",
+        open: "border-open/25 bg-open/10 text-open [a&]:hover:bg-open/15",
+        closed: "border-closed/20 bg-closed/10 text-closed [a&]:hover:bg-closed/15",
       },
     },
     defaultVariants: {

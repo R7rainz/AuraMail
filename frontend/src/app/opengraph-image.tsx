@@ -18,8 +18,8 @@ export default function OpengraphImage() {
           justifyContent: "space-between",
           padding: "80px",
           background:
-            "radial-gradient(1000px 600px at 78% 12%, rgba(99,102,241,0.28), transparent 60%), #07080c",
-          color: "#edeef3",
+            "radial-gradient(900px 520px at 50% -12%, rgba(255,255,255,0.16), transparent 62%), #000000",
+          color: "#fafafa",
           fontFamily: "sans-serif",
         }}
       >
@@ -29,7 +29,7 @@ export default function OpengraphImage() {
               width: 44,
               height: 44,
               borderRadius: 11,
-              border: "2px solid rgba(99,102,241,0.5)",
+              border: "2px solid rgba(255,255,255,0.22)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -40,7 +40,7 @@ export default function OpengraphImage() {
                 width: 16,
                 height: 16,
                 borderRadius: 3,
-                background: "#818cf8",
+                background: "#fafafa",
                 transform: "rotate(45deg)",
               }}
             />
@@ -56,7 +56,7 @@ export default function OpengraphImage() {
               fontSize: 20,
               letterSpacing: 4,
               textTransform: "uppercase",
-              color: "#818cf8",
+              color: "#a1a1a1",
             }}
           >
             Placement intelligence for students
@@ -70,7 +70,7 @@ export default function OpengraphImage() {
               maxWidth: 900,
             }}
           >
-            Your placement inbox, finally under control.
+            Every placement mail is a clock.
           </div>
         </div>
 
@@ -79,13 +79,13 @@ export default function OpengraphImage() {
             display: "flex",
             gap: 28,
             fontSize: 22,
-            color: "#9b9fb0",
+            color: "#a1a1a1",
           }}
         >
           <span>AI briefs</span>
-          <span style={{ color: "#3a3d4a" }}>/</span>
+          <span style={{ color: "#3d3d3d" }}>/</span>
           <span>Deadlines → calendar</span>
-          <span style={{ color: "#3a3d4a" }}>/</span>
+          <span style={{ color: "#3d3d3d" }}>/</span>
           <span>Follow-ups & files</span>
         </div>
       </div>

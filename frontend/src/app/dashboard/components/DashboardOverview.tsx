@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, CalendarClock, Inbox, ShieldAlert } from "lucide-react";
+import { ArrowLeft, CalendarClock, Inbox, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface DashboardOverviewProps {
   userFirstName: string;
@@ -15,53 +16,73 @@ export function DashboardOverview({
   upcomingDeadlinesCount,
 }: DashboardOverviewProps) {
   const stats = [
-    { label: "Conversations", value: totalEmails, icon: Inbox },
-    { label: "Active deadlines", value: upcomingDeadlinesCount, icon: CalendarClock },
-    { label: "Needs attention", value: highPriorityCount, icon: ShieldAlert },
+    { label: "Opportunities", value: totalEmails, icon: Inbox, tone: "" },
+    {
+      label: "Closing soon",
+      value: upcomingDeadlinesCount,
+      icon: CalendarClock,
+      tone: upcomingDeadlinesCount > 0 ? "text-soon" : "",
+    },
+    {
+      label: "High priority",
+      value: highPriorityCount,
+      icon: Zap,
+      tone: highPriorityCount > 0 ? "text-urgent" : "",
+    },
   ];
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="absolute inset-0 z-10 overflow-y-auto custom-scrollbar"
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      className="scrollbar-thin absolute inset-0 overflow-y-auto"
     >
-      <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col justify-center px-8 py-12 xl:px-14">
-        <div className="mb-12 flex items-center gap-3 text-[11px] font-semibold uppercase aura-accent">
-          <span className="h-px w-8 bg-[var(--aura-accent)]" />
-          Inbox intelligence online
-        </div>
+      {/* Still, soft pool of light so the empty workspace reads as depth. */}
+      <div
+        aria-hidden
+        className="workspace-glow grain pointer-events-none absolute inset-x-0 top-0 h-[60%]"
+      />
 
-        <div className="grid items-end gap-10 lg:grid-cols-[1fr_auto]">
-          <div>
-            <p className="mb-3 text-sm aura-muted">Good to see you, {userFirstName}.</p>
-            <h1 className="max-w-2xl text-4xl font-semibold leading-tight text-[var(--aura-text)] lg:text-5xl">
-              Your next important update is already organized.
-            </h1>
-          </div>
-          <div className="hidden items-center gap-2 pb-2 text-xs aura-faint lg:flex">
-            <ArrowLeft className="h-4 w-4" /> Select a conversation
-          </div>
-        </div>
+      <div className="relative mx-auto flex min-h-full max-w-2xl flex-col justify-center px-8 py-16">
+        <p className="text-sm text-muted-foreground">
+          {userFirstName ? `Good to see you, ${userFirstName}.` : "Welcome back."}
+        </p>
 
-        <div className="mt-14 grid gap-px border bg-[var(--aura-line)] sm:grid-cols-3" style={{ borderColor: "var(--aura-line)" }}>
-          {stats.map(({ label, value, icon: Icon }) => (
-            <div key={label} className="aura-hover-lift group bg-[var(--aura-surface-solid)] p-6">
-              <div className="flex items-start justify-between">
-                <span className="text-3xl font-semibold tabular-nums">{value}</span>
-                <Icon className="h-4 w-4 aura-accent transition-transform duration-300 group-hover:scale-110" />
-              </div>
-              <p className="mt-8 text-[10px] font-semibold uppercase aura-muted">{label}</p>
+        <h1 className="display mt-3 text-4xl leading-tight font-medium text-balance">
+          {upcomingDeadlinesCount > 0
+            ? `${upcomingDeadlinesCount} ${upcomingDeadlinesCount === 1 ? "deadline" : "deadlines"} still open.`
+            : "Nothing closing right now."}
+        </h1>
+
+        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground text-pretty">
+          {totalEmails === 0
+            ? "Run a sync to pull placement mail out of your inbox and onto a timeline."
+            : "Your inbox is sorted by what closes first. Pick an opportunity to see the brief, files, and dates."}
+        </p>
+
+        <dl className="mt-12 grid grid-cols-3 divide-x rounded-xl border">
+          {stats.map(({ label, value, icon: Icon, tone }) => (
+            <div key={label} className="p-5">
+              <Icon className={cn("size-4 text-muted-foreground", tone)} />
+              <dd
+                className={cn(
+                  "mt-6 font-mono text-3xl font-medium tabular-nums",
+                  tone,
+                )}
+              >
+                {value}
+              </dd>
+              <dt className="mt-1 text-xs text-muted-foreground">{label}</dt>
             </div>
           ))}
-        </div>
+        </dl>
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-5 text-xs aura-faint" style={{ borderColor: "var(--aura-line)" }}>
-          <span>Automatic sync checks every minute while this workspace is open.</span>
-          <span className="flex items-center gap-2"><span className="status-dot status-dot--online" /> Live</span>
-        </div>
+        <p className="mt-6 flex items-center gap-2 text-xs text-muted-foreground">
+          <ArrowLeft className="size-3.5" />
+          Select a conversation to open it
+        </p>
       </div>
     </motion.div>
   );

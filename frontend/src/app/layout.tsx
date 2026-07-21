@@ -1,12 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
+import { Geist, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./lib/authContext";
-import { FluidBackground } from "@/components/FluidBackground";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -61,12 +71,10 @@ export const metadata: Metadata = {
   },
 };
 
+// One theme, so the browser chrome matches the canvas unconditionally.
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#07080c" },
-    { media: "(prefers-color-scheme: light)", color: "#f0f1f5" },
-  ],
-  colorScheme: "dark light",
+  themeColor: "#000000",
+  colorScheme: "dark",
 };
 
 // SoftwareApplication + Organization structured data for rich search results.
@@ -95,26 +103,19 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // `dark` is fixed: this design has one theme, so there is no preference to
+  // restore and no flash to guard against.
   return (
-    <html
-      lang="en"
-      data-theme="eclipse"
-      className={`${GeistSans.variable} ${GeistMono.variable}`}
-      suppressHydrationWarning
-    >
+    <html lang="en" className="dark">
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{document.documentElement.dataset.theme=localStorage.getItem('auramail-theme')||'eclipse'}catch(e){}`,
-          }}
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="font-sans antialiased">
-        <FluidBackground />
+      <body
+        className={`${geist.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+      >
         <TooltipProvider delayDuration={200}>
           <AuthProvider>{children}</AuthProvider>
         </TooltipProvider>

@@ -1,23 +1,29 @@
 import type { Dispatch, SetStateAction } from "react";
 import {
-  Search,
-  ArrowUpDown,
-  ChevronRight,
-  ArrowUp,
   ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Check,
   Inbox,
-  Zap,
-  Clock,
   MessagesSquare,
   Paperclip,
+  Search,
   Star,
+  Zap,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import {
   categoryConfig,
   sortOptions,
@@ -26,7 +32,9 @@ import {
   type SortDirection,
   type SortOption,
 } from "../types";
-import { formatDeadline, formatRelativeDate } from "../lib/dateUtils";
+import { formatRelativeDate } from "../lib/dateUtils";
+import { getRunway, runwayTextClass } from "../lib/runway";
+import { RunwayBar } from "./Runway";
 
 interface InboxSidebarProps {
   searchQuery: string;
@@ -72,101 +80,93 @@ export function InboxSidebar({
   setSelectedEmail,
 }: InboxSidebarProps) {
   return (
-    <div className="aura-panel w-[340px] xl:w-[380px] flex flex-col border-r shrink-0 z-10">
-      {/* Search & Filters */}
-      <div className="p-4 xl:p-5 space-y-4 border-b backdrop-blur-sm">
+    <aside className="flex w-[340px] shrink-0 flex-col border-r bg-card xl:w-[380px]">
+      <div className="space-y-3 border-b p-3">
         <div className="flex gap-2">
-          <div className="relative flex-1 group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-[var(--aura-accent)] transition-colors" />
-            <input
-              type="text"
-              placeholder="Search emails..."
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search opportunities"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 text-sm bg-[var(--aura-surface-solid)] border text-[var(--aura-text)] placeholder:text-[var(--aura-faint)] outline-none transition-all focus:border-[var(--aura-accent)] focus:shadow-[0_0_0_3px_var(--aura-accent-soft)]"
+              className="pl-9"
             />
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setShowImportantOnly((prev) => !prev)}
-                aria-pressed={showImportantOnly}
-                className={`relative h-full px-3 rounded-xl border transition-all flex items-center justify-center hover:scale-105 active:scale-95 ${showImportantOnly ? "bg-amber-500/15 border-amber-500/40 text-amber-300 shadow-[0_0_14px_-4px_rgba(245,158,11,0.5)]" : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-300"}`}
-              >
-                <Star
-                  className="w-4 h-4"
-                  fill={showImportantOnly ? "currentColor" : "none"}
-                />
-                {importantCount > 0 && (
-                  <Badge
-                    variant="secondary"
-                    className="absolute -top-1.5 -right-1.5 h-4 min-w-4 rounded-full px-1 text-[9px] leading-none"
-                  >
-                    {importantCount}
-                  </Badge>
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>Important only</TooltipContent>
-          </Tooltip>
-          <div className="relative">
-            <button
-              onClick={() => setShowSortDropdown(!showSortDropdown)}
-              className={`h-full px-3 rounded-xl border transition-all flex items-center justify-center hover:scale-105 active:scale-95 ${showSortDropdown ? "bg-white/10 border-white/20 text-white" : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-300"}`}
-            >
-              <ArrowUpDown className="w-4 h-4" />
-            </button>
-            {showSortDropdown && (
-              <div className="absolute right-0 top-full mt-2 w-52 rounded-xl border border-white/10 bg-[var(--aura-surface-solid)] shadow-2xl z-50 overflow-hidden backdrop-blur-xl">
-                {sortOptions.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setSortBy(opt.value);
-                      setShowSortDropdown(false);
-                    }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${sortBy === opt.value ? "bg-[var(--aura-accent-soft)] text-[var(--aura-accent)]" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}
-                  >
-                    {opt.label}
-                    {sortBy === opt.value && (
-                      <ChevronRight className="w-3 h-3" />
-                    )}
-                  </button>
-                ))}
-                <div className="h-px bg-white/10" />
-                <button
-                  onClick={() =>
-                    setSortDirection((prev) =>
-                      prev === "asc" ? "desc" : "asc",
-                    )
-                  }
-                  className="w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between text-gray-400 hover:bg-white/5 hover:text-white"
+
+          <DropdownMenu
+            open={showSortDropdown}
+            onOpenChange={setShowSortDropdown}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label="Sort inbox">
+                <ArrowUpDown />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+              {sortOptions.map((opt) => (
+                <DropdownMenuItem
+                  key={opt.value}
+                  onSelect={() => setSortBy(opt.value)}
                 >
-                  {sortDirection === "asc" ? "Ascending" : "Descending"}
-                  {sortDirection === "asc" ? (
-                    <ArrowUp className="w-3 h-3" />
-                  ) : (
-                    <ArrowDown className="w-3 h-3" />
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
+                  <opt.icon />
+                  {opt.label}
+                  {sortBy === opt.value && <Check className="ml-auto" />}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() =>
+                  setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"))
+                }
+              >
+                {sortDirection === "asc" ? <ArrowUp /> : <ArrowDown />}
+                {sortDirection === "asc" ? "Ascending" : "Descending"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
-        {/* Category Pills */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
+          {/* Important is a cross-cutting flag, not a category, so it sits
+              ahead of the category pills and toggles independently. */}
+          <button
+            onClick={() => setShowImportantOnly((prev) => !prev)}
+            aria-pressed={showImportantOnly}
+            className={cn(
+              "flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors outline-none",
+              "focus-visible:ring-[3px] focus-visible:ring-ring/50",
+              showImportantOnly
+                ? "border-soon/30 bg-soon/15 text-soon"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+            )}
+          >
+            <Star
+              className={cn("size-3", showImportantOnly && "fill-current")}
+            />
+            Important
+            {importantCount > 0 && (
+              <span className="font-mono tabular-nums">{importantCount}</span>
+            )}
+          </button>
+
           {Object.entries(categoryConfig)
-            .filter(
-              ([key]) => key === "all" || (categoryCounts[key] || 0) > 0,
-            )
+            .filter(([key]) => key === "all" || (categoryCounts[key] || 0) > 0)
             .map(([key, config]) => {
               const isActive = selectedCategory === key;
               return (
                 <button
                   key={key}
                   onClick={() => setSelectedCategory(key as EmailCategory)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all border hover:scale-105 active:scale-95 ${isActive ? "bg-[var(--aura-accent)] text-[#0a0b18] border-[var(--aura-accent)] shadow-[0_0_14px_-2px_var(--aura-glow)]" : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-200"}`}
+                  aria-pressed={isActive}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors outline-none",
+                    "focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                    isActive
+                      ? "border-transparent bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  )}
                 >
                   {config.label}
                 </button>
@@ -175,112 +175,146 @@ export function InboxSidebar({
         </div>
       </div>
 
-      {/* Email Feed */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1">
+      <div className="scrollbar-thin flex-1 overflow-y-auto">
         {emailsLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-6 h-6 rounded-full border-t-2 border-l-2 border-[var(--aura-accent-strong)] animate-spin" />
+          <div className="space-y-1 p-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="space-y-2 p-3">
+                <div className="flex justify-between gap-3">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-10" />
+                </div>
+                <Skeleton className="h-3.5 w-48" />
+                <Skeleton className="h-1 w-full" />
+              </div>
+            ))}
           </div>
         ) : filteredEmails.length === 0 ? (
-          <div className="text-center py-16 px-4">
-            <Inbox className="w-10 h-10 mx-auto mb-4 opacity-20 text-gray-400" />
-            <p className="text-sm text-gray-500">
-              No emails match your criteria.
+          <div className="flex flex-col items-center px-8 py-16 text-center">
+            <Inbox className="size-8 text-muted-foreground/40" />
+            <p className="mt-4 text-sm font-medium">Nothing here yet</p>
+            <p className="mt-1 text-sm text-muted-foreground text-pretty">
+              {showImportantOnly
+                ? "Nothing is marked important yet. Star a conversation to keep it here."
+                : searchQuery || selectedCategory !== "all"
+                  ? "Clear the search or pick another category."
+                  : "Run a sync to pull placement mail from your inbox."}
             </p>
           </div>
         ) : (
-          filteredEmails.map((email) => {
-            const isSelected = selectedEmail?.id === email.id;
-            const cat =
-              categoryConfig[
-                email.category?.toLowerCase() || "announcement"
-              ] || categoryConfig.announcement;
-            return (
-              <div key={email.id} className="group/row relative">
-                <button
-                  onClick={() => setSelectedEmail(email)}
-                  className={`w-full text-left p-4 rounded-r-lg transition-all duration-200 border-l-2 border-y-0 border-r-0 ${isSelected ? "bg-[var(--aura-accent-soft)] border-[var(--aura-accent)]" : "bg-transparent border-transparent hover:translate-x-0.5 hover:border-[var(--aura-line-strong)] hover:bg-[var(--aura-surface-hover)]"}`}
-                >
-                  <div className="flex justify-between items-start mb-1.5 gap-3 pr-6">
-                    <span
-                      className={`font-semibold text-sm truncate ${isSelected ? "text-[var(--aura-text)]" : "text-gray-200"}`}
-                    >
-                      {email.company || email.subject}
-                    </span>
-                    <span
-                      className={`mono-num text-[10px] shrink-0 whitespace-nowrap mt-0.5 ${isSelected ? "text-[var(--aura-accent)]" : "text-gray-500"}`}
-                    >
-                      {formatRelativeDate(email.receivedAt)}
-                    </span>
-                  </div>
-                  <p
-                    className={`text-xs truncate mb-3 ${isSelected ? "text-gray-300" : "text-gray-500"}`}
+          <ul className="p-2">
+            {filteredEmails.map((email) => {
+              const isSelected = selectedEmail?.id === email.id;
+              const cat =
+                categoryConfig[email.category?.toLowerCase() || "announcement"] ||
+                categoryConfig.announcement;
+              const runway = email.deadline
+                ? getRunway(email.deadline, email.receivedAt)
+                : null;
+              const attachmentCount =
+                email.threadMessages?.reduce(
+                  (count, message) => count + (message.attachments?.length || 0),
+                  0,
+                ) ?? 0;
+
+              return (
+                <li key={email.id} className="group relative">
+                  {/* Sibling rather than child: the row is itself a button, and
+                      nesting interactive elements is invalid. */}
+                  <button
+                    onClick={() => onToggleImportant(email)}
+                    aria-pressed={!!email.important}
+                    aria-label={
+                      email.important
+                        ? `Unmark ${email.company || email.subject} as important`
+                        : `Mark ${email.company || email.subject} as important`
+                    }
+                    className={cn(
+                      "absolute right-2 bottom-2 z-10 rounded-md p-1.5 transition-all outline-none",
+                      "hover:bg-background/80 focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                      // Stays visible once flagged; otherwise reveals on hover.
+                      email.important
+                        ? "text-soon opacity-100"
+                        : "text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+                    )}
                   >
-                    {email.role || email.snippet}
-                  </p>
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    {!!email.followupCount && (
-                      <div className="flex items-center gap-1 text-[10px] text-cyan-300 font-medium bg-cyan-500/10 px-1.5 py-0.5 rounded">
-                        <MessagesSquare className="w-3 h-3" />
-                        {email.followupCount}{" "}
-                        {email.followupCount === 1 ? "reply" : "replies"}
+                    <Star
+                      className={cn("size-3.5", email.important && "fill-current")}
+                    />
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedEmail(email)}
+                    aria-current={isSelected ? "true" : undefined}
+                    className={cn(
+                      "w-full rounded-lg p-3 text-left transition-colors outline-none",
+                      "focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                      isSelected
+                        ? "bg-accent text-accent-foreground"
+                        : "hover:bg-accent/50",
+                    )}
+                  >
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="truncate text-sm font-medium text-foreground">
+                        {email.company || email.subject}
+                      </span>
+                      <span className="shrink-0 font-mono text-[11px] text-muted-foreground tabular-nums">
+                        {formatRelativeDate(email.receivedAt)}
+                      </span>
+                    </div>
+
+                    <p className="mt-1 truncate text-sm text-muted-foreground">
+                      {email.role || email.snippet}
+                    </p>
+
+                    {runway && (
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <RunwayBar runway={runway} className="h-1 flex-1" />
+                        <span
+                          className={cn(
+                            "shrink-0 font-mono text-[11px] tabular-nums",
+                            runwayTextClass[runway.status],
+                          )}
+                        >
+                          {runway.label}
+                        </span>
                       </div>
                     )}
-                    {!!email.threadMessages?.some(
-                      (message) => message.attachments?.length,
-                    ) && (
-                      <div
-                        className="flex items-center gap-1 text-[10px] text-gray-300 font-medium bg-white/5 px-1.5 py-0.5 rounded"
-                        title="Conversation has attachments"
-                      >
-                        <Paperclip className="w-3 h-3" />
-                        {email.threadMessages.reduce(
-                          (count, message) =>
-                            count + (message.attachments?.length || 0),
-                          0,
-                        )}
-                      </div>
-                    )}
-                    {email.priority === "high" && (
-                      <div className="flex items-center gap-1 text-[10px] text-rose-400 font-medium bg-rose-500/10 px-1.5 py-0.5 rounded">
-                        <Zap className="w-3 h-3" /> High
-                      </div>
-                    )}
-                    {email.deadline && (
-                      <div
-                        className={`flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded ${formatDeadline(email.deadline).urgent ? "text-amber-400 bg-amber-500/10" : "text-blue-400 bg-blue-500/10"}`}
-                      >
-                        <Clock className="w-3 h-3" />{" "}
-                        {formatDeadline(email.deadline).text}
-                      </div>
-                    )}
-                    {!email.deadline && !email.priority && (
-                      <div
-                        className={`flex items-center gap-1 text-[10px] font-medium ${cat.colorClass}`}
-                      >
-                        <cat.icon className="w-3 h-3" /> {cat.label}
-                      </div>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => onToggleImportant(email)}
-                  aria-label={
-                    email.important ? "Unmark as important" : "Mark as important"
-                  }
-                  aria-pressed={!!email.important}
-                  className={`absolute top-3 right-3 z-10 p-1 rounded-md transition-all hover:scale-110 active:scale-95 ${email.important ? "text-amber-400 opacity-100" : "text-gray-500 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 hover:text-amber-300"}`}
-                >
-                  <Star
-                    className="w-3.5 h-3.5"
-                    fill={email.important ? "currentColor" : "none"}
-                  />
-                </button>
-              </div>
-            );
-          })
+
+                    {/* pr-8 reserves the corner the star button occupies. */}
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pr-8">
+                      {email.priority === "high" && (
+                        <Badge variant="urgent">
+                          <Zap />
+                          High
+                        </Badge>
+                      )}
+                      {!!email.followupCount && (
+                        <Badge variant="secondary">
+                          <MessagesSquare />
+                          {email.followupCount}
+                        </Badge>
+                      )}
+                      {attachmentCount > 0 && (
+                        <Badge variant="secondary">
+                          <Paperclip />
+                          {attachmentCount}
+                        </Badge>
+                      )}
+                      {!runway && email.priority !== "high" && (
+                        <Badge variant="outline">
+                          <cat.icon />
+                          {cat.label}
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
-    </div>
+    </aside>
   );
 }

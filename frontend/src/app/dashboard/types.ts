@@ -85,44 +85,38 @@ export const sortOptions: { value: SortOption; label: string; icon: LucideIcon }
   { value: "deadline", label: "Deadline", icon: Calendar },
 ];
 
-// Refined subtle color mappings using Tailwind semantics
+// Icon and display label per category; colour comes from the urgency scale.
 export const categoryConfig: Record<
   string,
-  { icon: LucideIcon; label: string; colorClass: string }
+  { icon: LucideIcon; label: string }
 > = {
-  all: { icon: Inbox, label: "All", colorClass: "text-gray-300" },
+  all: { icon: Inbox, label: "All" },
   internship: {
     icon: Briefcase,
     label: "Internships",
-    colorClass: "text-blue-400",
   },
   "job offer": {
     icon: Building2,
     label: "Jobs",
-    colorClass: "text-emerald-400",
   },
-  ppt: { icon: Presentation, label: "PPT", colorClass: "text-indigo-400" },
-  workshop: { icon: Wrench, label: "Workshops", colorClass: "text-amber-400" },
-  exam: { icon: GraduationCap, label: "Exams", colorClass: "text-yellow-400" },
+  ppt: { icon: Presentation, label: "PPT" },
+  workshop: { icon: Wrench, label: "Workshops" },
+  exam: { icon: GraduationCap, label: "Exams" },
   interview: {
     icon: UserCheck,
     label: "Interviews",
-    colorClass: "text-cyan-400",
   },
   result: {
     icon: ClipboardCheck,
     label: "Results",
-    colorClass: "text-teal-400",
   },
-  reminder: { icon: Clock, label: "Reminders", colorClass: "text-rose-400" },
+  reminder: { icon: Clock, label: "Reminders" },
   announcement: {
     icon: Bell,
     label: "Announcements",
-    colorClass: "text-purple-400",
   },
   registration: {
     icon: FileText,
     label: "Registration",
-    colorClass: "text-pink-400",
   },
 };

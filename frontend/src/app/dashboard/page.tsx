@@ -4,9 +4,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/lib/authContext";
 import { updateNotificationPreference } from "@/app/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, LogOut, RefreshCw, AlertTriangle, X, Bell, BellOff } from "lucide-react";
+import { AlertTriangle, Bell, BellOff, LogOut, Mail, RefreshCw, X } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 import type { PlacementEmail } from "./types";
 import { getDaysDiff } from "./lib/dateUtils";
@@ -43,19 +45,13 @@ export default function DashboardPage() {
     const ok = await updateNotificationPreference(next);
     if (!ok) {
       setNotificationsEnabled(!next);
-      setError("Failed to update notification preference");
+      setError("Notification preference didn't save. Try again.");
     }
   };
 
   const calendar = useCalendarEvents(setError);
-  const {
-    emails,
-    emailsLoading,
-    syncing,
-    fetchEmails,
-    handleSync,
-    toggleImportant,
-  } = useEmails(setError, calendar.fetchCalendarEvents, notificationsEnabled);
+  const { emails, emailsLoading, syncing, fetchEmails, handleSync, toggleImportant } =
+    useEmails(setError, calendar.fetchCalendarEvents, notificationsEnabled);
   const filters = useEmailFilters(emails);
 
   useEffect(() => {
@@ -81,18 +77,10 @@ export default function DashboardPage() {
   );
   const highPriorityCount = emails.filter((e) => e.priority === "high").length;
 
-  // Re-derive the selected email from the live `emails` list (rather than
-  // trusting the snapshot captured at selection time) so toggling
-  // "important" is reflected immediately in the detail view too.
-  const liveSelectedEmail = selectedEmail
-    ? emails.find((e) => e.gmailMessageId === selectedEmail.gmailMessageId) ||
-      selectedEmail
-    : null;
-
   if (loading) {
     return (
-      <div className="aura-shell min-h-screen flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-t-2 border-l-2 border-[var(--aura-accent-strong)] animate-spin" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="size-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
       </div>
     );
   }
@@ -100,95 +88,98 @@ export default function DashboardPage() {
   if (!user) return null;
 
   return (
-    <div className="aura-shell flex flex-col h-screen overflow-hidden font-sans">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
       <Toaster position="top-right" />
-      {/* HEADER */}
-      <header className="aura-panel h-16 border-b flex items-center justify-between px-4 sm:px-6 shrink-0 backdrop-blur-xl z-20 relative">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="aura-surface relative flex items-center justify-center w-8 h-8 border shadow-[0_0_18px_var(--aura-glow)]">
-              <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[var(--aura-accent)] animate-pulse" />
-              <Mail className="w-4 h-4 aura-accent" />
-            </div>
-            <span className="text-lg font-semibold tracking-tight text-white">
-              AuraMail
-            </span>
-          </div>
-          <div className="h-4 w-px bg-white/20" />
-          <span className="hidden items-center gap-2 text-xs font-medium uppercase aura-muted sm:flex">
-            <span
-              className={`status-dot ${syncing ? "status-dot--syncing" : error ? "status-dot--error" : "status-dot--online"}`}
-            />
-            {syncing ? "Syncing" : error ? "Sync error" : "Live"}
+
+      <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-card px-4">
+        <div className="flex items-center gap-3">
+          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
+            <Mail className="size-4" />
+          </span>
+          <span className="text-[15px] font-semibold tracking-tight">
+            AuraMail
+          </span>
+          <Separator orientation="vertical" className="h-4" />
+          <span className="hidden text-sm text-muted-foreground sm:inline">
+            {user.email}
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
-          <ThemeToggle compact />
-          <button
-            onClick={toggleNotifications}
-            title={
-              notificationsEnabled
-                ? "Notifications on — click to mute"
-                : "Notifications off — click to enable"
-            }
-            className={`aura-hover-glow p-2 rounded-lg border transition-all hover:scale-105 active:scale-95 ${notificationsEnabled ? "bg-white/5 border-white/10 text-gray-300 hover:text-white" : "bg-white/5 border-white/10 text-gray-600 hover:text-gray-400"}`}
-          >
-            {notificationsEnabled ? (
-              <Bell className="w-4 h-4" />
-            ) : (
-              <BellOff className="w-4 h-4" />
-            )}
-          </button>
-          <button
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleSync}
             disabled={syncing}
-            className="aura-hover-glow flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:scale-[1.03] active:scale-95 disabled:hover:scale-100 group"
           >
-            <RefreshCw
-              className={`w-4 h-4 text-[var(--aura-accent)] group-hover:text-[var(--aura-accent-strong)] ${syncing ? "animate-spin" : ""}`}
-            />
-            {syncing ? "Syncing..." : "Sync"}
-          </button>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border border-white/10 bg-gradient-to-br from-[var(--aura-accent)]/20 to-[var(--aura-secondary)]/20 text-[var(--aura-text)] shadow-inner transition-shadow hover:shadow-[0_0_16px_-2px_var(--aura-glow)]">
-            {user.name?.charAt(0) || "U"}
-          </div>
-          <button
+            <RefreshCw className={cn(syncing && "animate-spin")} />
+            {syncing ? "Syncing" : "Sync"}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={toggleNotifications}
+            aria-label={
+              notificationsEnabled
+                ? "Turn off deadline notifications"
+                : "Turn on deadline notifications"
+            }
+          >
+            {notificationsEnabled ? (
+              <Bell />
+            ) : (
+              <BellOff className="text-muted-foreground" />
+            )}
+          </Button>
+
+
+          <Separator orientation="vertical" className="mx-1 h-4" />
+
+          <span
+            className="grid size-7 place-items-center rounded-full bg-accent text-xs font-medium text-accent-foreground"
+            aria-hidden="true"
+          >
+            {user.name?.charAt(0).toUpperCase() || "U"}
+          </span>
+
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => {
               logout();
               router.push("/");
             }}
-            className="p-2 rounded-lg hover:bg-white/5 text-gray-500 hover:text-rose-300 transition-all hover:scale-105 active:scale-95"
+            aria-label="Sign out"
           >
-            <LogOut className="w-4 h-4" />
-          </button>
+            <LogOut />
+          </Button>
         </div>
       </header>
 
-      {/* ERROR BANNER */}
       <AnimatePresence>
         {error && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="absolute top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-xl flex items-center gap-3 border border-rose-500/30 bg-rose-500/10 backdrop-blur-md text-sm text-rose-200 shadow-2xl"
+            exit={{ opacity: 0, y: -8 }}
+            role="alert"
+            className="absolute top-16 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive shadow-lg backdrop-blur-md"
           >
-            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+            <AlertTriangle className="size-4 shrink-0" />
             <span>{error}</span>
             <button
               onClick={() => setError(null)}
-              className="hover:text-white transition-colors"
+              aria-label="Dismiss"
+              className="rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
-              <X className="w-4 h-4" />
+              <X className="size-4" />
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* MAIN 3-COLUMN WORKSPACE */}
-      <div className="flex flex-1 overflow-hidden relative">
-        {/* COLUMN 1: INBOX LIST (Fixed Width) */}
+      <div className="relative flex flex-1 overflow-hidden">
         <InboxSidebar
           searchQuery={filters.searchQuery}
           setSearchQuery={filters.setSearchQuery}
@@ -211,31 +202,24 @@ export default function DashboardPage() {
           setSelectedEmail={setSelectedEmail}
         />
 
-        {/* COLUMN 2: CENTER WORKSPACE */}
-        <div className="flex-1 flex flex-col min-w-0 relative bg-[var(--aura-canvas-raised)]/75 backdrop-blur-2xl overflow-hidden">
-          <div className="absolute inset-0 aura-grid pointer-events-none opacity-20" />
-
+        <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
           <AnimatePresence mode="wait">
-            {liveSelectedEmail ? (
+            {selectedEmail ? (
               <EmailDetailView
                 key="detail"
-                email={liveSelectedEmail}
+                email={selectedEmail}
                 onBack={() => setSelectedEmail(null)}
-                inCalendar={calendar.isInCalendar(liveSelectedEmail)}
+                inCalendar={calendar.isInCalendar(selectedEmail)}
                 addingToCalendar={calendar.addingToCalendar}
-                onAddToCalendar={() =>
-                  calendar.addToCalendar(liveSelectedEmail)
-                }
+                onAddToCalendar={() => calendar.addToCalendar(selectedEmail)}
                 onRemoveFromCalendar={() =>
-                  calendar.removeFromCalendar(liveSelectedEmail)
+                  calendar.removeFromCalendar(selectedEmail)
                 }
-                onToggleImportant={() =>
-                  toggleImportant(liveSelectedEmail)
-                }
+                onToggleImportant={() => toggleImportant(selectedEmail)}
               />
             ) : (
               <DashboardOverview
-                key="dashboard"
+                key="overview"
                 userFirstName={user.name?.split(" ")[0] || ""}
                 totalEmails={emails.length}
                 highPriorityCount={highPriorityCount}
@@ -243,29 +227,14 @@ export default function DashboardPage() {
               />
             )}
           </AnimatePresence>
-        </div>
+        </main>
 
-        {/* COLUMN 3: RIGHT CALENDAR PANEL */}
         <CalendarPanel
           emails={emails}
           calendarEvents={calendar.calendarEvents}
           onRemoveEvent={calendar.removeEventById}
         />
       </div>
-
-      {/* Global CSS for transparent modern scrollbars */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.1); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.2); }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-      `,
-        }}
-      />
     </div>
   );
 }
