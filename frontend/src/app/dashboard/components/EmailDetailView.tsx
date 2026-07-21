@@ -16,6 +16,7 @@ import {
   MessagesSquare,
   Paperclip,
   Sparkles,
+  Star,
   User,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -42,6 +43,7 @@ interface EmailDetailViewProps {
   addingToCalendar: boolean;
   onAddToCalendar: () => void;
   onRemoveFromCalendar: () => void;
+  onToggleImportant: () => void;
 }
 
 function AttachmentRow({
@@ -214,6 +216,7 @@ export function EmailDetailView({
   addingToCalendar,
   onAddToCalendar,
   onRemoveFromCalendar,
+  onToggleImportant,
 }: EmailDetailViewProps) {
   const messages = email.threadMessages || [email];
   const [selectedMessageId, setSelectedMessageId] = useState(email.id);
@@ -240,6 +243,19 @@ export function EmailDetailView({
         </Button>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onToggleImportant}
+            aria-pressed={!!email.important}
+            aria-label={
+              email.important ? "Unmark as important" : "Mark as important"
+            }
+            className={cn(email.important && "text-soon")}
+          >
+            <Star className={cn(email.important && "fill-current")} />
+          </Button>
+
           {selectedEmail.deadline &&
             (inCalendar ? (
               <Button

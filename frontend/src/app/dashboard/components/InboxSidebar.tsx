@@ -8,6 +8,7 @@ import {
   MessagesSquare,
   Paperclip,
   Search,
+  Star,
   Zap,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,10 @@ interface InboxSidebarProps {
   selectedCategory: EmailCategory;
   setSelectedCategory: Dispatch<SetStateAction<EmailCategory>>;
   categoryCounts: Record<string, number>;
+  showImportantOnly: boolean;
+  setShowImportantOnly: Dispatch<SetStateAction<boolean>>;
+  importantCount: number;
+  onToggleImportant: (email: PlacementEmail) => void;
   emailsLoading: boolean;
   filteredEmails: PlacementEmail[];
   selectedEmail: PlacementEmail | null;
@@ -65,6 +70,10 @@ export function InboxSidebar({
   selectedCategory,
   setSelectedCategory,
   categoryCounts,
+  showImportantOnly,
+  setShowImportantOnly,
+  importantCount,
+  onToggleImportant,
   emailsLoading,
   filteredEmails,
   selectedEmail,
@@ -120,6 +129,28 @@ export function InboxSidebar({
         </div>
 
         <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
+          {/* Important is a cross-cutting flag, not a category, so it sits
+              ahead of the category pills and toggles independently. */}
+          <button
+            onClick={() => setShowImportantOnly((prev) => !prev)}
+            aria-pressed={showImportantOnly}
+            className={cn(
+              "flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors outline-none",
+              "focus-visible:ring-[3px] focus-visible:ring-ring/50",
+              showImportantOnly
+                ? "border-soon/30 bg-soon/15 text-soon"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+            )}
+          >
+            <Star
+              className={cn("size-3", showImportantOnly && "fill-current")}
+            />
+            Important
+            {importantCount > 0 && (
+              <span className="font-mono tabular-nums">{importantCount}</span>
+            )}
+          </button>
+
           {Object.entries(categoryConfig)
             .filter(([key]) => key === "all" || (categoryCounts[key] || 0) > 0)
             .map(([key, config]) => {
@@ -163,9 +194,11 @@ export function InboxSidebar({
             <Inbox className="size-8 text-muted-foreground/40" />
             <p className="mt-4 text-sm font-medium">Nothing here yet</p>
             <p className="mt-1 text-sm text-muted-foreground text-pretty">
-              {searchQuery || selectedCategory !== "all"
-                ? "Clear the search or pick another category."
-                : "Run a sync to pull placement mail from your inbox."}
+              {showImportantOnly
+                ? "Nothing is marked important yet. Star a conversation to keep it here."
+                : searchQuery || selectedCategory !== "all"
+                  ? "Clear the search or pick another category."
+                  : "Run a sync to pull placement mail from your inbox."}
             </p>
           </div>
         ) : (
@@ -185,7 +218,31 @@ export function InboxSidebar({
                 ) ?? 0;
 
               return (
-                <li key={email.id}>
+                <li key={email.id} className="group relative">
+                  {/* Sibling rather than child: the row is itself a button, and
+                      nesting interactive elements is invalid. */}
+                  <button
+                    onClick={() => onToggleImportant(email)}
+                    aria-pressed={!!email.important}
+                    aria-label={
+                      email.important
+                        ? `Unmark ${email.company || email.subject} as important`
+                        : `Mark ${email.company || email.subject} as important`
+                    }
+                    className={cn(
+                      "absolute right-2 bottom-2 z-10 rounded-md p-1.5 transition-all outline-none",
+                      "hover:bg-background/80 focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                      // Stays visible once flagged; otherwise reveals on hover.
+                      email.important
+                        ? "text-soon opacity-100"
+                        : "text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+                    )}
+                  >
+                    <Star
+                      className={cn("size-3.5", email.important && "fill-current")}
+                    />
+                  </button>
+
                   <button
                     onClick={() => setSelectedEmail(email)}
                     aria-current={isSelected ? "true" : undefined}
@@ -224,7 +281,8 @@ export function InboxSidebar({
                       </div>
                     )}
 
-                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    {/* pr-8 reserves the corner the star button occupies. */}
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pr-8">
                       {email.priority === "high" && (
                         <Badge variant="urgent">
                           <Zap />

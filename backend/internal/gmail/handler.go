@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -11,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/r7rainz/auramail/internal/ai"
 	"github.com/r7rainz/auramail/internal/auth"
@@ -30,6 +33,7 @@ type UserRepository interface {
 	GetSummariesByQuery(ctx context.Context, userID string, searchQuery string) ([]*ai.AIResult, error)
 	GetSummary(ctx context.Context, gmailID string) (*ai.AIResult, error)
 	SaveSummary(ctx context.Context, userID string, gmailID string, res *ai.AIResult) error
+	SetImportant(ctx context.Context, userID string, gmailID string, important bool) error
 }
 
 type GmailHandler struct {
@@ -74,24 +78,24 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 
 	// Transform to frontend expected format
 	type emailResponse struct {
-		ID                string   `json:"id"`
-		GmailMessageID    string   `json:"gmailMessageId"`
-		ThreadID          string   `json:"threadId"`
-		Subject           string   `json:"subject"`
-		Sender            string   `json:"sender"`
-		Snippet           string   `json:"snippet"`
-		ReceivedAt        string   `json:"receivedAt"`
-		Company           *string  `json:"company"`
-		Role              *string  `json:"role"`
-		Deadline          *string  `json:"deadline"`
-		ApplyLink         *string  `json:"applyLink"`
-		OtherLinks        []string `json:"otherLinks"`
-		Eligibility       any      `json:"eligibility"`
-		Timings           any      `json:"timings"`
-		Salary            any      `json:"salary"`
-		Location          any      `json:"location"`
-		EventDetails      any      `json:"eventDetails"`
-		Requirements      any      `json:"requirements"`
+		ID                string                 `json:"id"`
+		GmailMessageID    string                 `json:"gmailMessageId"`
+		ThreadID          string                 `json:"threadId"`
+		Subject           string                 `json:"subject"`
+		Sender            string                 `json:"sender"`
+		Snippet           string                 `json:"snippet"`
+		ReceivedAt        string                 `json:"receivedAt"`
+		Company           *string                `json:"company"`
+		Role              *string                `json:"role"`
+		Deadline          *string                `json:"deadline"`
+		ApplyLink         *string                `json:"applyLink"`
+		OtherLinks        []string               `json:"otherLinks"`
+		Eligibility       any                    `json:"eligibility"`
+		Timings           any                    `json:"timings"`
+		Salary            any                    `json:"salary"`
+		Location          any                    `json:"location"`
+		EventDetails      any                    `json:"eventDetails"`
+		Requirements      any                    `json:"requirements"`
 		Description       *string                `json:"description"`
 		AttachmentSummary *string                `json:"attachmentSummary"`
 		Attachments       []utils.AttachmentMeta `json:"attachments"`
@@ -99,6 +103,7 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 		Tags              []string               `json:"tags"`
 		Priority          string                 `json:"priority"`
 		Summary           string                 `json:"summary"`
+		Important         bool                   `json:"important"`
 	}
 
 	emails := make([]emailResponse, 0, len(summaries))
@@ -134,6 +139,7 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 			Tags:              s.Tags,
 			Priority:          s.Priority,
 			Summary:           s.Summary,
+			Important:         s.Important,
 		})
 	}
 
@@ -144,6 +150,52 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 		"total":      len(emails),
 		"page":       page,
 		"totalPages": 1,
+	})
+}
+
+// setImportantRequest is the body for SetImportant.
+type setImportantRequest struct {
+	Important bool `json:"important"`
+}
+
+// SetImportant marks (or unmarks) an email as important for the
+// authenticated user.
+func (h *GmailHandler) SetImportant(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userID, ok := ctx.Value(auth.UserIDContextKey).(string)
+	if !ok {
+		response.Unauthorized(w, "No UserID found in context")
+		return
+	}
+
+	gmailMessageID := r.PathValue("gmailMessageId")
+	if gmailMessageID == "" {
+		response.BadRequest(w, "gmailMessageId is required", nil)
+		return
+	}
+
+	var req setImportantRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.BadRequest(w, "invalid request format", nil)
+		return
+	}
+
+	if err := h.userRepo.SetImportant(ctx, userID, gmailMessageID, req.Important); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			response.NotFound(w, "Email not found")
+			return
+		}
+		slog.ErrorContext(ctx, "failed to update important flag", "err", err)
+		response.InternalError(w, "Failed to update email")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"success":        true,
+		"gmailMessageId": gmailMessageID,
+		"important":      req.Important,
 	})
 }
 

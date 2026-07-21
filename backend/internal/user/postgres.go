@@ -272,6 +272,31 @@ func (r *PostgresRepository) GetSummariesByQuery(ctx context.Context, userID str
 	return results, nil
 }
 
+// SetImportant flips the important flag for a user's email, keeping both
+// the denormalized `important` column and the `data` JSONB blob in sync —
+// GetSummary/GetSummariesByQuery only ever read `data`, so the JSONB copy
+// is the one that actually matters for API responses.
+func (r *PostgresRepository) SetImportant(ctx context.Context, userID string, gmailID string, important bool) error {
+	id, err := parseUserID(userID)
+	if err != nil {
+		return err
+	}
+
+	query := `
+		UPDATE email_summaries
+		SET important = $1, data = jsonb_set(data, '{important}', to_jsonb($1::boolean), true)
+		WHERE user_id = $2 AND gmail_id = $3`
+
+	tag, err := r.db.Exec(ctx, query, important, id, gmailID)
+	if err != nil {
+		return fmt.Errorf("failed to update important flag: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
 func (r *PostgresRepository) UpdateGoogleRefreshToken(ctx context.Context, userID string, token string) error {
 	id, err := parseUserID(userID)
 	if err != nil {

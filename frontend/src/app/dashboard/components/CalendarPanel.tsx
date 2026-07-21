@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarCheck, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import {
+  CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -10,6 +16,7 @@ import { getDaysDiff } from "../lib/dateUtils";
 interface CalendarPanelProps {
   emails: PlacementEmail[];
   calendarEvents: CalendarEvent[];
+  onRemoveEvent: (eventId: string) => void;
 }
 
 interface CalendarDay {
@@ -90,7 +97,11 @@ function getCalendarDays(
   return days;
 }
 
-export function CalendarPanel({ emails, calendarEvents }: CalendarPanelProps) {
+export function CalendarPanel({
+  emails,
+  calendarEvents,
+  onRemoveEvent,
+}: CalendarPanelProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<
@@ -274,8 +285,18 @@ export function CalendarPanel({ emails, calendarEvents }: CalendarPanelProps) {
                       </p>
                       <div className="space-y-1.5">
                         {activeDateEvents.events.map((ev) => (
-                          <div key={ev.id} className="rounded-lg border p-3">
-                            <p className="truncate text-sm font-medium">
+                          <div
+                            key={ev.id}
+                            className="group relative rounded-lg border p-3"
+                          >
+                            <button
+                              onClick={() => onRemoveEvent(ev.id)}
+                              aria-label={`Remove ${ev.title} from calendar`}
+                              className="absolute top-2 right-2 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity outline-none hover:text-destructive focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 group-hover:opacity-100"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                            <p className="truncate pr-7 text-sm font-medium">
                               {ev.title}
                             </p>
                             <p className="mt-0.5 font-mono text-xs text-muted-foreground">
@@ -313,7 +334,7 @@ export function CalendarPanel({ emails, calendarEvents }: CalendarPanelProps) {
                     return (
                       <div
                         key={event.id}
-                        className="flex items-center gap-3 rounded-lg border p-3"
+                        className="group flex items-center gap-3 rounded-lg border p-3"
                       >
                         <div className="flex size-10 shrink-0 flex-col items-center justify-center rounded-md bg-muted font-mono">
                           <span className="text-[9px] text-muted-foreground uppercase">
@@ -336,6 +357,13 @@ export function CalendarPanel({ emails, calendarEvents }: CalendarPanelProps) {
                             })}
                           </p>
                         </div>
+                        <button
+                          onClick={() => onRemoveEvent(event.id)}
+                          aria-label={`Remove ${event.title} from calendar`}
+                          className="shrink-0 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity outline-none hover:text-destructive focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 group-hover:opacity-100"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
                       </div>
                     );
                   })}

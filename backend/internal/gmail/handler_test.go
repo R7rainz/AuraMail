@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/r7rainz/auramail/internal/ai"
 	"github.com/r7rainz/auramail/internal/auth"
 	"github.com/r7rainz/auramail/internal/config"
@@ -21,6 +23,7 @@ type fakeUserRepo struct {
 	findByIDFunc            func(ctx context.Context, id string) (*user.User, error)
 	getSummariesByQueryFunc func(ctx context.Context, userID, searchQuery string) ([]*ai.AIResult, error)
 	getSummaryFunc          func(ctx context.Context, gmailID string) (*ai.AIResult, error)
+	setImportantFunc        func(ctx context.Context, userID, gmailID string, important bool) error
 }
 
 func (f *fakeUserRepo) FindByID(ctx context.Context, id string) (*user.User, error) {
@@ -39,6 +42,13 @@ func (f *fakeUserRepo) GetSummary(ctx context.Context, gmailID string) (*ai.AIRe
 }
 
 func (f *fakeUserRepo) SaveSummary(ctx context.Context, userID, gmailID string, res *ai.AIResult) error {
+	return errors.New("not implemented")
+}
+
+func (f *fakeUserRepo) SetImportant(ctx context.Context, userID, gmailID string, important bool) error {
+	if f.setImportantFunc != nil {
+		return f.setImportantFunc(ctx, userID, gmailID, important)
+	}
 	return errors.New("not implemented")
 }
 
@@ -329,6 +339,90 @@ func TestGetAttachment_NotFoundInSummary(t *testing.T) {
 
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", rr.Code)
+	}
+}
+
+func TestSetImportant_Unauthorized(t *testing.T) {
+	h := newTestHandler(&fakeUserRepo{})
+	req := httptest.NewRequest(http.MethodPatch, "/emails/m1/important", strings.NewReader(`{"important":true}`))
+	rr := httptest.NewRecorder()
+
+	h.SetImportant(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", rr.Code)
+	}
+}
+
+func TestSetImportant_InvalidBody(t *testing.T) {
+	h := newTestHandler(&fakeUserRepo{})
+	req := httptest.NewRequest(http.MethodPatch, "/emails/m1/important", strings.NewReader(`not json`))
+	req.SetPathValue("gmailMessageId", "m1")
+	ctx := context.WithValue(req.Context(), auth.UserIDContextKey, "1")
+	req = req.WithContext(ctx)
+	rr := httptest.NewRecorder()
+
+	h.SetImportant(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", rr.Code)
+	}
+}
+
+func TestSetImportant_NotFound(t *testing.T) {
+	repo := &fakeUserRepo{
+		setImportantFunc: func(ctx context.Context, userID, gmailID string, important bool) error {
+			return pgx.ErrNoRows
+		},
+	}
+	h := newTestHandler(repo)
+
+	req := httptest.NewRequest(http.MethodPatch, "/emails/missing/important", strings.NewReader(`{"important":true}`))
+	req.SetPathValue("gmailMessageId", "missing")
+	ctx := context.WithValue(req.Context(), auth.UserIDContextKey, "1")
+	req = req.WithContext(ctx)
+	rr := httptest.NewRecorder()
+
+	h.SetImportant(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rr.Code)
+	}
+}
+
+func TestSetImportant_Success(t *testing.T) {
+	var gotImportant bool
+	var gotGmailID string
+	repo := &fakeUserRepo{
+		setImportantFunc: func(ctx context.Context, userID, gmailID string, important bool) error {
+			gotGmailID = gmailID
+			gotImportant = important
+			return nil
+		},
+	}
+	h := newTestHandler(repo)
+
+	req := httptest.NewRequest(http.MethodPatch, "/emails/m1/important", strings.NewReader(`{"important":true}`))
+	req.SetPathValue("gmailMessageId", "m1")
+	ctx := context.WithValue(req.Context(), auth.UserIDContextKey, "1")
+	req = req.WithContext(ctx)
+	rr := httptest.NewRecorder()
+
+	h.SetImportant(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	if gotGmailID != "m1" || !gotImportant {
+		t.Errorf("expected repo called with (m1, true), got (%s, %v)", gotGmailID, gotImportant)
+	}
+
+	var body map[string]any
+	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body["important"] != true {
+		t.Errorf("expected important=true in response, got %v", body["important"])
 	}
 }
 

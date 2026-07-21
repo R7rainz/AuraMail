@@ -50,7 +50,7 @@ export default function DashboardPage() {
   };
 
   const calendar = useCalendarEvents(setError);
-  const { emails, emailsLoading, syncing, fetchEmails, handleSync } =
+  const { emails, emailsLoading, syncing, fetchEmails, handleSync, toggleImportant } =
     useEmails(setError, calendar.fetchCalendarEvents, notificationsEnabled);
   const filters = useEmailFilters(emails);
 
@@ -192,6 +192,10 @@ export default function DashboardPage() {
           selectedCategory={filters.selectedCategory}
           setSelectedCategory={filters.setSelectedCategory}
           categoryCounts={filters.categoryCounts}
+          showImportantOnly={filters.showImportantOnly}
+          setShowImportantOnly={filters.setShowImportantOnly}
+          importantCount={filters.importantCount}
+          onToggleImportant={toggleImportant}
           emailsLoading={emailsLoading}
           filteredEmails={filters.filteredEmails}
           selectedEmail={selectedEmail}
@@ -211,6 +215,7 @@ export default function DashboardPage() {
                 onRemoveFromCalendar={() =>
                   calendar.removeFromCalendar(selectedEmail)
                 }
+                onToggleImportant={() => toggleImportant(selectedEmail)}
               />
             ) : (
               <DashboardOverview
@@ -224,7 +229,11 @@ export default function DashboardPage() {
           </AnimatePresence>
         </main>
 
-        <CalendarPanel emails={emails} calendarEvents={calendar.calendarEvents} />
+        <CalendarPanel
+          emails={emails}
+          calendarEvents={calendar.calendarEvents}
+          onRemoveEvent={calendar.removeEventById}
+        />
       </div>
     </div>
   );
