@@ -35,10 +35,13 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        # Baked into the client bundle at build time — see frontend/Dockerfile.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
     env_file:
       - ./frontend/.env
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
     depends_on:
       - backend
     ports:
