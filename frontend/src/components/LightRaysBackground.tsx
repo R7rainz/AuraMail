@@ -8,7 +8,7 @@ import type { LightRaysProps } from "./three/LightRays";
 
 /** CSS beams — the fallback for reduced-motion, low-power devices and SSR. */
 function RaysFallback() {
-  return <div aria-hidden className="beam-fallback absolute inset-0" />;
+  return <div aria-hidden className="beam-fallback grain absolute inset-0" />;
 }
 
 // Client-only + code-split: Three.js stays out of the first-paint bundle.
@@ -65,12 +65,7 @@ export function LightRaysBackground(props: LightRaysProps) {
       aria-hidden
       className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
     >
-      {showScene ? (
-        // Pointer-follow is motion: leave it off when motion is reduced.
-        <RaysScene paused={paused} followPointer={!reduced} {...props} />
-      ) : (
-        <RaysFallback />
-      )}
+      {showScene ? <RaysScene paused={paused} {...props} /> : <RaysFallback />}
       {/* Grounds the beams so they don't float over the section boundary. */}
       <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-background to-transparent" />
     </div>

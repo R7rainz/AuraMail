@@ -187,30 +187,63 @@
   transform: none;
 }
 
-/* CSS fallback for the light rays when WebGL is unavailable. */
-@keyframes beam-breathe {
+/*
+ * CSS fallback for the light rays when WebGL is unavailable. Same shape as the
+ * shader — shafts from a source above the fold, over a soft core glow — with a
+ * slow lateral drift so it reads as light rather than a static gradient.
+ */
+@keyframes beam-drift {
   0%,
   100% {
-    opacity: 0.5;
+    opacity: 0.62;
+    transform: translate3d(-1.5%, 0, 0);
   }
   50% {
-    opacity: 0.85;
+    opacity: 0.9;
+    transform: translate3d(1.5%, 0, 0);
   }
 }
 .beam-fallback {
   background:
     conic-gradient(
-      from 178deg at 50% -14%,
+      from 176deg at 50% -16%,
       transparent 0deg,
-      oklch(1 0 0 / 0.1) 4deg,
-      transparent 8deg,
-      transparent 172deg,
-      oklch(1 0 0 / 0.07) 176deg,
-      transparent 182deg,
+      oklch(1 0 0 / 0.07) 5deg,
+      transparent 11deg,
+      transparent 168deg,
+      oklch(1 0 0 / 0.055) 175deg,
+      transparent 183deg,
       transparent 360deg
     ),
-    radial-gradient(60% 42% at 50% -6%, oklch(1 0 0 / 0.16), transparent 70%);
-  animation: beam-breathe 9s ease-in-out infinite;
+    radial-gradient(58% 40% at 50% -8%, oklch(1 0 0 / 0.13), transparent 72%);
+  animation: beam-drift 26s ease-in-out infinite;
+}
+
+/*
+ * Film grain. Near-black gradients band badly on 8-bit panels; a sub-perceptual
+ * noise layer breaks the steps up. The shader dithers itself, so this covers the
+ * CSS surfaces — the fallback beams and the workspace glow.
+ */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.032;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/*
+ * Workspace ambience: one soft pool of light at the top of the empty state, so
+ * pure black reads as depth rather than a dead panel. Deliberately still — this
+ * sits behind a working inbox, where drifting light would be a distraction.
+ */
+.workspace-glow {
+  background: radial-gradient(
+    72% 46% at 50% -4%,
+    oklch(1 0 0 / 0.05),
+    transparent 70%
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {

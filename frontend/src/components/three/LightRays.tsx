@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -9,11 +9,15 @@ import * as THREE from "three";
  *
  * A fullscreen quad; the shader builds beams from noise sampled in *angular*
  * space around a source above the viewport, so the shafts converge the way real
- * god rays do. The source tracks the pointer with heavy damping — the light
- * feels like it has weight rather than snapping around.
+ * god rays do.
  *
- * Spread is a gaussian, not a smoothstep: the cone has no edge to see, which is
- * what makes the falloff read as light instead of as a masked gradient.
+ * The light is ambient and self-contained: it drifts on its own slow cycle and
+ * ignores the pointer. Sunlight through a window does not follow the cursor,
+ * and in a workspace app that kind of tracking reads as a toy.
+ *
+ * Tuned to be noticed only if looked for: motion slow enough to read as light
+ * rather than animation, a gaussian cone with no visible edge, and a dithered
+ * output because near-black gradients band badly on 8-bit displays.
  */
 
 const vertexShader = /* glsl */ `
@@ -32,7 +36,7 @@ const fragmentShader = /* glsl */ `
   uniform float uIntensity;
   uniform float uSpread;    // gaussian cone width, radians
   uniform float uFalloff;   // distance attenuation
-  uniform float uSharp;     // beam contrast
+  uniform float uSharp;     // beam contrast, 0-1
   uniform vec2  uOrigin;    // light source, aspect-corrected space
 
   varying vec2 vUv;
@@ -52,7 +56,7 @@ const fragmentShader = /* glsl */ `
     );
   }
 
-  // Three octaves is enough at this scale and costs a third less than four.
+  // Three octaves is plenty at this scale and a third cheaper than four.
   float fbm(vec2 p) {
     float v = 0.0;
     float a = 0.5;
@@ -72,35 +76,45 @@ const fragmentShader = /* glsl */ `
     float dist = length(d);
     float angle = atan(d.x, -d.y);
 
-    // Two angular noise layers drifting at different rates: a few broad shafts
-    // with finer structure threaded through them.
-    float coarse = fbm(vec2(angle * 6.0, uTime * 0.03));
-    float fine = fbm(vec2(angle * 17.0, uTime * 0.052 + 13.0));
-    float beams = coarse * 0.64 + fine * 0.36;
+    // Two angular layers: a few broad shafts with finer structure threaded
+    // through. The second axis drifts slowly along the beam as well as across
+    // it, so the light breathes down its length instead of only sliding.
+    float coarse = fbm(vec2(angle * 5.2, uTime * 0.016 - dist * 0.22));
+    float fine = fbm(vec2(angle * 14.0, uTime * 0.027 + 13.0));
+    float beams = coarse * 0.68 + fine * 0.32;
 
-    // Real shafts diverge and blur as they travel — lift the floor and flatten
-    // contrast with distance so they dissolve instead of ending.
-    float soften = smoothstep(0.1, 1.5, dist);
-    beams = mix(beams, beams * 0.5 + 0.25, soften);
+    // Real shafts diverge and blur as they travel: lift the floor and flatten
+    // contrast with distance so they dissolve rather than stop.
+    float soften = smoothstep(0.05, 1.35, dist);
+    beams = mix(beams, beams * 0.42 + 0.3, soften);
 
-    // Contrast into distinct shafts.
-    beams = smoothstep(0.36 - uSharp * 0.12, 0.94, beams);
+    // Gentle contrast. A wide smoothstep keeps the shafts soft-edged — hard
+    // separation is what makes this kind of effect look cheap.
+    beams = smoothstep(0.34 - uSharp * 0.1, 1.0, beams);
 
     // Gaussian spread: no visible cone edge at any width.
     float cone = exp(-(angle * angle) / (2.0 * uSpread * uSpread));
 
-    // Inverse-square-ish attenuation, with the far tail cut so the beams don't
-    // haze the whole section.
+    // Inverse-square-ish attenuation with the far tail cut, so the beams never
+    // haze the section below.
     float falloff = 1.0 / (1.0 + dist * dist * uFalloff);
-    falloff *= smoothstep(2.1, 0.5, dist);
+    falloff *= smoothstep(2.1, 0.45, dist);
 
-    // Soft bloom at the source.
-    float core = exp(-dist * dist * 3.2) * 0.2;
+    // Soft bloom where the shafts originate.
+    float core = exp(-dist * dist * 2.6) * 0.22;
 
-    float intensity = (beams * cone * falloff + core * cone) * uIntensity;
+    // Very slow global breath, shallow enough to feel like light rather than a
+    // pulsing element.
+    float breath = 0.92 + 0.08 * sin(uTime * 0.12);
 
-    // Hard ceiling: this sits behind type and must never fight it.
-    intensity = clamp(intensity, 0.0, 0.6);
+    float intensity = (beams * cone * falloff + core * cone) * uIntensity * breath;
+
+    // Ordered-ish dither. Near-black gradients band hard on 8-bit displays, and
+    // one bit of noise below the quantisation step removes it entirely.
+    float dither = (hash(gl_FragCoord.xy) - 0.5) * 0.0055;
+
+    // Ceiling: this sits behind type and must never compete with it.
+    intensity = clamp(intensity + dither, 0.0, 0.5);
 
     gl_FragColor = vec4(vec3(1.0), intensity);
   }
@@ -114,38 +128,19 @@ export interface LightRaysProps {
   falloff?: number;
   /** Beam contrast, 0–1. Higher is more separated shafts. */
   sharpness?: number;
-  /** How far the source slides with the pointer, in aspect-corrected units. */
-  travel?: number;
-  followPointer?: boolean;
+  /** How far the source drifts from centre, in viewport widths. */
+  drift?: number;
 }
 
 export function LightRays({
   intensity = 1,
-  spread = 0.42,
-  falloff = 0.55,
-  sharpness = 0.5,
-  travel = 0.5,
-  followPointer = true,
+  spread = 0.5,
+  falloff = 0.5,
+  sharpness = 0.4,
+  drift = 0.28,
 }: LightRaysProps) {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const { viewport } = useThree();
-
-  // Pointer lives in a ref: tracking must not re-render React each move.
-  const target = useRef(0);
-  const current = useRef(0);
-
-  useEffect(() => {
-    if (!followPointer) {
-      target.current = 0;
-      return;
-    }
-    const onMove = (e: PointerEvent) => {
-      // -1 (left) → 1 (right), independent of viewport size.
-      target.current = (e.clientX / window.innerWidth) * 2 - 1;
-    };
-    window.addEventListener("pointermove", onMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onMove);
-  }, [followPointer]);
 
   const uniforms = useMemo(
     () => ({
@@ -155,7 +150,7 @@ export function LightRays({
       uSpread: { value: spread },
       uFalloff: { value: falloff },
       uSharp: { value: sharpness },
-      uOrigin: { value: new THREE.Vector2(0, 1.26) },
+      uOrigin: { value: new THREE.Vector2(0, 1.24) },
     }),
     [intensity, spread, falloff, sharpness],
   );
@@ -164,17 +159,20 @@ export function LightRays({
     const material = materialRef.current;
     if (!material) return;
 
+    // Clamp: a backgrounded tab resumes with a huge delta, which would jump the
+    // source across the screen on the first frame back.
+    const dt = Math.min(delta, 0.05);
     const aspect = viewport.width / viewport.height;
-    material.uniforms.uTime.value += delta;
+
+    material.uniforms.uTime.value += dt;
     material.uniforms.uAspect.value = aspect;
 
-    // Exponential damping — frame-rate independent, and slow enough that the
-    // light lags the cursor instead of tracking it rigidly.
-    const k = 1 - Math.exp(-delta * 2.4);
-    current.current += (target.current - current.current) * k;
+    // Two detuned sines: the period never repeats cleanly, so the drift reads as
+    // wandering rather than as a loop.
+    const t = material.uniforms.uTime.value;
+    const offset = Math.sin(t * 0.043) * 0.7 + Math.sin(t * 0.027) * 0.3;
 
-    // Source stays above the fold; only its x slides with the pointer.
-    material.uniforms.uOrigin.value.set(current.current * travel * aspect * 0.5, 1.26);
+    material.uniforms.uOrigin.value.set(offset * drift * aspect, 1.24);
   });
 
   return (
