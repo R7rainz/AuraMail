@@ -95,14 +95,22 @@ SYNC_ENABLED=true
 SYNC_INTERVAL=30m
 ```
 
-Two more depend on URLs you do not have yet — come back and set them after
-step 3:
+Three more depend on URLs you do not have yet. Set them to placeholders **now**
+and correct them in step 4:
 
 ```bash
-GOOGLE_OAUTH_REDIRECT_URI=https://<render-app>.onrender.com/auth/google/callback
-FRONTEND_URL=https://<vercel-app>.vercel.app
-ALLOWED_ORIGINS=https://<vercel-app>.vercel.app
+# Must be non-empty or the service will not boot — see below.
+GOOGLE_OAUTH_REDIRECT_URI=https://placeholder.onrender.com/auth/google/callback
+FRONTEND_URL=https://placeholder.vercel.app
+ALLOWED_ORIGINS=https://placeholder.vercel.app
 ```
+
+> **Do not leave `GOOGLE_OAUTH_REDIRECT_URI` blank.** `Config.Validate()` in
+> `internal/config/config.go` rejects an empty value along with the client ID and
+> secret, so the process exits before it binds a port and the deploy fails with
+> `google OAuth client configuration is required`. The same applies to
+> `DATABASE_URL` and `JWT_SECRET`. A wrong-but-present URL boots fine; only
+> sign-in is broken until step 4 corrects it.
 
 Generate both JWT secrets with:
 

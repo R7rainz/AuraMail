@@ -36,7 +36,11 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      # Set these once the Render and Vercel URLs exist.
+      # These three need URLs that do not exist until the services are created.
+      # Give them placeholder values now and correct them afterwards —
+      # GOOGLE_OAUTH_REDIRECT_URI in particular must be NON-EMPTY, because
+      # Config.Validate() rejects a blank value and the process exits before
+      # binding a port, which Render reports as a failed deploy.
       - key: GOOGLE_OAUTH_REDIRECT_URI
         sync: false
       - key: FRONTEND_URL
