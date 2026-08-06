@@ -236,13 +236,13 @@ export function EmailDetailView({
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className="scrollbar-thin absolute inset-0 overflow-y-auto"
     >
-      <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b bg-background/85 px-6 py-3 backdrop-blur-xl">
+      <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b bg-background/85 px-3 py-3 backdrop-blur-xl sm:px-6">
         <Button variant="ghost" size="sm" onClick={onBack} className="group -ml-2">
           <ChevronLeft className="transition-transform group-hover:-translate-x-0.5" />
           Back
         </Button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -294,7 +294,7 @@ export function EmailDetailView({
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl space-y-8 px-6 py-10">
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:px-6 sm:py-10">
         {/* Identity */}
         <header>
           <Badge variant="outline" className="capitalize">
@@ -354,7 +354,7 @@ export function EmailDetailView({
 
             <RunwayBar runway={runway} className="mt-3 h-1.5" />
 
-            <div className="mt-2 flex justify-between font-mono text-xs text-muted-foreground">
+            <div className="mt-2 flex flex-col gap-1 font-mono text-xs text-muted-foreground sm:flex-row sm:justify-between">
               <span>Received {formatMailDateTime(selectedEmail.receivedAt)}</span>
               <span>{runway.detail}</span>
             </div>

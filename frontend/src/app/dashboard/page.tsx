@@ -181,6 +181,7 @@ export default function DashboardPage() {
 
       <div className="relative flex flex-1 overflow-hidden">
         <InboxSidebar
+          className={selectedEmail ? "hidden md:flex" : undefined}
           searchQuery={filters.searchQuery}
           setSearchQuery={filters.setSearchQuery}
           showSortDropdown={showSortDropdown}
@@ -202,7 +203,12 @@ export default function DashboardPage() {
           setSelectedEmail={setSelectedEmail}
         />
 
-        <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        <main
+          className={cn(
+            "relative min-w-0 flex-1 flex-col overflow-hidden",
+            selectedEmail ? "flex" : "hidden md:flex",
+          )}
+        >
           <AnimatePresence mode="wait">
             {selectedEmail ? (
               <EmailDetailView

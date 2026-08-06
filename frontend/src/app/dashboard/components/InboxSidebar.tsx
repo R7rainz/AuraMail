@@ -78,9 +78,15 @@ export function InboxSidebar({
   filteredEmails,
   selectedEmail,
   setSelectedEmail,
-}: InboxSidebarProps) {
+  className,
+}: InboxSidebarProps & { className?: string }) {
   return (
-    <aside className="flex w-[340px] shrink-0 flex-col border-r bg-card xl:w-[380px]">
+    <aside
+      className={cn(
+        "flex w-full shrink-0 flex-col border-r bg-card md:w-[340px] xl:w-[380px]",
+        className,
+      )}
+    >
       <div className="space-y-3 border-b p-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
