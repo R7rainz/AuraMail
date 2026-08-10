@@ -30,7 +30,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="fixed inset-x-0 top-0 z-50 bg-background/60 backdrop-blur-xl">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-background/75 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <a
             href="#top"
@@ -48,28 +48,26 @@ export default function LandingPage() {
 
       <main id="top">
         {/* ── HERO ─────────────────────────────────────────────── */}
-        <section className="relative isolate flex min-h-[92vh] items-center justify-center overflow-hidden px-6 pt-24 pb-20">
-          {/* Beam tuning lives here — see LightRays.tsx for what each does. */}
+        <section className="relative isolate flex min-h-[86vh] items-center justify-center overflow-hidden bg-[#101516] px-6 pt-24 pb-20">
           <LightRaysBackground
-            intensity={0.95}
-            spread={0.5}
-            falloff={0.5}
-            sharpness={0.4}
-            drift={0.28}
+            intensity={1.1}
+            spread={0.56}
+            falloff={0.42}
+            sharpness={0.48}
+            drift={0.32}
           />
-
-          <div className="mx-auto w-full max-w-3xl text-center">
-            <p className="font-mono text-xs tracking-[0.2em] text-muted-foreground uppercase">
+          <div className="relative z-10 mx-auto w-full max-w-3xl text-center">
+            <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">
               Placement intelligence
             </p>
 
-            <h1 className="display mt-8 text-5xl text-balance sm:text-6xl md:text-7xl">
+            <h1 className="display-serif mt-8 text-5xl text-balance sm:text-6xl md:text-7xl">
               Every placement mail
               <br />
               is a clock.
             </h1>
 
-            <p className="mx-auto mt-7 max-w-md text-[15px] leading-relaxed text-muted-foreground text-pretty">
+            <p className="mx-auto mt-7 max-w-lg text-base leading-relaxed text-muted-foreground text-pretty">
               AuraMail reads your campus inbox and puts the closing date on every
               opportunity — so the drive expiring tonight stops hiding under sixty
               announcements.
@@ -91,8 +89,8 @@ export default function LandingPage() {
         <section className="px-6 pb-28">
           <div className="mx-auto max-w-3xl">
             <Reveal>
-              <div className="overflow-hidden rounded-xl border bg-card">
-                <div className="flex items-center justify-between border-b px-5 py-3.5">
+              <div className="glass-panel overflow-hidden rounded-2xl">
+                <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
                   <span className="text-sm font-medium">Closing first</span>
                   <span className="font-mono text-xs text-muted-foreground tabular-nums">
                     4 open
@@ -113,12 +111,12 @@ export default function LandingPage() {
         <div className="rule mx-auto max-w-5xl" />
 
         {/* ── CAPABILITIES ─────────────────────────────────────── */}
-        <section className="px-6 py-28">
+        <section className="px-6 py-24">
           <div className="mx-auto max-w-3xl">
-            <div className="grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3">
+            <div className="grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-3">
               {capabilities.map(({ title, body }, i) => (
                 <Reveal key={title} delay={i * 90} className="bg-background">
-                  <div className="h-full p-6">
+                  <div className="h-full bg-card p-6">
                     <span className="font-mono text-xs text-muted-foreground tabular-nums">
                       {String(i + 1).padStart(2, "0")}
                     </span>
@@ -138,7 +136,7 @@ export default function LandingPage() {
         {/* ── CTA ──────────────────────────────────────────────── */}
         <section className="px-6 py-32">
           <Reveal className="mx-auto max-w-3xl text-center">
-            <h2 className="display text-4xl text-balance sm:text-5xl">
+            <h2 className="display-serif text-4xl text-balance sm:text-5xl">
               Start with the inbox
               <br />
               you already have.
@@ -154,7 +152,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t">
+      <footer className="border-t border-white/10">
         <div className="mx-auto flex max-w-5xl flex-col gap-2 px-6 py-8 font-mono text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>AuraMail</span>
           <span>Built at VIT Bhopal</span>

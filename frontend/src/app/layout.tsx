@@ -73,7 +73,7 @@ export const metadata: Metadata = {
 
 // One theme, so the browser chrome matches the canvas unconditionally.
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: "#0d1011",
   colorScheme: "dark",
 };
 
@@ -103,8 +103,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // `dark` is fixed: this design has one theme, so there is no preference to
-  // restore and no flash to guard against.
   return (
     <html lang="en" className="dark">
       <head>

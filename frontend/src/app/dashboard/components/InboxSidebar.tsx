@@ -83,17 +83,29 @@ export function InboxSidebar({
   return (
     <aside
       className={cn(
-        "flex w-full shrink-0 flex-col border-r bg-card md:w-[340px] xl:w-[380px]",
+        "glass-panel flex w-full shrink-0 flex-col border-r border-white/10 bg-[#121819]/75 md:w-[380px] xl:w-[420px]",
         className,
       )}
     >
-      <div className="space-y-3 border-b p-3">
+      <div className="space-y-4 border-b border-white/10 px-5 py-5">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              Your inbox
+            </p>
+            <p className="mt-1 text-lg">Placement opportunities</p>
+          </div>
+          <span className="font-mono text-xs text-muted-foreground">
+            {filteredEmails.length} shown
+          </span>
+        </div>
+
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search opportunities"
+              placeholder="Search company, role, tag"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -141,11 +153,11 @@ export function InboxSidebar({
             onClick={() => setShowImportantOnly((prev) => !prev)}
             aria-pressed={showImportantOnly}
             className={cn(
-              "flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors outline-none",
+              "flex items-center gap-1 rounded-full border border-white/10 px-3 py-2 text-xs whitespace-nowrap transition-colors outline-none",
               "focus-visible:ring-[3px] focus-visible:ring-ring/50",
               showImportantOnly
-                ? "border-soon/30 bg-soon/15 text-soon"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                ? "border-primary/30 bg-primary/15 text-primary"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
             )}
           >
             <Star
@@ -167,11 +179,11 @@ export function InboxSidebar({
                   onClick={() => setSelectedCategory(key as EmailCategory)}
                   aria-pressed={isActive}
                   className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors outline-none",
+                    "rounded-full border border-white/10 px-3 py-2 text-xs whitespace-nowrap transition-colors outline-none",
                     "focus-visible:ring-[3px] focus-visible:ring-ring/50",
                     isActive
-                      ? "border-transparent bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                      ? "border-primary/30 bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                   )}
                 >
                   {config.label}
@@ -183,7 +195,7 @@ export function InboxSidebar({
 
       <div className="scrollbar-thin flex-1 overflow-y-auto">
         {emailsLoading ? (
-          <div className="space-y-1 p-2">
+          <div className="space-y-1 p-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="space-y-2 p-3">
                 <div className="flex justify-between gap-3">
@@ -208,7 +220,7 @@ export function InboxSidebar({
             </p>
           </div>
         ) : (
-          <ul className="p-2">
+          <ul>
             {filteredEmails.map((email) => {
               const isSelected = selectedEmail?.id === email.id;
               const cat =
@@ -236,7 +248,7 @@ export function InboxSidebar({
                         : `Mark ${email.company || email.subject} as important`
                     }
                     className={cn(
-                      "absolute right-2 bottom-2 z-10 rounded-md p-1.5 transition-all outline-none",
+                      "absolute right-4 bottom-4 z-10 p-1.5 transition-all outline-none",
                       "hover:bg-background/80 focus-visible:ring-[3px] focus-visible:ring-ring/50",
                       // Stays visible once flagged; otherwise reveals on hover.
                       email.important
@@ -253,15 +265,15 @@ export function InboxSidebar({
                     onClick={() => setSelectedEmail(email)}
                     aria-current={isSelected ? "true" : undefined}
                     className={cn(
-                      "w-full rounded-lg p-3 text-left transition-colors outline-none",
+                      "w-full border-b border-white/[0.06] px-5 py-4 text-left transition-colors outline-none",
                       "focus-visible:ring-[3px] focus-visible:ring-ring/50",
                       isSelected
-                        ? "bg-accent text-accent-foreground"
-                        : "hover:bg-accent/50",
+                        ? "bg-accent/80 text-foreground"
+                        : "hover:bg-white/[0.04]",
                     )}
                   >
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="truncate text-sm font-medium text-foreground">
+                      <span className="truncate text-[15px] text-foreground">
                         {email.company || email.subject}
                       </span>
                       <span className="shrink-0 font-mono text-[11px] text-muted-foreground tabular-nums">
@@ -270,7 +282,7 @@ export function InboxSidebar({
                     </div>
 
                     <p className="mt-1 truncate text-sm text-muted-foreground">
-                      {email.role || email.snippet}
+                      {email.role || email.snippet || email.sender}
                     </p>
 
                     {runway && (

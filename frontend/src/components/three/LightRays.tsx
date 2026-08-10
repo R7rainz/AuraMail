@@ -116,7 +116,11 @@ const fragmentShader = /* glsl */ `
     // Ceiling: this sits behind type and must never compete with it.
     intensity = clamp(intensity + dither, 0.0, 0.5);
 
-    gl_FragColor = vec4(vec3(1.0), intensity);
+    // Warm amber near the source, cooling into teal as the shafts dissolve.
+    vec3 amber = vec3(1.0, 0.72, 0.4);
+    vec3 teal = vec3(0.34, 0.72, 0.64);
+    vec3 color = mix(teal, amber, smoothstep(0.15, 1.45, dist));
+    gl_FragColor = vec4(color, intensity);
   }
 `;
 

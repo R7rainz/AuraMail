@@ -102,14 +102,14 @@ function AttachmentRow({
   };
 
   return (
-    <Card className="gap-0 overflow-hidden py-0">
-      <div className="flex items-center justify-between gap-3 p-3">
+    <Card className="gap-0 overflow-hidden border-white/10 bg-white/[0.03] py-0">
+      <div className="flex items-center justify-between gap-3 p-4">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid size-9 shrink-0 place-items-center rounded-md bg-muted">
+          <span className="grid size-10 shrink-0 place-items-center bg-secondary">
             <Paperclip className="size-4 text-muted-foreground" />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{attachment.filename}</p>
+            <p className="truncate text-[15px]">{attachment.filename}</p>
             <p className="font-mono text-xs text-muted-foreground">
               {formatFileSize(attachment.size)}
             </p>
@@ -175,7 +175,7 @@ function Field({
   value: unknown;
 }) {
   return (
-    <div className="rounded-lg border p-4">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
       <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <Icon className="size-3.5" />
         {label}
@@ -202,7 +202,7 @@ function Prose({
         <Icon className="size-4 text-muted-foreground" />
         {title}
       </h3>
-      <div className="mt-3 border-l-2 pl-4 text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+      <div className="mt-4 border-l-2 border-primary/50 pl-5 text-base leading-8 whitespace-pre-wrap text-foreground">
         {children}
       </div>
     </section>
@@ -234,9 +234,9 @@ export function EmailDetailView({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className="scrollbar-thin absolute inset-0 overflow-y-auto"
+      className="scrollbar-thin absolute inset-0 overflow-y-auto bg-transparent"
     >
-      <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b bg-background/85 px-3 py-3 backdrop-blur-xl sm:px-6">
+      <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-white/10 bg-[#111617]/80 px-4 py-4 backdrop-blur-xl sm:px-8">
         <Button variant="ghost" size="sm" onClick={onBack} className="group -ml-2">
           <ChevronLeft className="transition-transform group-hover:-translate-x-0.5" />
           Back
@@ -294,24 +294,24 @@ export function EmailDetailView({
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-4xl space-y-10 px-5 py-9 sm:px-10 sm:py-12">
         {/* Identity */}
         <header>
           <Badge variant="outline" className="capitalize">
             {selectedEmail.category || "Announcement"}
           </Badge>
 
-          <h1 className="display mt-4 text-3xl leading-tight font-medium text-balance sm:text-4xl">
-            {selectedEmail.company || selectedEmail.subject}
+          <h1 className="display mt-5 max-w-3xl text-3xl text-balance sm:text-5xl">
+            {selectedEmail.subject}
           </h1>
 
           {selectedEmail.role && selectedEmail.company && (
-            <p className="mt-2 text-lg text-muted-foreground">
-              {selectedEmail.role}
+            <p className="mt-3 text-lg text-muted-foreground">
+              {selectedEmail.company} · {selectedEmail.role}
             </p>
           )}
 
-          <p className="mt-4 text-sm text-muted-foreground">
+          <p className="mt-5 text-base text-muted-foreground">
             {selectedEmail.sender || "Unknown sender"}
             <span className="px-2 text-border">/</span>
             <time dateTime={selectedEmail.receivedAt}>
@@ -334,7 +334,7 @@ export function EmailDetailView({
         {runway && (
           <section
             aria-label="Application window"
-            className="rounded-xl border p-4"
+            className="rounded-2xl border border-white/10 bg-secondary p-5"
           >
             <div className="flex items-baseline justify-between gap-4">
               <span className="text-sm font-medium">
@@ -363,13 +363,13 @@ export function EmailDetailView({
 
         {/* AI brief */}
         {selectedEmail.summary && (
-          <Card className="gap-0 border-primary/20 bg-primary/[0.04] py-0">
+          <Card className="gap-0 border-primary/20 bg-primary/[0.07] py-0">
             <CardContent className="p-5">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-primary">
                 <Sparkles className="size-4" />
                 Brief
               </h2>
-              <p className="mt-2.5 text-sm leading-relaxed text-foreground/90">
+              <p className="mt-3 text-base leading-8 text-foreground">
                 {selectedEmail.summary}
               </p>
             </CardContent>
@@ -387,7 +387,7 @@ export function EmailDetailView({
               </span>
             </h2>
 
-            <ul className="mt-3 divide-y rounded-xl border">
+            <ul className="mt-3 divide-y overflow-hidden rounded-2xl border border-white/10">
               {messages.map((message, index) => {
                 const active = message.id === selectedEmail.id;
                 return (
@@ -397,14 +397,13 @@ export function EmailDetailView({
                       aria-current={active ? "true" : undefined}
                       className={cn(
                         "flex w-full items-center gap-3 p-3 text-left transition-colors outline-none",
-                        "first:rounded-t-xl last:rounded-b-xl",
                         "focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                        active ? "bg-accent" : "hover:bg-accent/50",
+                        active ? "bg-accent" : "hover:bg-white/[0.04]",
                       )}
                     >
                       <span
                         className={cn(
-                          "grid size-8 shrink-0 place-items-center rounded-full border font-mono text-xs",
+                          "grid size-8 shrink-0 place-items-center rounded-full border border-white/10 font-mono text-xs",
                           active
                             ? "border-primary/30 bg-primary/10 text-primary"
                             : "text-muted-foreground",

@@ -9,12 +9,6 @@ import {
 } from "lucide-react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
-// This app is dark-mode-only and never applies Tailwind's ".dark" class to
-// the document, so the shadcn default of pulling colors from --popover/
-// --border (which resolve to :root's light-theme values) would render a
-// white toast bubble against the all-black dashboard. Hardcode dark colors
-// matching the rest of the dashboard's palette (e.g. InboxSidebar's dropdown)
-// instead of relying on those theme variables.
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
@@ -29,10 +23,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          "--normal-bg": "#121212",
-          "--normal-text": "#ffffff",
-          "--normal-border": "rgba(255, 255, 255, 0.1)",
-          "--border-radius": "0.75rem",
+          "--normal-bg": "#1b2223",
+          "--normal-text": "#eee9df",
+          "--normal-border": "rgba(238, 233, 223, 0.12)",
+          "--border-radius": "14px",
         } as React.CSSProperties
       }
       {...props}

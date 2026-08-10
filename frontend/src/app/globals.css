@@ -38,41 +38,34 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/*
- * One theme: black. :root and .dark are identical so nothing flashes and the
- * shadcn `dark:` variants still resolve.
- */
 :root,
 .dark {
-  --radius: 0.625rem;
+  --radius: 1rem;
   color-scheme: dark;
 
-  --background: oklch(0 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.045 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.075 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  --background: #0d1011;
+  --foreground: #eee9df;
+  --card: #151a1b;
+  --card-foreground: #eee9df;
+  --popover: #1b2223;
+  --popover-foreground: #eee9df;
+  --primary: #e2aa65;
+  --primary-foreground: #191512;
+  --secondary: #1a2223;
+  --secondary-foreground: #e9efeb;
+  --muted: #1c2425;
+  --muted-foreground: #91a09e;
+  --accent: #243333;
+  --accent-foreground: #eff5f0;
+  --destructive: #dc7468;
+  --border: rgba(238, 233, 223, 0.12);
+  --input: rgba(238, 233, 223, 0.16);
+  --ring: #d9a25c;
 
-  /* White primary — the classic black-canvas shadcn pairing. */
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.13 0 0);
-  --secondary: oklch(0.155 0 0);
-  --secondary-foreground: oklch(0.95 0 0);
-  --muted: oklch(0.145 0 0);
-  --muted-foreground: oklch(0.63 0 0);
-  --accent: oklch(0.16 0 0);
-  --accent-foreground: oklch(0.97 0 0);
-  --destructive: oklch(0.65 0.19 25);
-
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(1 0 0 / 28%);
-
-  --closed: oklch(0.55 0 0);
-  --urgent: oklch(0.68 0.19 24);
-  --soon: oklch(0.78 0.14 70);
-  --open: oklch(0.72 0.13 165);
+  --closed: #7d8885;
+  --urgent: #e17868;
+  --soon: #e3aa61;
+  --open: #72c2a1;
 }
 
 @layer base {
@@ -82,30 +75,50 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "cv11", "ss01";
+    font-size: 16px;
+    line-height: 1.5;
   }
 }
 
 ::selection {
-  background: oklch(1 0 0 / 0.16);
+  background: rgba(226, 170, 101, 0.32);
 }
 
 /* Tight, optical display sizing for hero and section headings. */
 .display {
-  letter-spacing: -0.035em;
-  line-height: 1.02;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
   font-weight: 500;
+}
+
+.display-serif {
+  font-family: Optima, "Iowan Old Style", "Palatino Linotype", serif;
+  font-weight: 400;
+  line-height: 1.12;
 }
 
 /* Hairline that fades at both ends — the only divider style used. */
 .rule {
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    oklch(1 0 0 / 0.11) 22%,
-    oklch(1 0 0 / 0.11) 78%,
-    transparent
-  );
+  background: rgba(238, 233, 223, 0.12);
+}
+
+.dashboard-shell {
+  background:
+    radial-gradient(700px 420px at 72% -10%, rgba(53, 91, 82, 0.2), transparent 68%),
+    radial-gradient(520px 360px at 25% 110%, rgba(115, 69, 36, 0.12), transparent 72%),
+    var(--background);
+}
+
+.glass-panel {
+  background: rgba(20, 26, 27, 0.78);
+  border: 1px solid rgba(238, 233, 223, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(20px);
+}
+
+.soft-glow {
+  box-shadow: 0 0 0 1px rgba(226, 170, 101, 0.08), 0 18px 55px rgba(0, 0, 0, 0.25);
 }
 
 /* ---------------------------------------------------------------
@@ -114,7 +127,7 @@
 
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: oklch(1 0 0 / 0.16) transparent;
+  scrollbar-color: rgba(238, 233, 223, 0.18) transparent;
 }
 .scrollbar-thin::-webkit-scrollbar {
   width: 6px;
@@ -124,11 +137,11 @@
   background: transparent;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: oklch(1 0 0 / 0.14);
+  background-color: rgba(238, 233, 223, 0.18);
   border-radius: 999px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background-color: oklch(1 0 0 / 0.26);
+  background-color: rgba(238, 233, 223, 0.32);
 }
 .scrollbar-none {
   scrollbar-width: none;
@@ -146,7 +159,7 @@
 .runway {
   position: relative;
   overflow: hidden;
-  background: oklch(1 0 0 / 0.1);
+  background: rgba(238, 233, 223, 0.1);
 }
 .runway::after {
   content: "";
@@ -208,14 +221,14 @@
     conic-gradient(
       from 176deg at 50% -16%,
       transparent 0deg,
-      oklch(1 0 0 / 0.07) 5deg,
+      rgba(226, 170, 101, 0.16) 5deg,
       transparent 11deg,
       transparent 168deg,
-      oklch(1 0 0 / 0.055) 175deg,
+      rgba(114, 194, 161, 0.12) 175deg,
       transparent 183deg,
       transparent 360deg
     ),
-    radial-gradient(58% 40% at 50% -8%, oklch(1 0 0 / 0.13), transparent 72%);
+    radial-gradient(58% 40% at 50% -8%, rgba(226, 170, 101, 0.18), transparent 72%);
   animation: beam-drift 26s ease-in-out infinite;
 }
 
@@ -241,7 +254,7 @@
 .workspace-glow {
   background: radial-gradient(
     72% 46% at 50% -4%,
-    oklch(1 0 0 / 0.05),
+    rgba(226, 170, 101, 0.13),
     transparent 70%
   );
 }

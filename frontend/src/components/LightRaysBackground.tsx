@@ -63,7 +63,7 @@ export function LightRaysBackground(props: LightRaysProps) {
     <div
       ref={ref}
       aria-hidden
-      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
     >
       {showScene ? <RaysScene paused={paused} {...props} /> : <RaysFallback />}
       {/* Grounds the beams so they don't float over the section boundary. */}
