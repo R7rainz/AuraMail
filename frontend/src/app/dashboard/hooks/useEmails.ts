@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { PlacementEmail } from "../types";
 import { announceChanges, detectChanges } from "../lib/emailChanges";
 
@@ -112,6 +113,7 @@ export function useEmails(
       if (!res.ok) throw new Error(data?.message || `Sync failed`);
       await fetchEmails(true);
       await fetchCalendarEvents();
+      toast.success("Inbox is up to date");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sync emails.");
     } finally {

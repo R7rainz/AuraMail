@@ -38,10 +38,14 @@ export function useEmailFilters(emails: PlacementEmail[]) {
         e.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
         e.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         e.role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.tags?.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
         e.threadMessages?.some(
           (message) =>
             message.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            message.snippet.toLowerCase().includes(searchQuery.toLowerCase()),
+            message.snippet.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            message.tags?.some((tag) =>
+              tag.toLowerCase().includes(searchQuery.toLowerCase()),
+            ),
         );
       return matchCat && matchImportant && matchSearch;
     });

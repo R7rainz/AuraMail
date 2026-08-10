@@ -5,6 +5,7 @@ import { useAuth } from "@/app/lib/authContext";
 import { updateNotificationPreference } from "@/app/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Bell, BellOff, LogOut, Mail, RefreshCw, X } from "lucide-react";
+import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -12,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 import type { PlacementEmail } from "./types";
 import { getDaysDiff } from "./lib/dateUtils";
+import { groupEmailThreads } from "./lib/emailThreads";
 import { useEmails } from "./hooks/useEmails";
 import { useCalendarEvents } from "./hooks/useCalendarEvents";
 import { useEmailFilters } from "./hooks/useEmailFilters";
@@ -46,6 +48,8 @@ export default function DashboardPage() {
     if (!ok) {
       setNotificationsEnabled(!next);
       setError("Notification preference didn't save. Try again.");
+    } else {
+      toast.success(next ? "Deadline reminders turned on" : "Deadline reminders turned off");
     }
   };
 
@@ -53,6 +57,16 @@ export default function DashboardPage() {
   const { emails, emailsLoading, syncing, fetchEmails, handleSync, toggleImportant } =
     useEmails(setError, calendar.fetchCalendarEvents, notificationsEnabled);
   const filters = useEmailFilters(emails);
+  const liveSelectedEmail = useMemo(() => {
+    if (!selectedEmail) return null;
+    return (
+      groupEmailThreads(emails).find(
+        (email) =>
+          (selectedEmail.threadId && email.threadId === selectedEmail.threadId) ||
+          email.id === selectedEmail.id,
+      ) || selectedEmail
+    );
+  }, [emails, selectedEmail]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -88,20 +102,20 @@ export default function DashboardPage() {
   if (!user) return null;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background">
+    <div className="dashboard-shell flex h-screen flex-col overflow-hidden">
       <Toaster position="top-right" />
 
-      <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-card px-4">
+      <header className="z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-[#111617]/75 px-5 backdrop-blur-xl sm:px-8">
         <div className="flex items-center gap-3">
-          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground">
+          <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-primary to-[#9e6942] text-primary-foreground shadow-lg shadow-primary/10">
             <Mail className="size-4" />
           </span>
-          <span className="text-[15px] font-semibold tracking-tight">
+          <span className="text-lg font-medium tracking-tight">
             AuraMail
           </span>
-          <Separator orientation="vertical" className="h-4" />
+          <Separator orientation="vertical" className="mx-2 h-5 bg-white/10" />
           <span className="hidden text-sm text-muted-foreground sm:inline">
-            {user.email}
+            Placement inbox
           </span>
         </div>
 
@@ -111,6 +125,7 @@ export default function DashboardPage() {
             size="sm"
             onClick={handleSync}
             disabled={syncing}
+            className="h-10 px-4"
           >
             <RefreshCw className={cn(syncing && "animate-spin")} />
             {syncing ? "Syncing" : "Sync"}
@@ -134,10 +149,10 @@ export default function DashboardPage() {
           </Button>
 
 
-          <Separator orientation="vertical" className="mx-1 h-4" />
+          <Separator orientation="vertical" className="mx-2 h-5" />
 
           <span
-            className="grid size-7 place-items-center rounded-full bg-accent text-xs font-medium text-accent-foreground"
+            className="grid size-9 place-items-center rounded-full border border-primary/30 bg-primary/15 text-xs font-medium text-primary"
             aria-hidden="true"
           >
             {user.name?.charAt(0).toUpperCase() || "U"}
@@ -181,7 +196,7 @@ export default function DashboardPage() {
 
       <div className="relative flex flex-1 overflow-hidden">
         <InboxSidebar
-          className={selectedEmail ? "hidden md:flex" : undefined}
+          className={liveSelectedEmail ? "hidden md:flex" : undefined}
           searchQuery={filters.searchQuery}
           setSearchQuery={filters.setSearchQuery}
           showSortDropdown={showSortDropdown}
@@ -199,29 +214,29 @@ export default function DashboardPage() {
           onToggleImportant={toggleImportant}
           emailsLoading={emailsLoading}
           filteredEmails={filters.filteredEmails}
-          selectedEmail={selectedEmail}
+          selectedEmail={liveSelectedEmail}
           setSelectedEmail={setSelectedEmail}
         />
 
         <main
           className={cn(
             "relative min-w-0 flex-1 flex-col overflow-hidden",
-            selectedEmail ? "flex" : "hidden md:flex",
+            liveSelectedEmail ? "flex" : "hidden md:flex",
           )}
         >
           <AnimatePresence mode="wait">
-            {selectedEmail ? (
+            {liveSelectedEmail ? (
               <EmailDetailView
-                key="detail"
-                email={selectedEmail}
+                key={`detail-${liveSelectedEmail.id}`}
+                email={liveSelectedEmail}
                 onBack={() => setSelectedEmail(null)}
-                inCalendar={calendar.isInCalendar(selectedEmail)}
+                inCalendar={calendar.isInCalendar(liveSelectedEmail)}
                 addingToCalendar={calendar.addingToCalendar}
-                onAddToCalendar={() => calendar.addToCalendar(selectedEmail)}
+                onAddToCalendar={() => calendar.addToCalendar(liveSelectedEmail)}
                 onRemoveFromCalendar={() =>
-                  calendar.removeFromCalendar(selectedEmail)
+                  calendar.removeFromCalendar(liveSelectedEmail)
                 }
-                onToggleImportant={() => toggleImportant(selectedEmail)}
+                onToggleImportant={() => toggleImportant(liveSelectedEmail)}
               />
             ) : (
               <DashboardOverview
