@@ -1,6 +1,11 @@
 package ai
 
-import "github.com/r7rainz/auramail/internal/utils"
+import (
+	"encoding/json"
+	"strings"
+
+	"github.com/r7rainz/auramail/internal/utils"
+)
 
 // AIResult is the structured output from email analysis (persisted and returned to clients).
 type AIResult struct {
@@ -31,4 +36,40 @@ type AIResult struct {
 	AttachmentSummary *string                `json:"attachmentSummary"`
 	Attachments       []utils.AttachmentMeta `json:"attachments"`
 	Important         bool                   `json:"important"`
+}
+
+func (r *AIResult) UnmarshalJSON(data []byte) error {
+	type alias AIResult
+	decoded := struct {
+		Summary json.RawMessage `json:"summary"`
+		*alias
+	}{alias: (*alias)(r)}
+
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	r.Summary = ""
+	if len(decoded.Summary) == 0 || string(decoded.Summary) == "null" {
+		return nil
+	}
+
+	var summary string
+	if err := json.Unmarshal(decoded.Summary, &summary); err == nil {
+		r.Summary = summary
+		return nil
+	}
+
+	var bullets []string
+	if err := json.Unmarshal(decoded.Summary, &bullets); err != nil {
+		return err
+	}
+	lines := make([]string, 0, len(bullets))
+	for _, bullet := range bullets {
+		if bullet = strings.TrimSpace(bullet); bullet != "" {
+			lines = append(lines, "• "+bullet)
+		}
+	}
+	r.Summary = strings.Join(lines, "\n")
+	return nil
 }

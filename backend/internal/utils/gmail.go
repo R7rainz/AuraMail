@@ -335,23 +335,12 @@ func IsFooterLink(link string) bool {
 }
 
 func footerStart(source string) int {
-	lower := strings.ToLower(source)
-	markers := []string{
-		"in god bless you mails",
-		"queries must be to",
-		"our videos can be seen at",
-		"follow us:",
-		"work hard - success will be yours",
-		"\n---",
-		"---\n",
+	pattern := regexp.MustCompile(`(?i)(in\s+god\s+bless\s+you\s+mails|queries\s+must\s+be\s+to|our\s+videos\s+can\s+be\s+seen\s+at|follow\s+us\s*:|work\s+hard\s*-\s*success\s+will\s+be\s+yours|(?:^|\n)\s*---)`)
+	match := pattern.FindStringIndex(source)
+	if match == nil {
+		return -1
 	}
-	index := -1
-	for _, marker := range markers {
-		if candidate := strings.Index(lower, marker); candidate >= 0 && (index < 0 || candidate < index) {
-			index = candidate
-		}
-	}
-	return index
+	return match[0]
 }
 
 func isFooterText(text string) bool {
