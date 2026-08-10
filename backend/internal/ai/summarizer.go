@@ -28,6 +28,7 @@ var (
 )
 
 const CacheTTL = 1 * time.Hour
+const AnalysisVersion = "detailed-v3"
 
 func getClient() *openai.Client {
 	once.Do(func() {
@@ -40,7 +41,7 @@ func getClient() *openai.Client {
 }
 
 func AnalyzeEmail(ctx context.Context, userID string, subject, snippet, body string) (*AIResult, error) {
-	cacheKey := fmt.Sprintf("user:%s:%s:%s", userID, subject, snippet)
+	cacheKey := fmt.Sprintf("%s:user:%s:%s:%s", AnalysisVersion, userID, subject, snippet)
 	if len(cacheKey) > 100 {
 		cacheKey = cacheKey[:100]
 	}
@@ -53,8 +54,8 @@ func AnalyzeEmail(ctx context.Context, userID string, subject, snippet, body str
 	}
 
 	truncatedBody := body
-	if len(body) > 8000 {
-		truncatedBody = body[:8000] + "..."
+	if len(body) > 12000 {
+		truncatedBody = body[:12000] + "..."
 	}
 
 	systemPrompt := `You are a highly specialized AI assistant for academic and recruitment analysis at VIT (Vellore Institute of Technology).
@@ -76,7 +77,8 @@ TAGGING RULES (tags field - array of relevant tags):
 Include ALL applicable tags from: ["urgent", "high-package", "dream-company", "mass-hiring", "off-campus", "on-campus", "remote", "hybrid", "wfh", "tier-1", "startup", "mnc", "govt", "psu", "core", "it", "non-tech", "fresher-friendly"]
 
 JSON FIELD RULES:
-- summary: Write 3-5 sentences. Include every concrete detail present: company, role, location, work mode, eligibility, experience, compensation, deadline, and application method. Do not replace these details with vague wording.
+- summary: Write a detailed 6-10 bullet-point brief. Preserve every concrete detail present: company, role, location, work mode, eligibility, pass-out year, experience, compensation, deadline, responsibilities, required skills, restrictions, and application method. Never replace a list of requirements or responsibilities with vague wording.
+- Ignore recurring sender signatures, greetings, disclaimers, social-media follow prompts, and footer boilerplate. Focus on the opportunity in the main body.
 - deadline: Use YYYY-MM-DD format or null.
 - otherLinks: Must be an array of strings [].
 - tags: Must be an array of strings [].
@@ -116,6 +118,7 @@ JSON FIELD RULES:
 		log.Printf("JSON Unmarshal error: %v | Content: %s", err, content)
 		return nil, err
 	}
+	result.AnalysisVersion = AnalysisVersion
 
 	cacheMu.Lock()
 	aiCache[cacheKey] = cacheItem{data: &result, timestamp: time.Now()}

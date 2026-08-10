@@ -4,6 +4,7 @@ import "github.com/r7rainz/auramail/internal/utils"
 
 // AIResult is the structured output from email analysis (persisted and returned to clients).
 type AIResult struct {
+	AnalysisVersion   string                 `json:"analysisVersion,omitempty"`
 	GmailMessageID    string                 `json:"gmailMessageId"`
 	ThreadID          string                 `json:"threadId"`
 	Subject           string                 `json:"subject"`
