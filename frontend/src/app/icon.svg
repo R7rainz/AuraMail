@@ -1,8 +1,18 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="32" height="32" rx="7" fill="#000000"/>
-  <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" stroke="#ffffff" stroke-opacity="0.16"/>
-  <path d="M8 12.5L16 18L24 12.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="7.5" y="10" width="17" height="12" rx="2.5" stroke="#ffffff" stroke-width="1.8"/>
-  <circle cx="24" cy="9" r="3" fill="#000000"/>
-  <circle cx="24" cy="9" r="2" fill="#ffffff"/>
+  <defs>
+    <linearGradient id="aura" x1="5" y1="4" x2="28" y2="29" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E2AA65"/>
+      <stop offset="1" stop-color="#B979AC"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="8" y1="10" x2="24" y2="23" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF1D6"/>
+      <stop offset="1" stop-color="#E2AA65"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="#111617"/>
+  <path d="M5.8 18.6C5.2 11.3 10.8 5.3 17.8 5.1c5.2-.1 9 2.8 9.8 6.8" stroke="url(#aura)" stroke-width="2.1" stroke-linecap="round"/>
+  <path d="M26.2 13.4c.6 7.3-5 13.3-12 13.5-5.2.1-9-2.8-9.8-6.8" stroke="url(#aura)" stroke-width="2.1" stroke-linecap="round" opacity=".48"/>
+  <rect x="7.5" y="9.5" width="17" height="13" rx="3" fill="url(#paper)"/>
+  <path d="m8.7 11.2 7.3 5.5 7.3-5.5" stroke="#49352A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="25.8" cy="7.2" r="1.7" fill="#FFF1D6"/>
 </svg>
