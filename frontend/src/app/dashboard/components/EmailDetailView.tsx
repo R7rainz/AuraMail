@@ -5,6 +5,7 @@ import {
   CalendarCheck,
   CalendarPlus,
   Check,
+  ChevronDown,
   ChevronLeft,
   ClipboardCheck,
   Clock,
@@ -207,6 +208,30 @@ function Prose({
       </div>
     </section>
   );
+}
+
+function LinkedText({ text }: { text: string }) {
+  return text.split(/(https?:\/\/[^\s<>"']+)/g).map((part, index) => {
+    if (!/^https?:\/\//i.test(part)) {
+      return <span key={index}>{part}</span>;
+    }
+
+    const url = part.replace(/[.,;:!?]+$/, "");
+    const trailing = part.slice(url.length);
+    return (
+      <span key={index}>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline decoration-primary/40 underline-offset-4 hover:decoration-primary"
+        >
+          {url}
+        </a>
+        {trailing}
+      </span>
+    );
+  });
 }
 
 export function EmailDetailView({
@@ -533,9 +558,16 @@ export function EmailDetailView({
             </Prose>
           )}
           {selectedEmail.description && (
-            <Prose icon={FileText} title="Full message">
-              {selectedEmail.description}
-            </Prose>
+            <details className="group">
+              <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+                <FileText className="size-4 text-muted-foreground" />
+                Full message
+                <ChevronDown className="ml-auto size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="mt-4 whitespace-pre-wrap border-l-2 border-primary/50 pl-5 text-base leading-8 text-foreground">
+                <LinkedText text={selectedEmail.description} />
+              </div>
+            </details>
           )}
         </div>
 
