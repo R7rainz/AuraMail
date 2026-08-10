@@ -89,6 +89,23 @@ func TestExtractLinksSkipsFooter(t *testing.T) {
 	}
 }
 
+func TestExtractLinksSkipsKnownFooterURLs(t *testing.T) {
+	if !IsFooterLink("https://lnkd.in/dKBWGCEN") {
+		t.Fatal("expected sample LinkedIn URL to be recognized as footer")
+	}
+	payload := &gmail.MessagePart{
+		MimeType: "text/html",
+		Body: &gmail.MessagePartBody{Data: base64.URLEncoding.EncodeToString([]byte(
+			`<a href="https://jobs.example/main">Apply</a><a href="https://www.youtube.com/@placementvitbhopal/streams">Videos</a><a href="https://www.vitbhopal.ac.in">Website</a><a href="https://lnkd.in/dKBWGCEN">LinkedIn</a>`,
+		))},
+	}
+
+	got := ExtractLinks(payload)
+	if len(got) != 1 || got[0] != "https://jobs.example/main" {
+		t.Fatalf("unexpected known footer links: %#v", got)
+	}
+}
+
 func TestExtractAttachments(t *testing.T) {
 	t.Run("nil payload returns empty", func(t *testing.T) {
 		if got := ExtractAttachments(nil); len(got) != 0 {

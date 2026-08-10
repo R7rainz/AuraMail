@@ -180,7 +180,7 @@ func ExtractLinks(payload *gmail.MessagePart) []string {
 	links := make([]string, 0)
 	add := func(link string) {
 		link = strings.Trim(link, " \t\r\n.,;:!?)]}>")
-		if !isHTTPLink(link) {
+		if !isHTTPLink(link) || IsFooterLink(link) {
 			return
 		}
 		if _, ok := seen[link]; ok {
@@ -246,20 +246,20 @@ func IsFooterLink(link string) bool {
 		return false
 	}
 	host := strings.TrimPrefix(strings.ToLower(parsed.Hostname()), "www.")
-	path := strings.TrimRight(strings.ToLower(parsed.EscapedPath()), "/")
+	path := strings.TrimRight(parsed.Path, "/")
 	switch host {
 	case "lnkd.in":
-		return path == "/dkwbgcen"
+		return strings.EqualFold(path, "/dKBWGCEN")
 	case "vitbhopal.ac.in":
 		return path == ""
 	case "youtube.com":
-		return path == "/@placementvitbhopal/streams" || path == "/c/vitbhopalofficial"
+		return strings.EqualFold(path, "/@placementvitbhopal/streams") || strings.EqualFold(path, "/c/VITBHOPALOfficial")
 	case "facebook.com":
-		return path == "/vitunivbhopal"
+		return strings.EqualFold(path, "/VITUnivBhopal")
 	case "instagram.com":
-		return path == "/vit.bhopal"
+		return strings.EqualFold(path, "/vit.bhopal")
 	case "linkedin.com":
-		return path == "/company/vit-bhopal-university"
+		return strings.EqualFold(path, "/company/vit-bhopal-university")
 	default:
 		return false
 	}
