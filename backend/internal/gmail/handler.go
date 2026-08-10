@@ -90,6 +90,7 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 		Deadline          *string                `json:"deadline"`
 		ApplyLink         *string                `json:"applyLink"`
 		OtherLinks        []string               `json:"otherLinks"`
+		LinkLabels        []string               `json:"linkLabels,omitempty"`
 		Eligibility       any                    `json:"eligibility"`
 		Timings           any                    `json:"timings"`
 		Salary            any                    `json:"salary"`
@@ -126,6 +127,7 @@ func (h *GmailHandler) GetEmails(w http.ResponseWriter, r *http.Request) {
 			Deadline:          s.Deadline,
 			ApplyLink:         s.ApplyLink,
 			OtherLinks:        s.OtherLinks,
+			LinkLabels:        s.LinkLabels,
 			Eligibility:       s.Eligibility,
 			Timings:           s.Timings,
 			Salary:            s.Salary,

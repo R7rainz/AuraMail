@@ -20,6 +20,7 @@ type AIResult struct {
 	Deadline          *string                `json:"deadline"`
 	ApplyLink         *string                `json:"applyLink"`
 	OtherLinks        []string               `json:"otherLinks"`
+	LinkLabels        []string               `json:"linkLabels,omitempty"`
 	Eligibility       any                    `json:"eligibility"`
 	Timings           any                    `json:"timings"`
 	Salary            any                    `json:"salary"`

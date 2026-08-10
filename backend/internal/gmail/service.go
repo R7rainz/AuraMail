@@ -256,13 +256,19 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo UserReposit
 }
 
 func mergeExtractedLinks(summary *ai.AIResult, payload *gmail.MessagePart) bool {
-	extracted := utils.ExtractLinks(payload)
-	if len(extracted) > 0 {
+	details := utils.ExtractLinkDetails(payload)
+	if len(details) > 0 {
+		extracted := make([]string, 0, len(details))
+		labels := make([]string, 0, len(details))
+		for _, detail := range details {
+			extracted = append(extracted, detail.URL)
+			labels = append(labels, detail.Label)
+		}
 		oldApply := ""
 		if summary.ApplyLink != nil {
 			oldApply = *summary.ApplyLink
 		}
-		changed := oldApply != extracted[0] || len(summary.OtherLinks) != len(extracted)-1
+		changed := oldApply != extracted[0] || len(summary.OtherLinks) != len(extracted)-1 || len(summary.LinkLabels) != len(labels)
 		if !changed {
 			for i, link := range extracted[1:] {
 				if summary.OtherLinks[i] != link {
@@ -271,25 +277,48 @@ func mergeExtractedLinks(summary *ai.AIResult, payload *gmail.MessagePart) bool 
 				}
 			}
 		}
+		if !changed {
+			for i, label := range labels {
+				if summary.LinkLabels[i] != label {
+					changed = true
+					break
+				}
+			}
+		}
 		applyLink := extracted[0]
 		summary.ApplyLink = &applyLink
 		summary.OtherLinks = extracted[1:]
+		summary.LinkLabels = labels
 		return changed
 	}
 
 	changed := false
+	labels := summary.LinkLabels
 	if summary.ApplyLink != nil && utils.IsFooterLink(*summary.ApplyLink) {
 		summary.ApplyLink = nil
+		if len(labels) > 0 {
+			labels = labels[1:]
+		}
+		summary.LinkLabels = labels
 		changed = true
 	}
-	filtered := summary.OtherLinks[:0]
-	for _, link := range summary.OtherLinks {
+	filtered := make([]string, 0, len(summary.OtherLinks))
+	filteredLabels := make([]string, 0, len(summary.OtherLinks))
+	for i, link := range summary.OtherLinks {
 		if !utils.IsFooterLink(link) {
 			filtered = append(filtered, link)
+			if i < len(labels) {
+				filteredLabels = append(filteredLabels, labels[i])
+			}
 		}
 	}
 	if len(filtered) != len(summary.OtherLinks) {
 		summary.OtherLinks = filtered
+		if len(filteredLabels) > 0 {
+			summary.LinkLabels = append(summary.LinkLabels[:0], filteredLabels...)
+		} else {
+			summary.LinkLabels = nil
+		}
 		changed = true
 	}
 	return changed

@@ -28,7 +28,7 @@ var (
 )
 
 const CacheTTL = 1 * time.Hour
-const AnalysisVersion = "detailed-v3"
+const AnalysisVersion = "detailed-v4"
 
 func getClient() *openai.Client {
 	once.Do(func() {
@@ -54,8 +54,8 @@ func AnalyzeEmail(ctx context.Context, userID string, subject, snippet, body str
 	}
 
 	truncatedBody := body
-	if len(body) > 12000 {
-		truncatedBody = body[:12000] + "..."
+	if len(body) > 24000 {
+		truncatedBody = body[:24000] + "..."
 	}
 
 	systemPrompt := `You are a highly specialized AI assistant for academic and recruitment analysis at VIT (Vellore Institute of Technology).
@@ -77,8 +77,9 @@ TAGGING RULES (tags field - array of relevant tags):
 Include ALL applicable tags from: ["urgent", "high-package", "dream-company", "mass-hiring", "off-campus", "on-campus", "remote", "hybrid", "wfh", "tier-1", "startup", "mnc", "govt", "psu", "core", "it", "non-tech", "fresher-friendly"]
 
 JSON FIELD RULES:
-- summary: Write a detailed 6-10 bullet-point brief. Preserve every concrete detail present: company, role, location, work mode, eligibility, pass-out year, experience, compensation, deadline, responsibilities, required skills, restrictions, and application method. Never replace a list of requirements or responsibilities with vague wording.
-- Ignore recurring sender signatures, greetings, disclaimers, social-media follow prompts, and footer boilerplate. Focus on the opportunity in the main body.
+- summary: MUST be a detailed bullet list, never a paragraph. Use one bullet per concrete fact and use as many bullets as needed (normally 8-20). Preserve all details from the main body: company, role, location, work mode, eligibility, pass-out year, experience, compensation, deadline, responsibilities, required skills, restrictions, schedule, and application method. Never collapse a list into vague wording.
+- Extract each fact independently into its matching field as well as keeping it in summary when useful. Do not leave a field null when the main body contains that information.
+- Ignore everything beginning with the exact footer phrase "In God bless you mails" and all following footer/signature text, including lnkd.in, patqueries.bhopal@vitbhopal.ac.in, VIT Bhopal websites, and social links. Do not copy footer text into summary, description, requirements, or any link field.
 - deadline: Use YYYY-MM-DD format or null.
 - otherLinks: Must be an array of strings [].
 - tags: Must be an array of strings [].

@@ -8,29 +8,29 @@ import (
 	"google.golang.org/api/gmail/v1"
 )
 
-func TestCleanTextForAi(t *testing.T){
-    tests := []struct {
-        name     string
-        input    string
-        expected string
-    }{
-        {
-            name:     "Removes extra whitespace",
-            input:    "Hello    World  \n  Test",
-            expected: "Hello World Test",
-        },
-        {
-            name:     "Truncates long text",
-            input:    string(make([]byte, 3000)), // 3000 characters
-            expected: "... [truncated]",           // Should end with this
-        },
-    }
+func TestCleanTextForAi(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Removes extra whitespace",
+			input:    "Hello    World  \n  Test",
+			expected: "Hello World Test",
+		},
+		{
+			name:     "Truncates long text",
+			input:    string(make([]byte, 3000)), // 3000 characters
+			expected: "... [truncated]",          // Should end with this
+		},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := CleanTextForAi(tt.input)
 
-		    //checking logic
+			//checking logic
 			if tt.name == "Removes extra whitespace" && result != tt.expected {
 				t.Errorf("got %q, want %q", result, tt.expected)
 			}
@@ -53,6 +53,33 @@ func TestParseBodyHTMLIncludesLink(t *testing.T) {
 	body := ParseBody(payload)
 	if !strings.Contains(body, "Apply here") || !strings.Contains(body, "https://jobs.example/apply") {
 		t.Fatalf("expected HTML text and link, got %q", body)
+	}
+}
+
+func TestParseBodyRemovesExactFooter(t *testing.T) {
+	payload := &gmail.MessagePart{
+		MimeType: "text/plain",
+		Body: &gmail.MessagePartBody{Data: base64.URLEncoding.EncodeToString([]byte(
+			"Role: Software Engineer\n\nIn God bless you mails, if the link that starts in lnkd.in/... does not open, copy the link.\nWork hard - success will be yours.\nGod Bless Us.\nQueries must be to patqueries.bhopal@vitbhopal.ac.in only.\nOur videos can be seen at https://www.youtube.com/@placementvitbhopal/streams\nWebsite: www.vitbhopal.ac.in\nFollow us: Facebook | Instagram | LinkedIn | YouTube\n---\nFacebook: facebook.com/VITUnivBhopal\nInstagram: instagram.com/vit.bhopal\nLinkedIn: linkedin.com/company/vit-bhopal-university\nYouTube: youtube.com/c/VITBHOPALOfficial",
+		))},
+	}
+
+	if got := ParseBody(payload); got != "Role: Software Engineer" {
+		t.Fatalf("footer was not removed: %q", got)
+	}
+}
+
+func TestExtractLinkDetailsKeepsVisibleLabel(t *testing.T) {
+	payload := &gmail.MessagePart{
+		MimeType: "text/html",
+		Body: &gmail.MessagePartBody{Data: base64.URLEncoding.EncodeToString([]byte(
+			`<a href="https://jobs.example/apply"><strong>Apply for Software Engineer</strong></a>`,
+		))},
+	}
+
+	got := ExtractLinkDetails(payload)
+	if len(got) != 1 || got[0].Label != "Apply for Software Engineer" {
+		t.Fatalf("unexpected link details: %#v", got)
 	}
 }
 

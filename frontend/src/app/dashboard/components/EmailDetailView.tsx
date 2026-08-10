@@ -507,9 +507,17 @@ export function EmailDetailView({
 
         {(selectedEmail.eligibility ||
           selectedEmail.requirements ||
+          selectedEmail.eventDetails ||
           selectedEmail.description) && <Separator />}
 
         <div className="space-y-8">
+          {selectedEmail.eventDetails && (
+            <Prose icon={CalendarCheck} title="Event details">
+              {typeof selectedEmail.eventDetails === "string"
+                ? selectedEmail.eventDetails
+                : JSON.stringify(selectedEmail.eventDetails)}
+            </Prose>
+          )}
           {selectedEmail.eligibility && (
             <Prose icon={User} title="Eligibility">
               {typeof selectedEmail.eligibility === "string"
@@ -541,7 +549,7 @@ export function EmailDetailView({
               </span>
             </h2>
             <div className="mt-3 space-y-2">
-              {links.map((link) => (
+              {links.map((link, index) => (
                 <a
                   key={link}
                   href={link}
@@ -549,7 +557,15 @@ export function EmailDetailView({
                   rel="noopener noreferrer"
                   className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm text-primary hover:bg-white/[0.06]"
                 >
-                  <span className="min-w-0 flex-1 truncate">{link}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium">
+                      {selectedEmail.linkLabels?.[index] ||
+                        (index === 0 ? "Application link" : "Related link")}
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                      {link}
+                    </span>
+                  </span>
                   <ExternalLink className="size-4 shrink-0" />
                 </a>
               ))}

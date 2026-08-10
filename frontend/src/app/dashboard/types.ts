@@ -28,6 +28,7 @@ export interface PlacementEmail {
   deadline: string | null;
   applyLink: string | null;
   otherLinks?: string[] | null;
+  linkLabels?: string[] | null;
   eligibility: string | null;
   timings: string | null;
   salary: string | null;

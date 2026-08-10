@@ -13,16 +13,21 @@ import (
 )
 
 type EmailMessage struct {
-    ID      string `json:"id"`
-    Subject string `json:"subject"`
-    From    string `json:"from"`
-    Date    string `json:"date"`
-    Body    string `json:"body"`
-    Snippet string `json:"snippet"`
+	ID      string `json:"id"`
+	Subject string `json:"subject"`
+	From    string `json:"from"`
+	Date    string `json:"date"`
+	Body    string `json:"body"`
+	Snippet string `json:"snippet"`
+}
+
+type ExtractedLink struct {
+	URL   string
+	Label string
 }
 
 func ListPlacementEmails(srv *gmail.Service, query string, maxResults int64) ([]*EmailMessage, error) {
-	//getting list of ids 
+	//getting list of ids
 	res, err := srv.Users.Messages.List("me").Q(query).MaxResults(maxResults).Do()
 	if err != nil {
 		return nil, err
@@ -45,14 +50,18 @@ func ListPlacementEmails(srv *gmail.Service, query string, maxResults int64) ([]
 				}
 
 				email := &EmailMessage{
-					ID: id, 
+					ID:      id,
 					Snippet: msg.Snippet,
 				}
 
 				//header parsing
 				for _, h := range msg.Payload.Headers {
-					if h.Name == "Subject" { email.Subject = h.Value }
-					if h.Name == "From" { email.From = h.Value }
+					if h.Name == "Subject" {
+						email.Subject = h.Value
+					}
+					if h.Name == "From" {
+						email.From = h.Value
+					}
 				}
 
 				email.Body = ParseBody(msg.Payload)
@@ -61,7 +70,7 @@ func ListPlacementEmails(srv *gmail.Service, query string, maxResults int64) ([]
 		}()
 	}
 
-	//Feeding the workers 
+	//Feeding the workers
 	for _, m := range res.Messages {
 		jobs <- m.Id
 	}
@@ -75,12 +84,12 @@ func ListPlacementEmails(srv *gmail.Service, query string, maxResults int64) ([]
 
 	var finalResult []*EmailMessage
 	for email := range results {
-		finalResult = append(finalResult,email)
+		finalResult = append(finalResult, email)
 	}
 	return finalResult, nil
 }
 
-//CleanTextForAI
+// CleanTextForAI
 func CleanTextForAi(input string) string {
 	return cleanText(input, 2000)
 }
@@ -89,8 +98,8 @@ func CleanTextForStorage(input string) string {
 	cleaned := strings.TrimSpace(strings.ReplaceAll(input, "\r\n", "\n"))
 	cleaned = regexp.MustCompile(`[ \t]+`).ReplaceAllString(cleaned, " ")
 	cleaned = regexp.MustCompile(`\n{3,}`).ReplaceAllString(cleaned, "\n\n")
-	if len(cleaned) > 12000 {
-		return cleaned[:12000] + "... [truncated]"
+	if len(cleaned) > 24000 {
+		return cleaned[:24000] + "... [truncated]"
 	}
 	return cleaned
 }
@@ -118,9 +127,9 @@ func ParseBody(payload *gmail.MessagePart) string {
 		data := decodeBody(payload.Body.Data)
 		switch payload.MimeType {
 		case "text/plain":
-			return CleanTextForStorage(data)
+			return cleanBody(data)
 		case "text/html":
-			return CleanTextForStorage(htmlText(data))
+			return cleanBody(htmlText(data))
 		}
 	}
 
@@ -131,6 +140,14 @@ func ParseBody(payload *gmail.MessagePart) string {
 	}
 
 	return ""
+}
+
+func cleanBody(input string) string {
+	cleaned := CleanTextForStorage(input)
+	if index := footerStart(cleaned); index >= 0 {
+		cleaned = strings.TrimSpace(cleaned[:index])
+	}
+	return cleaned
 }
 
 func decodeBody(data string) string {
@@ -174,11 +191,11 @@ func htmlText(source string) string {
 	return builder.String()
 }
 
-// ExtractLinks returns unique HTTP(S) links from plain-text URLs and HTML hrefs.
-func ExtractLinks(payload *gmail.MessagePart) []string {
+// ExtractLinkDetails returns unique HTTP(S) links and their visible labels.
+func ExtractLinkDetails(payload *gmail.MessagePart) []ExtractedLink {
 	seen := make(map[string]struct{})
-	links := make([]string, 0)
-	add := func(link string) {
+	links := make([]ExtractedLink, 0)
+	add := func(link, label string) {
 		link = strings.Trim(link, " \t\r\n.,;:!?)]}>")
 		if !isHTTPLink(link) || IsFooterLink(link) {
 			return
@@ -187,7 +204,11 @@ func ExtractLinks(payload *gmail.MessagePart) []string {
 			return
 		}
 		seen[link] = struct{}{}
-		links = append(links, link)
+		label = strings.TrimSpace(strings.Join(strings.Fields(label), " "))
+		if label == "" {
+			label = defaultLinkLabel(link)
+		}
+		links = append(links, ExtractedLink{URL: link, Label: label})
 	}
 	var visit func(*gmail.MessagePart)
 	visit = func(part *gmail.MessagePart) {
@@ -201,8 +222,8 @@ func ExtractLinks(payload *gmail.MessagePart) []string {
 				if index := footerStart(source); index >= 0 {
 					source = source[:index]
 				}
-				for _, link := range regexp.MustCompile(`https?://[^\s<>"']+`).FindAllString(source, -1) {
-					add(link)
+				for _, match := range regexp.MustCompile(`https?://[^\s<>"']+`).FindAllStringIndex(source, -1) {
+					add(source[match[0]:match[1]], plainLinkLabel(source, match[0]))
 				}
 			case "text/html":
 				if doc, err := html.Parse(strings.NewReader(source)); err == nil {
@@ -213,9 +234,10 @@ func ExtractLinks(payload *gmail.MessagePart) []string {
 							footerStarted = true
 						}
 						if !footerStarted && node.Type == html.ElementNode && node.Data == "a" {
+							label := anchorText(node)
 							for _, attr := range node.Attr {
 								if attr.Key == "href" {
-									add(attr.Val)
+									add(attr.Val, label)
 								}
 							}
 						}
@@ -233,6 +255,53 @@ func ExtractLinks(payload *gmail.MessagePart) []string {
 	}
 	visit(payload)
 	return links
+}
+
+// ExtractLinks returns unique HTTP(S) links from plain-text URLs and HTML hrefs.
+func ExtractLinks(payload *gmail.MessagePart) []string {
+	details := ExtractLinkDetails(payload)
+	links := make([]string, 0, len(details))
+	for _, detail := range details {
+		links = append(links, detail.URL)
+	}
+	return links
+}
+
+func anchorText(node *html.Node) string {
+	var builder strings.Builder
+	var walk func(*html.Node)
+	walk = func(current *html.Node) {
+		if current.Type == html.TextNode {
+			builder.WriteString(current.Data)
+			builder.WriteByte(' ')
+		}
+		for child := current.FirstChild; child != nil; child = child.NextSibling {
+			walk(child)
+		}
+	}
+	walk(node)
+	return builder.String()
+}
+
+func plainLinkLabel(source string, start int) string {
+	lineStart := strings.LastIndex(source[:start], "\n") + 1
+	label := strings.TrimSpace(source[lineStart:start])
+	return strings.Trim(label, "-–—•:| ")
+}
+
+func defaultLinkLabel(link string) string {
+	parsed, err := url.Parse(link)
+	if err != nil {
+		return "Open link"
+	}
+	switch strings.TrimPrefix(strings.ToLower(parsed.Hostname()), "www.") {
+	case "docs.google.com", "forms.gle", "forms.google.com":
+		return "Application form"
+	case "jobs.lever.co", "boards.greenhouse.io":
+		return "Job application"
+	default:
+		return "Open link"
+	}
 }
 
 func isHTTPLink(link string) bool {
@@ -274,6 +343,7 @@ func footerStart(source string) int {
 		"follow us:",
 		"work hard - success will be yours",
 		"\n---",
+		"---\n",
 	}
 	index := -1
 	for _, marker := range markers {
