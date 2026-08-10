@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"encoding/base64"
+	"strings"
 	"testing"
 
 	"google.golang.org/api/gmail/v1"
@@ -37,6 +39,53 @@ func TestCleanTextForAi(t *testing.T){
 				t.Error("Text was not truncated correctly")
 			}
 		})
+	}
+}
+
+func TestParseBodyHTMLIncludesLink(t *testing.T) {
+	payload := &gmail.MessagePart{
+		MimeType: "text/html",
+		Body: &gmail.MessagePartBody{Data: base64.URLEncoding.EncodeToString([]byte(
+			`<p>Apply here</p><a href="https://jobs.example/apply">Open form</a>`,
+		))},
+	}
+
+	body := ParseBody(payload)
+	if !strings.Contains(body, "Apply here") || !strings.Contains(body, "https://jobs.example/apply") {
+		t.Fatalf("expected HTML text and link, got %q", body)
+	}
+}
+
+func TestExtractLinksFromHTMLAndPlainText(t *testing.T) {
+	payload := &gmail.MessagePart{
+		MimeType: "multipart/alternative",
+		Parts: []*gmail.MessagePart{
+			{MimeType: "text/plain", Body: &gmail.MessagePartBody{Data: base64.URLEncoding.EncodeToString([]byte(
+				"Apply at https://jobs.example/plain.",
+			))}},
+			{MimeType: "text/html", Body: &gmail.MessagePartBody{Data: base64.URLEncoding.EncodeToString([]byte(
+				`<a href="https://jobs.example/html">Apply</a><a href="mailto:hr@example.com">Email</a>`,
+			))}},
+		},
+	}
+
+	got := ExtractLinks(payload)
+	if len(got) != 2 || got[0] != "https://jobs.example/plain" || got[1] != "https://jobs.example/html" {
+		t.Fatalf("unexpected links: %#v", got)
+	}
+}
+
+func TestExtractLinksSkipsFooter(t *testing.T) {
+	payload := &gmail.MessagePart{
+		MimeType: "text/plain",
+		Body: &gmail.MessagePartBody{Data: base64.URLEncoding.EncodeToString([]byte(
+			"Apply here: https://jobs.example/main\n---\nQueries must be to patqueries.bhopal@vitbhopal.ac.in only.\nOur videos can be seen at https://www.youtube.com/@placementvitbhopal/streams\nWebsite: https://www.vitbhopal.ac.in\n",
+		))},
+	}
+
+	got := ExtractLinks(payload)
+	if len(got) != 1 || got[0] != "https://jobs.example/main" {
+		t.Fatalf("unexpected footer links: %#v", got)
 	}
 }
 

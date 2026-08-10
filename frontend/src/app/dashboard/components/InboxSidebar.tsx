@@ -83,7 +83,7 @@ export function InboxSidebar({
   return (
     <aside
       className={cn(
-        "glass-panel flex w-full shrink-0 flex-col border-r border-white/10 bg-[#121819]/75 md:w-[380px] xl:w-[420px]",
+        "glass-panel flex min-h-0 w-full shrink-0 flex-col border-r border-white/10 bg-[#121819]/75 md:w-[380px] xl:w-[420px]",
         className,
       )}
     >

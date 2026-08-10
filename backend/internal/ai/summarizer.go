@@ -53,8 +53,8 @@ func AnalyzeEmail(ctx context.Context, userID string, subject, snippet, body str
 	}
 
 	truncatedBody := body
-	if len(body) > 4000 { // Reduced slightly to leave room for the heavy prompt
-		truncatedBody = body[:4000] + "..."
+	if len(body) > 8000 {
+		truncatedBody = body[:8000] + "..."
 	}
 
 	systemPrompt := `You are a highly specialized AI assistant for academic and recruitment analysis at VIT (Vellore Institute of Technology).
@@ -76,6 +76,7 @@ TAGGING RULES (tags field - array of relevant tags):
 Include ALL applicable tags from: ["urgent", "high-package", "dream-company", "mass-hiring", "off-campus", "on-campus", "remote", "hybrid", "wfh", "tier-1", "startup", "mnc", "govt", "psu", "core", "it", "non-tech", "fresher-friendly"]
 
 JSON FIELD RULES:
+- summary: Write 3-5 sentences. Include every concrete detail present: company, role, location, work mode, eligibility, experience, compensation, deadline, and application method. Do not replace these details with vague wording.
 - deadline: Use YYYY-MM-DD format or null.
 - otherLinks: Must be an array of strings [].
 - tags: Must be an array of strings [].

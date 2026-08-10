@@ -3,10 +3,12 @@ package utils
 import (
 	"encoding/base64"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
 
+	"golang.org/x/net/html"
 	"google.golang.org/api/gmail/v1"
 )
 
@@ -80,34 +82,210 @@ func ListPlacementEmails(srv *gmail.Service, query string, maxResults int64) ([]
 
 //CleanTextForAI
 func CleanTextForAi(input string) string {
+	return cleanText(input, 2000)
+}
+
+func CleanTextForStorage(input string) string {
+	cleaned := strings.TrimSpace(strings.ReplaceAll(input, "\r\n", "\n"))
+	cleaned = regexp.MustCompile(`[ \t]+`).ReplaceAllString(cleaned, " ")
+	cleaned = regexp.MustCompile(`\n{3,}`).ReplaceAllString(cleaned, "\n\n")
+	if len(cleaned) > 12000 {
+		return cleaned[:12000] + "... [truncated]"
+	}
+	return cleaned
+}
+
+func cleanText(input string, limit int) string {
 	re := regexp.MustCompile(`\s+`)
 	cleaned := re.ReplaceAllString(input, " ")
 
 	cleaned = strings.TrimSpace(cleaned)
 
 	//limiting to size 2000
-	if len(cleaned) > 2000 {
-		return cleaned[:2000] + "... [truncated]"
+	if len(cleaned) > limit {
+		return cleaned[:limit] + "... [truncated]"
 	}
 
 	return cleaned
 }
 
 func ParseBody(payload *gmail.MessagePart) string {
-	if payload.MimeType == "text/plain" && payload.Body.Data != "" {
-		data, _ := base64.URLEncoding.DecodeString(payload.Body.Data)
-		return CleanTextForAi(string(data))
+	if payload == nil {
+		return ""
+	}
+
+	if payload.Body != nil && payload.Body.Data != "" {
+		data := decodeBody(payload.Body.Data)
+		switch payload.MimeType {
+		case "text/plain":
+			return CleanTextForStorage(data)
+		case "text/html":
+			return CleanTextForStorage(htmlText(data))
+		}
 	}
 
 	for _, part := range payload.Parts {
-		result := ParseBody(part)
-		if result != "" {
+		if result := ParseBody(part); result != "" {
 			return result
 		}
 	}
 
 	return ""
+}
 
+func decodeBody(data string) string {
+	decoded, err := base64.URLEncoding.DecodeString(data)
+	if err != nil {
+		decoded, _ = base64.RawURLEncoding.DecodeString(data)
+	}
+	return string(decoded)
+}
+
+func htmlText(source string) string {
+	doc, err := html.Parse(strings.NewReader(source))
+	if err != nil {
+		return source
+	}
+
+	var builder strings.Builder
+	var walk func(*html.Node)
+	walk = func(node *html.Node) {
+		if node.Type == html.ElementNode && (node.Data == "script" || node.Data == "style") {
+			return
+		}
+		if node.Type == html.TextNode {
+			builder.WriteString(node.Data)
+			builder.WriteByte(' ')
+		}
+		if node.Type == html.ElementNode && node.Data == "a" {
+			for _, attr := range node.Attr {
+				if attr.Key == "href" && isHTTPLink(attr.Val) {
+					builder.WriteString(" ")
+					builder.WriteString(attr.Val)
+					builder.WriteString(" ")
+				}
+			}
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			walk(child)
+		}
+	}
+	walk(doc)
+	return builder.String()
+}
+
+// ExtractLinks returns unique HTTP(S) links from plain-text URLs and HTML hrefs.
+func ExtractLinks(payload *gmail.MessagePart) []string {
+	seen := make(map[string]struct{})
+	links := make([]string, 0)
+	add := func(link string) {
+		link = strings.Trim(link, " \t\r\n.,;:!?)]}>")
+		if !isHTTPLink(link) {
+			return
+		}
+		if _, ok := seen[link]; ok {
+			return
+		}
+		seen[link] = struct{}{}
+		links = append(links, link)
+	}
+	var visit func(*gmail.MessagePart)
+	visit = func(part *gmail.MessagePart) {
+		if part == nil {
+			return
+		}
+		if part.Body != nil && part.Body.Data != "" {
+			source := decodeBody(part.Body.Data)
+			switch part.MimeType {
+			case "text/plain":
+				if index := footerStart(source); index >= 0 {
+					source = source[:index]
+				}
+				for _, link := range regexp.MustCompile(`https?://[^\s<>"']+`).FindAllString(source, -1) {
+					add(link)
+				}
+			case "text/html":
+				if doc, err := html.Parse(strings.NewReader(source)); err == nil {
+					footerStarted := false
+					var walk func(*html.Node)
+					walk = func(node *html.Node) {
+						if node.Type == html.TextNode && isFooterText(node.Data) {
+							footerStarted = true
+						}
+						if !footerStarted && node.Type == html.ElementNode && node.Data == "a" {
+							for _, attr := range node.Attr {
+								if attr.Key == "href" {
+									add(attr.Val)
+								}
+							}
+						}
+						for child := node.FirstChild; child != nil; child = child.NextSibling {
+							walk(child)
+						}
+					}
+					walk(doc)
+				}
+			}
+		}
+		for _, child := range part.Parts {
+			visit(child)
+		}
+	}
+	visit(payload)
+	return links
+}
+
+func isHTTPLink(link string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(link))
+	return err == nil && (parsed.Scheme == "http" || parsed.Scheme == "https") && parsed.Host != ""
+}
+
+func IsFooterLink(link string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(link))
+	if err != nil {
+		return false
+	}
+	host := strings.TrimPrefix(strings.ToLower(parsed.Hostname()), "www.")
+	path := strings.TrimRight(strings.ToLower(parsed.EscapedPath()), "/")
+	switch host {
+	case "lnkd.in":
+		return path == "/dkwbgcen"
+	case "vitbhopal.ac.in":
+		return path == ""
+	case "youtube.com":
+		return path == "/@placementvitbhopal/streams" || path == "/c/vitbhopalofficial"
+	case "facebook.com":
+		return path == "/vitunivbhopal"
+	case "instagram.com":
+		return path == "/vit.bhopal"
+	case "linkedin.com":
+		return path == "/company/vit-bhopal-university"
+	default:
+		return false
+	}
+}
+
+func footerStart(source string) int {
+	lower := strings.ToLower(source)
+	markers := []string{
+		"in god bless you mails",
+		"queries must be to",
+		"our videos can be seen at",
+		"follow us:",
+		"work hard - success will be yours",
+		"\n---",
+	}
+	index := -1
+	for _, marker := range markers {
+		if candidate := strings.Index(lower, marker); candidate >= 0 && (index < 0 || candidate < index) {
+			index = candidate
+		}
+	}
+	return index
+}
+
+func isFooterText(text string) bool {
+	return footerStart(text) >= 0
 }
 
 // AttachmentMeta describes a real Gmail attachment (filename + Gmail API
@@ -156,5 +334,3 @@ func FormatForAI(emails []*EmailMessage) string {
 	}
 	return builder.String()
 }
-
-

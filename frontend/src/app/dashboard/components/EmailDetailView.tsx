@@ -226,6 +226,9 @@ export function EmailDetailView({
   const runway = selectedEmail.deadline
     ? getRunway(selectedEmail.deadline, selectedEmail.receivedAt)
     : null;
+  const links = [selectedEmail.applyLink, ...(selectedEmail.otherLinks || [])].filter(
+    (link, index, all): link is string => Boolean(link) && all.indexOf(link) === index,
+  );
 
   return (
     <motion.div
@@ -236,7 +239,7 @@ export function EmailDetailView({
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className="scrollbar-thin absolute inset-0 overflow-y-auto bg-transparent"
     >
-      <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-white/10 bg-[#111617]/80 px-4 py-4 backdrop-blur-xl sm:px-8">
+      <div className="sticky top-0 z-20 flex min-w-0 items-center justify-between gap-3 border-b border-white/10 bg-[#111617]/80 px-4 py-4 backdrop-blur-xl sm:px-8">
         <Button variant="ghost" size="sm" onClick={onBack} className="group -ml-2">
           <ChevronLeft className="transition-transform group-hover:-translate-x-0.5" />
           Back
@@ -478,6 +481,32 @@ export function EmailDetailView({
               <Field icon={Clock} label="Timings" value={selectedEmail.timings} />
             )}
           </div>
+        )}
+
+        {links.length > 0 && (
+          <section>
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <ExternalLink className="size-4 text-muted-foreground" />
+              Links
+              <span className="font-mono text-xs font-normal text-muted-foreground">
+                {links.length}
+              </span>
+            </h2>
+            <div className="mt-3 space-y-2">
+              {links.map((link) => (
+                <a
+                  key={link}
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm text-primary hover:bg-white/[0.06]"
+                >
+                  <span className="min-w-0 flex-1 truncate">{link}</span>
+                  <ExternalLink className="size-4 shrink-0" />
+                </a>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Attachments */}

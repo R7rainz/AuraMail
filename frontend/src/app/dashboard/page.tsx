@@ -93,7 +93,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-dvh items-center justify-center bg-background">
         <div className="size-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
       </div>
     );
@@ -102,7 +102,7 @@ export default function DashboardPage() {
   if (!user) return null;
 
   return (
-    <div className="dashboard-shell flex h-screen flex-col overflow-hidden">
+    <div className="dashboard-shell flex h-dvh min-w-0 flex-col overflow-hidden">
       <Toaster position="top-right" />
 
       <header className="z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-[#111617]/75 px-5 backdrop-blur-xl sm:px-8">
@@ -194,7 +194,7 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
 
-      <div className="relative flex flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <InboxSidebar
           className={liveSelectedEmail ? "hidden md:flex" : undefined}
           searchQuery={filters.searchQuery}

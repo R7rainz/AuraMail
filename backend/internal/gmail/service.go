@@ -147,6 +147,19 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo UserReposit
 					cached, err := repo.GetSummary(ctx, id)
 					if err == nil && cached != nil {
 						slog.Info("Using cached summary", "id", id)
+						if msg, fetchErr := srv.Users.Messages.Get("me", id).Format("full").Do(); fetchErr == nil {
+							changed := mergeExtractedLinks(cached, msg.Payload)
+							body := utils.ParseBody(msg.Payload)
+							if body != "" && (cached.Description == nil || *cached.Description != body) {
+								cached.Description = &body
+								changed = true
+							}
+							if changed {
+								if saveErr := repo.SaveSummary(ctx, userID, id, cached); saveErr != nil {
+									slog.Error("Error updating cached email", "id", id, "err", saveErr)
+								}
+							}
+						}
 						select {
 						case <-ctx.Done():
 							return
@@ -206,7 +219,11 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo UserReposit
 					summary.Sender = headerValue(msg, "From")
 					summary.Snippet = msg.Snippet
 					summary.ReceiverAt = messageReceivedAt(msg)
+					if body != "" {
+						summary.Description = &body
+					}
 					summary.Attachments = attachments
+					mergeExtractedLinks(summary, msg.Payload)
 
 					err = repo.SaveSummary(ctx, userID, id, summary)
 					if err != nil {
@@ -236,6 +253,46 @@ func FetchAndSummarize(ctx context.Context, srv *gmail.Service, repo UserReposit
 		slog.Info("FetchAndSummarize completed")
 	}()
 	return out, errChan
+}
+
+func mergeExtractedLinks(summary *ai.AIResult, payload *gmail.MessagePart) bool {
+	extracted := utils.ExtractLinks(payload)
+	if len(extracted) > 0 {
+		oldApply := ""
+		if summary.ApplyLink != nil {
+			oldApply = *summary.ApplyLink
+		}
+		changed := oldApply != extracted[0] || len(summary.OtherLinks) != len(extracted)-1
+		if !changed {
+			for i, link := range extracted[1:] {
+				if summary.OtherLinks[i] != link {
+					changed = true
+					break
+				}
+			}
+		}
+		applyLink := extracted[0]
+		summary.ApplyLink = &applyLink
+		summary.OtherLinks = extracted[1:]
+		return changed
+	}
+
+	changed := false
+	if summary.ApplyLink != nil && utils.IsFooterLink(*summary.ApplyLink) {
+		summary.ApplyLink = nil
+		changed = true
+	}
+	filtered := summary.OtherLinks[:0]
+	for _, link := range summary.OtherLinks {
+		if !utils.IsFooterLink(link) {
+			filtered = append(filtered, link)
+		}
+	}
+	if len(filtered) != len(summary.OtherLinks) {
+		summary.OtherLinks = filtered
+		changed = true
+	}
+	return changed
 }
 
 func SyncUserPlacementEmails(ctx context.Context, srv *gmail.Service, repo UserRepository, query string, userID string, opts SyncOptions) ([]*ai.AIResult, error) {

@@ -205,7 +205,15 @@ func (r *PostgresRepository) SaveSummary(ctx context.Context, userID string, gma
 	query := `
 		INSERT INTO email_summaries (user_id, gmail_id, thread_id, category, company, role, summary, deadline, apply_link, data)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		ON CONFLICT (gmail_id) DO NOTHING`
+		ON CONFLICT (gmail_id) DO UPDATE SET
+			thread_id = EXCLUDED.thread_id,
+			category = EXCLUDED.category,
+			company = EXCLUDED.company,
+			role = EXCLUDED.role,
+			summary = EXCLUDED.summary,
+			deadline = EXCLUDED.deadline,
+			apply_link = EXCLUDED.apply_link,
+			data = jsonb_set(EXCLUDED.data, '{important}', to_jsonb(email_summaries.important), true)`
 
 	// eligibility, _ := json.Marshal(res.Eligibility)
 	// timings, _ := json.Marshal(res.Timings)
