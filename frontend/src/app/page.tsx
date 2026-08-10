@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LightRaysBackground } from "@/components/LightRaysBackground";
 import { Reveal } from "@/components/Reveal";
 import { RunwayBoard } from "@/components/landing/RunwayBoard";
+import { useAuth } from "@/app/lib/authContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -24,6 +27,17 @@ const capabilities = [
 ];
 
 export default function LandingPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) router.replace("/dashboard");
+  }, [loading, router, user]);
+
+  if (loading || user) {
+    return <div className="min-h-dvh bg-background" />;
+  }
+
   const login = () => {
     window.location.href = `${API_URL}/auth/google`;
   };
