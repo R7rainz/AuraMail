@@ -372,7 +372,7 @@ export function EmailDetailView({
                 <Sparkles className="size-4" />
                 Brief
               </h2>
-              <p className="mt-3 text-base leading-8 text-foreground">
+              <p className="mt-3 whitespace-pre-wrap text-base leading-8 text-foreground">
                 {selectedEmail.summary}
               </p>
             </CardContent>
@@ -483,32 +483,6 @@ export function EmailDetailView({
           </div>
         )}
 
-        {links.length > 0 && (
-          <section>
-            <h2 className="flex items-center gap-2 text-sm font-semibold">
-              <ExternalLink className="size-4 text-muted-foreground" />
-              Links
-              <span className="font-mono text-xs font-normal text-muted-foreground">
-                {links.length}
-              </span>
-            </h2>
-            <div className="mt-3 space-y-2">
-              {links.map((link) => (
-                <a
-                  key={link}
-                  href={link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm text-primary hover:bg-white/[0.06]"
-                >
-                  <span className="min-w-0 flex-1 truncate">{link}</span>
-                  <ExternalLink className="size-4 shrink-0" />
-                </a>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* Attachments */}
         {selectedEmail.attachments && selectedEmail.attachments.length > 0 && (
           <section>
@@ -556,6 +530,32 @@ export function EmailDetailView({
             </Prose>
           )}
         </div>
+
+        {links.length > 0 && (
+          <section>
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <ExternalLink className="size-4 text-muted-foreground" />
+              Links
+              <span className="font-mono text-xs font-normal text-muted-foreground">
+                {links.length}
+              </span>
+            </h2>
+            <div className="mt-3 space-y-2">
+              {links.map((link) => (
+                <a
+                  key={link}
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm text-primary hover:bg-white/[0.06]"
+                >
+                  <span className="min-w-0 flex-1 truncate">{link}</span>
+                  <ExternalLink className="size-4 shrink-0" />
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </motion.div>
   );
