@@ -73,19 +73,19 @@ export default function LandingPage() {
           />
           <div className="relative z-10 mx-auto w-full max-w-3xl text-center">
             <p className="font-mono text-[11px] tracking-[0.2em] text-primary uppercase">
-              Placement intelligence
+              AuraMail · Placement email assistant for students
             </p>
 
             <h1 className="display-serif mt-8 text-5xl text-balance sm:text-6xl md:text-7xl">
-              Every placement mail
+              Turn your placement inbox
               <br />
-              is a clock.
+              into a clear next step.
             </h1>
 
             <p className="mx-auto mt-7 max-w-lg text-base leading-relaxed text-muted-foreground text-pretty">
-              AuraMail reads your campus inbox and puts the closing date on every
-              opportunity — so the drive expiring tonight stops hiding under sixty
-              announcements.
+              AuraMail uses read-only Google access to find placement and internship
+              announcements, extract roles, eligibility, deadlines, and links, and
+              organize them in one focused inbox.
             </p>
 
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
