@@ -2,6 +2,7 @@ package gmail
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -16,6 +17,23 @@ import (
 	"github.com/r7rainz/auramail/internal/config"
 	"github.com/r7rainz/auramail/internal/user"
 )
+
+func TestDecodeGmailAttachmentAcceptsPaddedAndRawData(t *testing.T) {
+	want := []byte("attachment bytes")
+
+	for _, encoded := range []string{
+		base64.RawURLEncoding.EncodeToString(want),
+		base64.URLEncoding.EncodeToString(want),
+	} {
+		got, err := decodeGmailAttachment(encoded)
+		if err != nil {
+			t.Fatalf("decodeGmailAttachment() error = %v", err)
+		}
+		if string(got) != string(want) {
+			t.Fatalf("decodeGmailAttachment() = %q, want %q", got, want)
+		}
+	}
+}
 
 // fakeUserRepo is a hand-rolled fake implementing gmail.UserRepository for
 // handler tests, avoiding the need for a real database.

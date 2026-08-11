@@ -455,7 +455,7 @@ func (h *GmailHandler) GetAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	decoded, err := base64.URLEncoding.DecodeString(att.Data)
+	decoded, err := decodeGmailAttachment(att.Data)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to decode attachment", "err", err)
 		response.InternalError(w, "Failed to decode attachment")
@@ -471,6 +471,14 @@ func (h *GmailHandler) GetAttachment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`%s; filename="%s"`, disposition, filename))
 	w.Header().Set("Content-Length", strconv.Itoa(len(decoded)))
 	_, _ = w.Write(decoded)
+}
+
+func decodeGmailAttachment(data string) ([]byte, error) {
+	decoded, err := base64.RawURLEncoding.DecodeString(data)
+	if err == nil {
+		return decoded, nil
+	}
+	return base64.URLEncoding.DecodeString(data)
 }
 
 // sendSSEError sends an error message via SSE

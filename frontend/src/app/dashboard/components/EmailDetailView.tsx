@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Banknote,
@@ -29,9 +29,9 @@ import { cn } from "@/lib/utils";
 import type { EmailAttachment, PlacementEmail } from "../types";
 import {
   downloadAttachment,
-  fetchAttachmentBlob,
   formatFileSize,
   isPreviewable,
+  openAttachment,
 } from "../lib/attachments";
 import { formatMailDateTime } from "../lib/dateUtils";
 import { externalHref } from "../lib/externalLinks";
@@ -55,33 +55,20 @@ function AttachmentRow({
   gmailMessageId: string;
   attachment: EmailAttachment;
 }) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const previewable = isPreviewable(attachment.mimeType, attachment.size);
 
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
-
-  const handlePreview = async () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-      return;
-    }
+  const handleOpen = async () => {
     setLoading(true);
     setError(null);
     try {
-      const blob = await fetchAttachmentBlob(
+      await openAttachment(
         gmailMessageId,
         attachment.attachmentId,
       );
-      setPreviewUrl(URL.createObjectURL(blob));
     } catch {
-      setError("Preview didn't load. Try downloading the file instead.");
+      setError("Couldn't open the attachment. Try downloading it instead.");
     } finally {
       setLoading(false);
     }
@@ -119,17 +106,15 @@ function AttachmentRow({
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
-          {previewable && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={handlePreview}
-              disabled={loading}
-              aria-label={previewUrl ? "Hide preview" : "Preview file"}
-            >
-              <Eye />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleOpen}
+            disabled={loading}
+            aria-label={`${previewable ? "Preview" : "Open"} ${attachment.filename} in a new tab`}
+          >
+            {previewable ? <Eye /> : <ExternalLink />}
+          </Button>
           <Button
             variant="ghost"
             size="icon-sm"

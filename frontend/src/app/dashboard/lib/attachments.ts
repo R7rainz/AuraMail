@@ -42,3 +42,22 @@ export async function downloadAttachment(
   link.click();
   URL.revokeObjectURL(url);
 }
+
+export async function openAttachment(
+  gmailMessageId: string,
+  attachmentId: string,
+): Promise<void> {
+  const tab = window.open("about:blank", "_blank");
+  if (!tab) throw new Error("Popup blocked");
+  tab.opener = null;
+
+  try {
+    const blob = await fetchAttachmentBlob(gmailMessageId, attachmentId);
+    const url = URL.createObjectURL(blob);
+    tab.location.href = url;
+    window.setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
+  } catch (error) {
+    tab.close();
+    throw error;
+  }
+}
