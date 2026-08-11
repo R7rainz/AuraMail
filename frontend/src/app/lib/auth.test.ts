@@ -107,7 +107,7 @@ describe("fetch-backed helpers", () => {
     const fetchMock = vi
       .fn()
       // /auth/me -> 401
-      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({ ok: false, status: 401 })
       // /auth/refresh -> success
       .mockResolvedValueOnce({
         ok: true,
@@ -130,7 +130,7 @@ describe("fetch-backed helpers", () => {
     storeTokens(tokens);
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce({ ok: false }) // /auth/me -> 401
+      .mockResolvedValueOnce({ ok: false, status: 401 }) // /auth/me -> 401
       .mockResolvedValueOnce({ ok: false }); // /auth/refresh -> fails
     vi.stubGlobal("fetch", fetchMock);
 

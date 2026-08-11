@@ -1,3 +1,5 @@
+import { fetchWithAuth } from "@/app/lib/auth";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 // Max size (bytes) for which an image/PDF attachment gets an inline preview
@@ -20,10 +22,8 @@ export async function fetchAttachmentBlob(
   gmailMessageId: string,
   attachmentId: string,
 ): Promise<Blob> {
-  const token = localStorage.getItem("accessToken");
-  const res = await fetch(
+  const res = await fetchWithAuth(
     `${API_URL}/emails/${gmailMessageId}/attachments/${attachmentId}`,
-    { headers: { Authorization: `Bearer ${token}` } },
   );
   if (!res.ok) throw new Error("Failed to fetch attachment");
   return res.blob();

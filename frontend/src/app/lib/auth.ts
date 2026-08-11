@@ -19,6 +19,8 @@ export interface AuthResponse {
   tokens: AuthTokens;
 }
 
+let refreshPromise: Promise<AuthTokens | null> | null = null;
+
 export async function getGoogleAuthUrl(): Promise<string> {
   const response = await fetch(`${API_URL}/auth/google`);
   const data = await response.json();
@@ -81,43 +83,69 @@ export function clearTokens() {
   }
 }
 
-export async function refreshAccessToken(): Promise<AuthTokens | null> {
+export function refreshAccessToken(): Promise<AuthTokens | null> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const tokens = getStoredTokens();
+
+    if (!tokens?.refreshToken) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          refreshToken: tokens.refreshToken,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to refresh token");
+      }
+
+      const data = await response.json();
+      if (data.success && data.accessToken) {
+        // Refresh endpoint only returns accessToken, keep existing refreshToken
+        const newTokens = {
+          accessToken: data.accessToken,
+          refreshToken: tokens.refreshToken, // Keep existing refresh token
+        };
+        storeTokens(newTokens);
+        return newTokens;
+      }
+      return null;
+    } catch (error) {
+      console.error("Refresh token error:", error);
+      clearTokens();
+      return null;
+    }
+  })();
+
+  return refreshPromise.finally(() => {
+    refreshPromise = null;
+  });
+}
+
+export async function fetchWithAuth(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+): Promise<Response> {
   const tokens = getStoredTokens();
+  const headers = new Headers(init.headers);
+  if (tokens) headers.set("Authorization", `Bearer ${tokens.accessToken}`);
 
-  if (!tokens?.refreshToken) {
-    return null;
-  }
+  const response = await fetch(input, { ...init, headers });
+  if (response.status !== 401 || !tokens?.refreshToken) return response;
 
-  try {
-    const response = await fetch(`${API_URL}/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        refreshToken: tokens.refreshToken,
-      }),
-    });
-    if (!response.ok) {
-      throw new Error("Failed to refresh token");
-    }
+  const newTokens = await refreshAccessToken();
+  if (!newTokens) return response;
 
-    const data = await response.json();
-    if (data.success && data.accessToken) {
-      // Refresh endpoint only returns accessToken, keep existing refreshToken
-      const newTokens = {
-        accessToken: data.accessToken,
-        refreshToken: tokens.refreshToken, // Keep existing refresh token
-      };
-      storeTokens(newTokens);
-      return newTokens;
-    }
-    return null;
-  } catch (error) {
-    console.error("Refresh token error:", error);
-    clearTokens();
-    return null;
-  }
+  headers.set("Authorization", `Bearer ${newTokens.accessToken}`);
+  return fetch(input, { ...init, headers });
 }
 
 //get stored user from backend
@@ -126,18 +154,9 @@ export async function getCurrentUser(): Promise<User | null> {
 
   if (!tokens) return null;
   try {
-    const response = await fetch(`${API_URL}/auth/me`, {
-      headers: {
-        Authorization: `Bearer ${tokens.accessToken}`,
-      },
-    });
+    const response = await fetchWithAuth(`${API_URL}/auth/me`);
 
     if (!response.ok) {
-      const newTokens = await refreshAccessToken();
-      if (newTokens) {
-        storeTokens(newTokens);
-        return getCurrentUser();
-      }
       throw new Error("Failed to get user");
     }
 
@@ -161,11 +180,8 @@ export async function logoutUser(): Promise<void> {
 
   if (tokens) {
     try {
-      await fetch(`${API_URL}/auth/logout`, {
+      await fetchWithAuth(`${API_URL}/auth/logout`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${tokens.accessToken}`,
-        },
       });
     } catch (error) {
       console.error("Logout error: ", error);
@@ -187,12 +203,9 @@ export async function updateNotificationPreference(
   if (!tokens) return false;
 
   try {
-    const response = await fetch(`${API_URL}/auth/me/notifications`, {
+    const response = await fetchWithAuth(`${API_URL}/auth/me/notifications`, {
       method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${tokens.accessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ enabled }),
     });
     const data = await response.json();

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { fetchWithAuth } from "@/app/lib/auth";
 import type { PlacementEmail } from "../types";
 import { announceChanges, detectChanges } from "../lib/emailChanges";
 
@@ -27,10 +28,7 @@ export function useEmails(
     async (silent = false) => {
       if (!silent) setEmailsLoading(true);
       try {
-        const token = localStorage.getItem("accessToken");
-        const res = await fetch(`${API_URL}/emails`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetchWithAuth(`${API_URL}/emails`);
         if (!res.ok) throw new Error("Failed to fetch emails");
         const data = await res.json();
         const nextEmails: PlacementEmail[] = data.emails || [];
@@ -72,15 +70,11 @@ export function useEmails(
         ),
       );
       try {
-        const token = localStorage.getItem("accessToken");
-        const res = await fetch(
+        const res = await fetchWithAuth(
           `${API_URL}/emails/${email.gmailMessageId}/important`,
           {
             method: "PATCH",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ important: next }),
           },
         );
@@ -105,10 +99,7 @@ export function useEmails(
     setSyncing(true);
     setError(null);
     try {
-      const token = localStorage.getItem("accessToken");
-      const res = await fetch(`${API_URL}/emails/sync`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth(`${API_URL}/emails/sync`);
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.message || `Sync failed`);
       await fetchEmails(true);
