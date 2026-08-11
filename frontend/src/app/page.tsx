@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -167,9 +168,17 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t border-white/10">
-        <div className="mx-auto flex max-w-5xl flex-col gap-2 px-6 py-8 font-mono text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-8 font-mono text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>AuraMail</span>
-          <span>Built at VIT Bhopal</span>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            <Link href="/privacy" className="hover:text-foreground">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="hover:text-foreground">
+              Terms of Service
+            </Link>
+            <span>Built at VIT Bhopal</span>
+          </div>
         </div>
       </footer>
     </div>
