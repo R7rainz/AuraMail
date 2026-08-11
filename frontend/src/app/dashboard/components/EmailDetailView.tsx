@@ -371,6 +371,42 @@ export function EmailDetailView({
           </section>
         )}
 
+        {/* Extracted fields */}
+        {(selectedEmail.deadline ||
+          selectedEmail.salary ||
+          selectedEmail.location ||
+          selectedEmail.timings) && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {selectedEmail.deadline && (
+              <Field
+                icon={Clock}
+                label="Closes"
+                value={new Date(selectedEmail.deadline).toLocaleString(
+                  undefined,
+                  { dateStyle: "long", timeStyle: "short" },
+                )}
+              />
+            )}
+            {selectedEmail.salary && (
+              <Field
+                icon={Banknote}
+                label="Compensation"
+                value={selectedEmail.salary}
+              />
+            )}
+            {selectedEmail.location && (
+              <Field
+                icon={MapPin}
+                label="Location"
+                value={selectedEmail.location}
+              />
+            )}
+            {selectedEmail.timings && (
+              <Field icon={Clock} label="Timings" value={selectedEmail.timings} />
+            )}
+          </div>
+        )}
+
         {/* AI brief */}
         {selectedEmail.summary && (
           <Card className="gap-0 border-primary/20 bg-primary/[0.07] py-0">
@@ -452,42 +488,6 @@ export function EmailDetailView({
               })}
             </ul>
           </section>
-        )}
-
-        {/* Extracted fields */}
-        {(selectedEmail.deadline ||
-          selectedEmail.salary ||
-          selectedEmail.location ||
-          selectedEmail.timings) && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {selectedEmail.deadline && (
-              <Field
-                icon={Clock}
-                label="Closes"
-                value={new Date(selectedEmail.deadline).toLocaleString(
-                  undefined,
-                  { dateStyle: "long", timeStyle: "short" },
-                )}
-              />
-            )}
-            {selectedEmail.salary && (
-              <Field
-                icon={Banknote}
-                label="Compensation"
-                value={selectedEmail.salary}
-              />
-            )}
-            {selectedEmail.location && (
-              <Field
-                icon={MapPin}
-                label="Location"
-                value={selectedEmail.location}
-              />
-            )}
-            {selectedEmail.timings && (
-              <Field icon={Clock} label="Timings" value={selectedEmail.timings} />
-            )}
-          </div>
         )}
 
         {/* Attachments */}
