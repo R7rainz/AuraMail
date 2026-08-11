@@ -1,184 +1,149 @@
 # AuraMail
 
-AI-powered placement email analyzer for students. Syncs with Gmail, summarizes emails with OpenAI, and helps you never miss a deadline.
+AuraMail is a placement-email assistant for students. It connects to Gmail with read-only access, finds internship and job announcements, extracts the important details, and presents them in a focused opportunity inbox.
 
-## Features
+**Live app:** [aura-mail-dun.vercel.app](https://aura-mail-dun.vercel.app/)
 
-- **Gmail Integration** - Securely sync placement emails via Google OAuth
-- **AI Summaries** - GPT-4 powered email analysis and categorization
-- **Smart Extraction** - Automatically extracts company, role, deadline, salary, eligibility
-- **Google Calendar** - One-click deadline sync to your calendar
-- **Real-time Updates** - SSE streaming for live email processing
-- **Beautiful Dashboard** - Modern UI with category filters, priority sorting, and detailed views
+[Privacy Policy](https://aura-mail-dun.vercel.app/privacy) · [Terms of Service](https://aura-mail-dun.vercel.app/terms) · [Deployment guide](DEPLOY.md)
 
-## Tech Stack
+## What it does
 
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui |
-| **Backend** | Go 1.21+, Chi router, PostgreSQL |
-| **AI** | OpenAI GPT-4 Mini |
-| **Auth** | Google OAuth 2.0, JWT |
-| **Database** | PostgreSQL with Goose migrations |
+- Authenticates with Google OAuth and keeps sessions alive with access/refresh tokens.
+- Syncs relevant Gmail messages in the background and groups related messages into threads.
+- Produces detailed AI-assisted summaries instead of reducing long opportunities to a single paragraph.
+- Extracts roles, companies, locations, experience, eligibility, deadlines, compensation, and application instructions.
+- Keeps useful links from the main email body as clickable links while filtering known promotional/footer links.
+- Shows attachment metadata and opens Gmail attachments in a new browser tab.
+- Organizes messages by category, priority, deadline, sender, and search terms.
+- Lets users add opportunity deadlines to Google Calendar.
 
-## Project Structure
+## Deployed architecture
 
-```
+| Part | Service | Technology |
+|---|---|---|
+| Web app | Vercel | Next.js 16, React, TypeScript, Tailwind CSS |
+| API and background sync | Render | Go, Chi, Docker |
+| Database | Neon | PostgreSQL and Goose migrations |
+| AI summaries | OpenAI | GPT-4o mini |
+| Authentication | Google | OAuth 2.0, JWT access and refresh tokens |
+
+The frontend is deployed from `frontend/`. The backend is deployed from `backend/` using the repository's `render.yaml` blueprint. See [DEPLOY.md](DEPLOY.md) for the complete production setup.
+
+## Repository layout
+
+```text
 AuraMail/
-├── backend/          # Go backend API
-│   ├── cmd/          # Entry point
-│   ├── internal/     # Core logic (auth, gmail, ai, calendar)
-│   └── migrations/   # Database migrations
-└── frontend/         # Next.js frontend
-    └── src/app/      # App router pages
+├── backend/       # Go API, Gmail sync, AI processing, auth, and migrations
+├── frontend/      # Next.js web application
+├── DEPLOY.md      # Production deployment instructions
+└── LICENSE        # MIT license
 ```
 
-## Quick Start
+## Run locally
 
 ### Prerequisites
 
-- Go 1.21+
+- Go 1.25+
 - Node.js 18+
+- pnpm
 - PostgreSQL 12+
-- Google Cloud project with OAuth credentials
-- OpenAI API key
+- A Google Cloud project with Gmail and Calendar APIs enabled
+- Google OAuth credentials
+- An OpenAI API key for AI summaries
 
-### 1. Clone and Setup
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/auramail.git
-cd auramail
+git clone https://github.com/R7rainz/AuraMail.git
+cd AuraMail
 ```
 
-### 2. Configure Environment
+### 2. Configure the backend
 
-**Backend** (`backend/.env`):
+Create `backend/.env`:
+
 ```bash
 PORT=8080
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/auramail
-JWT_SECRET=your-jwt-secret
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/auramail?sslmode=disable
+GOOSE_DBSTRING=postgresql://postgres:postgres@localhost:5432/auramail?sslmode=disable
+JWT_SECRET=replace-with-a-long-random-secret
+JWT_REFRESH_SECRET=replace-with-another-long-random-secret
 GOOGLE_OAUTH_CLIENT_ID=your-client-id
 GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
 GOOGLE_OAUTH_REDIRECT_URI=http://localhost:8080/auth/google/callback
 OPENAI_API_KEY=your-openai-key
 FRONTEND_URL=http://localhost:3000
 ALLOWED_ORIGINS=http://localhost:3000
+SYNC_ENABLED=true
+SYNC_INTERVAL=30m
+SYNC_MAX_RESULTS=25
+SYNC_INCLUDE_THREADS=true
 ```
 
-**Frontend** (`frontend/.env.local`):
-```bash
-NEXT_PUBLIC_API_URL=http://localhost:8080
-```
+For the full environment-variable reference, see [backend/README.md](backend/README.md).
 
-### 3. Start Database
+### 3. Start the database and backend
 
-```bash
-cd backend
-make docker-up      # Start PostgreSQL
-make migrate-up     # Run migrations
-```
-
-### 4. Run the App
-
-**Terminal 1 - Backend:**
 ```bash
 cd backend
-make dev
+make docker-up
+make migrate-up
+make run
 ```
 
-**Terminal 2 - Frontend:**
+The API runs at `http://localhost:8080`.
+
+### 4. Start the frontend
+
+In another terminal:
+
 ```bash
 cd frontend
-npm install
-npm run dev
+pnpm install
+printf 'NEXT_PUBLIC_API_URL=http://localhost:8080\n' > .env.local
+pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000).
 
-## API Endpoints
+## Common commands
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check |
-| `GET` | `/auth/google` | Start OAuth flow |
-| `GET` | `/auth/google/callback` | OAuth callback |
-| `POST` | `/auth/refresh` | Refresh access token |
-| `GET` | `/auth/me` | Get current user |
-| `GET` | `/emails` | Get email summaries |
-| `GET` | `/emails/sync` | Sync new emails |
-| `GET` | `/emails/stream` | SSE stream for processing |
-| `POST` | `/calendar/events` | Add event to calendar |
-
-## Email Categories
-
-AuraMail automatically categorizes emails into:
-
-- Internships
-- Job Offers
-- PPT (Pre-Placement Talks)
-- Workshops
-- Exams
-- Interviews
-- Results
-- Reminders
-- Announcements
-- Registration
-
-## Development
-
-### Deployment Roots
-
-- Frontend: deploy `frontend/` on Vercel.
-- Backend: deploy `backend/` as the Go service.
-- Database migrations live in `backend/migrations`.
-
-### Backend Commands
+### Backend
 
 ```bash
-make dev            # Run with hot reload
-make build          # Build binary
-make test           # Run tests
-make migrate-up     # Apply migrations
-make migrate-down   # Rollback migration
-make lint           # Run linter
+cd backend
+make test
+make build
+make migrate-status
 ```
 
-### Frontend Commands
+### Frontend
 
 ```bash
-npm run dev         # Development server
-npm run build       # Production build
-npm run lint        # Run ESLint
+cd frontend
+pnpm test
+pnpm lint
+pnpm build
 ```
 
-## Google OAuth Setup
+## Google OAuth setup
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a project and enable Gmail API + Calendar API
-3. Configure OAuth consent screen (External, test users)
-4. Create OAuth 2.0 credentials (Web application)
-5. Add redirect URI: `http://localhost:8080/auth/google/callback`
-6. Copy credentials to `.env`
+1. Create or select a project in [Google Cloud Console](https://console.cloud.google.com/).
+2. Enable the Gmail API and Google Calendar API.
+3. Configure the OAuth consent screen and add test users while the app is in testing mode.
+4. Create a Web application OAuth client.
+5. Add `http://localhost:8080/auth/google/callback` as a local redirect URI.
+6. Add the production backend callback URL to the OAuth client before deploying.
 
-## Screenshots
-
-### Landing Page
-Modern landing page with animated light beams and feature highlights.
-
-### Dashboard
-Email list with category sidebar, priority indicators, and quick actions.
-
-### Email Detail
-Expanded view with AI summary, key details grid, and calendar integration.
+AuraMail requests Gmail read access for syncing messages and Calendar access when a user chooses to add an event. Users can review the public [Privacy Policy](https://aura-mail-dun.vercel.app/privacy) and [Terms of Service](https://aura-mail-dun.vercel.app/terms).
 
 ## License
 
-MIT
+AuraMail is released under the [MIT License](LICENSE).
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing`)
-5. Open a Pull Request
+1. Fork the repository.
+2. Create a branch: `git checkout -b feature/your-change`.
+3. Run the relevant backend and frontend checks.
+4. Open a pull request with a short description of the change.
