@@ -133,21 +133,6 @@ function AttachmentRow({
         </p>
       )}
 
-      {previewUrl &&
-        (attachment.mimeType.startsWith("image/") ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={previewUrl}
-            alt={attachment.filename}
-            className="max-h-96 w-full border-t bg-muted object-contain"
-          />
-        ) : (
-          <iframe
-            src={previewUrl}
-            title={attachment.filename}
-            className="h-96 w-full border-t bg-muted"
-          />
-        ))}
     </Card>
   );
 }
