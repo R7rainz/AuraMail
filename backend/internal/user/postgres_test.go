@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v4"
@@ -123,6 +124,25 @@ func TestFindByID(t *testing.T) {
 			t.Errorf("unmet expectations: %v", err)
 		}
 	})
+}
+
+func TestDeleteEmailSummariesBefore(t *testing.T) {
+	repo, mock := newMockRepo(t)
+	cutoff := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+	mock.ExpectExec("DELETE FROM email_summaries WHERE created_at < \\$1").
+		WithArgs(cutoff).
+		WillReturnResult(pgxmock.NewResult("DELETE", 3))
+
+	deleted, err := repo.DeleteEmailSummariesBefore(context.Background(), cutoff)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if deleted != 3 {
+		t.Fatalf("deleted = %d, want 3", deleted)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
 }
 
 func TestSave(t *testing.T) {

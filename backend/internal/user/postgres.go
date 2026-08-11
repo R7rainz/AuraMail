@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -303,6 +304,17 @@ func (r *PostgresRepository) SetImportant(ctx context.Context, userID string, gm
 		return pgx.ErrNoRows
 	}
 	return nil
+}
+
+func (r *PostgresRepository) DeleteEmailSummariesBefore(ctx context.Context, before time.Time) (int64, error) {
+	tag, err := r.db.Exec(ctx,
+		`DELETE FROM email_summaries WHERE created_at < $1`,
+		before,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete old email summaries: %w", err)
+	}
+	return tag.RowsAffected(), nil
 }
 
 func (r *PostgresRepository) UpdateGoogleRefreshToken(ctx context.Context, userID string, token string) error {

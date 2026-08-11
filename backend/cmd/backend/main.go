@@ -85,18 +85,30 @@ func run() error {
 }
 
 func startEmailSyncScheduler(ctx context.Context, cfg *config.Config, userRepo *user.PostgresRepository) *scheduler.Scheduler {
-	if !cfg.SyncEnabled {
+	s := scheduler.New()
+	if cfg.SyncEnabled {
+		s.AddJob("email_sync", cfg.SyncInterval, func(jobCtx context.Context) error {
+			return syncPlacementEmailsForAllUsers(jobCtx, cfg, userRepo)
+		})
+	} else {
 		slog.Info("email sync scheduler disabled")
-		return nil
 	}
 
-	s := scheduler.New()
-	s.AddJob("email_sync", cfg.SyncInterval, func(jobCtx context.Context) error {
-		return syncPlacementEmailsForAllUsers(jobCtx, cfg, userRepo)
+	const retention = 30 * 24 * time.Hour
+	s.AddJob("email_cleanup", 24*time.Hour, func(jobCtx context.Context) error {
+		deleted, err := userRepo.DeleteEmailSummariesBefore(
+			jobCtx,
+			time.Now().Add(-retention),
+		)
+		if err != nil {
+			return err
+		}
+		slog.Info("old email summaries cleaned up", "deleted", deleted, "retention", retention)
+		return nil
 	})
 	s.Start(ctx)
 
-	slog.Info("email sync scheduler enabled", "interval", cfg.SyncInterval, "maxResults", cfg.SyncMaxResults, "includeThreads", cfg.SyncIncludeThreads)
+	slog.Info("background scheduler enabled", "syncEnabled", cfg.SyncEnabled, "syncInterval", cfg.SyncInterval, "retention", retention)
 	return s
 }
 
