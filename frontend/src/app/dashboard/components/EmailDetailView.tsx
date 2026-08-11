@@ -34,6 +34,7 @@ import {
   isPreviewable,
 } from "../lib/attachments";
 import { formatMailDateTime } from "../lib/dateUtils";
+import { externalHref } from "../lib/externalLinks";
 import { getRunway, runwayTextClass } from "../lib/runway";
 import { RunwayBar } from "./Runway";
 
@@ -251,9 +252,20 @@ export function EmailDetailView({
   const runway = selectedEmail.deadline
     ? getRunway(selectedEmail.deadline, selectedEmail.receivedAt)
     : null;
-  const links = [selectedEmail.applyLink, ...(selectedEmail.otherLinks || [])].filter(
-    (link, index, all): link is string => Boolean(link) && all.indexOf(link) === index,
-  );
+  const applyHref = externalHref(selectedEmail.applyLink);
+  const links = [
+    { value: selectedEmail.applyLink, index: 0 },
+    ...(selectedEmail.otherLinks || []).map((value, index) => ({
+      value,
+      index: index + 1,
+    })),
+  ]
+    .map(({ value, index }) => ({ href: externalHref(value), index }))
+    .filter((link): link is { href: string; index: number } => Boolean(link.href))
+    .filter(
+      (link, index, all) =>
+        all.findIndex((candidate) => candidate.href === link.href) === index,
+    );
 
   return (
     <motion.div
@@ -307,10 +319,10 @@ export function EmailDetailView({
               </Button>
             ))}
 
-          {selectedEmail.applyLink && (
+          {applyHref && (
             <Button size="sm" asChild>
               <a
-                href={selectedEmail.applyLink}
+                href={applyHref}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -581,21 +593,21 @@ export function EmailDetailView({
               </span>
             </h2>
             <div className="mt-3 space-y-2">
-              {links.map((link, index) => (
+              {links.map((link) => (
                 <a
-                  key={link}
-                  href={link}
+                  key={link.href}
+                  href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm text-primary hover:bg-white/[0.06]"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block font-medium">
-                      {selectedEmail.linkLabels?.[index] ||
-                        (index === 0 ? "Application link" : "Related link")}
+                      {selectedEmail.linkLabels?.[link.index] ||
+                        (link.index === 0 ? "Application link" : "Related link")}
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                      {link}
+                      {link.href}
                     </span>
                   </span>
                   <ExternalLink className="size-4 shrink-0" />
