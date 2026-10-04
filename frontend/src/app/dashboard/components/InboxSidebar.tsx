@@ -83,20 +83,18 @@ export function InboxSidebar({
   return (
     <aside
       className={cn(
-        "glass-panel flex min-h-0 w-full shrink-0 flex-col border-r border-white/10 bg-[#121819]/75 md:w-[380px] xl:w-[420px]",
+        "flex min-h-0 w-full shrink-0 flex-col border-r bg-card md:w-[360px] 2xl:w-[390px]",
         className,
       )}
     >
-      <div className="space-y-4 border-b border-white/10 px-5 py-5">
-        <div className="flex items-end justify-between gap-3">
+      <div className="space-y-3 border-b px-4 py-4">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-              Your inbox
-            </p>
-            <p className="mt-1 text-lg">Placement opportunities</p>
+            <h1 className="text-lg font-semibold tracking-tight">Inbox</h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">Placement mail and updates</p>
           </div>
-          <span className="font-mono text-xs text-muted-foreground">
-            {filteredEmails.length} shown
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {filteredEmails.length}
           </span>
         </div>
 
@@ -146,14 +144,14 @@ export function InboxSidebar({
           </DropdownMenu>
         </div>
 
-        <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
+        <div className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 xl:hidden">
           {/* Important is a cross-cutting flag, not a category, so it sits
               ahead of the category pills and toggles independently. */}
           <button
             onClick={() => setShowImportantOnly((prev) => !prev)}
             aria-pressed={showImportantOnly}
             className={cn(
-              "flex items-center gap-1 rounded-full border border-white/10 px-3 py-2 text-xs whitespace-nowrap transition-colors outline-none",
+              "flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs whitespace-nowrap transition-colors outline-none",
               "focus-visible:ring-[3px] focus-visible:ring-ring/50",
               showImportantOnly
                 ? "border-primary/30 bg-primary/15 text-primary"
@@ -179,7 +177,7 @@ export function InboxSidebar({
                   onClick={() => setSelectedCategory(key as EmailCategory)}
                   aria-pressed={isActive}
                   className={cn(
-                    "rounded-full border border-white/10 px-3 py-2 text-xs whitespace-nowrap transition-colors outline-none",
+                    "rounded-md border px-2.5 py-1.5 text-xs whitespace-nowrap transition-colors outline-none",
                     "focus-visible:ring-[3px] focus-visible:ring-ring/50",
                     isActive
                       ? "border-primary/30 bg-primary/15 text-primary"
@@ -265,11 +263,11 @@ export function InboxSidebar({
                     onClick={() => setSelectedEmail(email)}
                     aria-current={isSelected ? "true" : undefined}
                     className={cn(
-                      "w-full border-b border-white/[0.06] px-5 py-4 text-left transition-colors outline-none",
+                      "w-full border-b border-l-2 border-l-transparent px-4 py-4 text-left transition-colors outline-none",
                       "focus-visible:ring-[3px] focus-visible:ring-ring/50",
                       isSelected
-                        ? "bg-accent/80 text-foreground"
-                        : "hover:bg-white/[0.04]",
+                        ? "border-l-primary bg-accent text-foreground"
+                        : "hover:bg-accent/60",
                     )}
                   >
                     <div className="flex items-baseline justify-between gap-3">

@@ -17,8 +17,7 @@ export default function OpengraphImage() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "80px",
-          background:
-            "radial-gradient(900px 520px at 50% -12%, rgba(255,255,255,0.16), transparent 62%), #000000",
+          background: "#0b0d10",
           color: "#fafafa",
           fontFamily: "sans-serif",
         }}
@@ -70,7 +69,7 @@ export default function OpengraphImage() {
               maxWidth: 900,
             }}
           >
-            Every placement mail is a clock.
+            Placement mail, organized around what matters.
           </div>
         </div>
 
@@ -82,7 +81,7 @@ export default function OpengraphImage() {
             color: "#a1a1a1",
           }}
         >
-          <span>AI briefs</span>
+          <span>Clear summaries</span>
           <span style={{ color: "#3d3d3d" }}>/</span>
           <span>Deadlines → calendar</span>
           <span style={{ color: "#3d3d3d" }}>/</span>

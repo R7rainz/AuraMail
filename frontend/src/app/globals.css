@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is([data-theme="dark"] *));
 
 @theme inline {
   --color-background: var(--background);
@@ -22,16 +22,12 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-
-  /* Deadline urgency scale — the one place colour is allowed. */
   --color-closed: var(--closed);
   --color-urgent: var(--urgent);
   --color-soon: var(--soon);
   --color-open: var(--open);
-
-  --font-sans: var(--font-geist);
-  --font-mono: var(--font-jetbrains);
-
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -39,95 +35,134 @@
 }
 
 :root,
-.dark {
-  --radius: 1rem;
+[data-theme="light"] {
+  --radius: 0.5rem;
+  color-scheme: light;
+  --background: #f7f8fa;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1e293b;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #eef2f7;
+  --accent-foreground: #111827;
+  --destructive: #dc2626;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #2563eb;
+  --closed: #64748b;
+  --urgent: #dc2626;
+  --soon: #b45309;
+  --open: #15803d;
+  --header: rgba(255, 255, 255, 0.92);
+  --shadow: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="dark"] {
   color-scheme: dark;
-
-  --background: #0d1011;
-  --foreground: #eee9df;
-  --card: #151a1b;
-  --card-foreground: #eee9df;
-  --popover: #1b2223;
-  --popover-foreground: #eee9df;
-  --primary: #e2aa65;
-  --primary-foreground: #191512;
-  --secondary: #1a2223;
-  --secondary-foreground: #e9efeb;
-  --muted: #1c2425;
-  --muted-foreground: #91a09e;
-  --accent: #243333;
-  --accent-foreground: #eff5f0;
-  --destructive: #dc7468;
-  --border: rgba(238, 233, 223, 0.12);
-  --input: rgba(238, 233, 223, 0.16);
-  --ring: #d9a25c;
-
-  --closed: #7d8885;
-  --urgent: #e17868;
-  --soon: #e3aa61;
-  --open: #72c2a1;
+  --background: #0b0d10;
+  --foreground: #f3f4f6;
+  --card: #11151a;
+  --card-foreground: #f3f4f6;
+  --popover: #171b21;
+  --popover-foreground: #f3f4f6;
+  --primary: #60a5fa;
+  --primary-foreground: #07111f;
+  --secondary: #1a2028;
+  --secondary-foreground: #e5e7eb;
+  --muted: #171c22;
+  --muted-foreground: #94a3b8;
+  --accent: #1e2630;
+  --accent-foreground: #f8fafc;
+  --destructive: #f87171;
+  --border: #27303a;
+  --input: #394553;
+  --ring: #60a5fa;
+  --closed: #94a3b8;
+  --urgent: #f87171;
+  --soon: #fbbf24;
+  --open: #4ade80;
+  --header: rgba(11, 13, 16, 0.92);
+  --shadow: rgba(0, 0, 0, 0.24);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    background: var(--background);
+  }
   body {
     @apply bg-background text-foreground;
+    min-width: 320px;
     font-feature-settings: "cv11", "ss01";
     font-size: 16px;
     line-height: 1.5;
+    transition: background-color 180ms ease, color 180ms ease;
+  }
+  button,
+  a,
+  input {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
 ::selection {
-  background: rgba(226, 170, 101, 0.32);
+  background: color-mix(in srgb, var(--primary) 30%, transparent);
 }
 
-/* Tight, optical display sizing for hero and section headings. */
 .display {
-  letter-spacing: -0.045em;
+  letter-spacing: -0.035em;
   line-height: 1.08;
-  font-weight: 500;
+  font-weight: 650;
 }
-
 .display-serif {
-  font-family: Optima, "Iowan Old Style", "Palatino Linotype", serif;
-  font-weight: 400;
-  line-height: 1.12;
+  font-family: var(--font-geist-sans), sans-serif;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
 }
-
-/* Hairline that fades at both ends — the only divider style used. */
 .rule {
   height: 1px;
-  background: rgba(238, 233, 223, 0.12);
+  background: var(--border);
 }
-
+.app-header {
+  background: var(--header);
+  backdrop-filter: blur(18px);
+}
 .dashboard-shell {
-  background:
-    radial-gradient(700px 420px at 72% -10%, rgba(53, 91, 82, 0.2), transparent 68%),
-    radial-gradient(520px 360px at 25% 110%, rgba(115, 69, 36, 0.12), transparent 72%),
-    var(--background);
+  background: var(--background);
 }
-
-.glass-panel {
-  background: rgba(20, 26, 27, 0.78);
-  border: 1px solid rgba(238, 233, 223, 0.1);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(20px);
+.glass-panel,
+.surface-panel {
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: 0 8px 28px var(--shadow);
 }
-
 .soft-glow {
-  box-shadow: 0 0 0 1px rgba(226, 170, 101, 0.08), 0 18px 55px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 12px 36px var(--shadow);
 }
-
-/* ---------------------------------------------------------------
- * Scrollbars
- * --------------------------------------------------------------- */
+.landing-wash {
+  background: var(--background);
+}
+.workspace-wash {
+  background: transparent;
+}
+.brand-mark {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
 
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgba(238, 233, 223, 0.18) transparent;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 18%, transparent) transparent;
 }
 .scrollbar-thin::-webkit-scrollbar {
   width: 6px;
@@ -137,11 +172,11 @@
   background: transparent;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgba(238, 233, 223, 0.18);
+  background-color: color-mix(in srgb, var(--foreground) 18%, transparent);
   border-radius: 999px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(238, 233, 223, 0.32);
+  background-color: color-mix(in srgb, var(--foreground) 30%, transparent);
 }
 .scrollbar-none {
   scrollbar-width: none;
@@ -151,15 +186,10 @@
   display: none;
 }
 
-/* ---------------------------------------------------------------
- * The runway — a message's application window as elapsed time.
- * --runway holds the 0–1 fraction consumed.
- * --------------------------------------------------------------- */
-
 .runway {
   position: relative;
   overflow: hidden;
-  background: rgba(238, 233, 223, 0.1);
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
 }
 .runway::after {
   content: "";
@@ -170,99 +200,28 @@
   background: var(--runway-color, var(--primary));
   transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-
 @keyframes runway-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.45;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 .runway-live::after {
   animation: runway-pulse 2.4s ease-in-out infinite;
 }
 
-/* ---------------------------------------------------------------
- * Motion
- * --------------------------------------------------------------- */
-
 .reveal {
   opacity: 0;
-  transform: translateY(12px);
+  transform: translateY(10px);
   transition:
-    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .reveal.is-visible {
   opacity: 1;
   transform: none;
 }
 
-/*
- * CSS fallback for the light rays when WebGL is unavailable. Same shape as the
- * shader — shafts from a source above the fold, over a soft core glow — with a
- * slow lateral drift so it reads as light rather than a static gradient.
- */
-@keyframes beam-drift {
-  0%,
-  100% {
-    opacity: 0.62;
-    transform: translate3d(-1.5%, 0, 0);
-  }
-  50% {
-    opacity: 0.9;
-    transform: translate3d(1.5%, 0, 0);
-  }
-}
-.beam-fallback {
-  background:
-    conic-gradient(
-      from 176deg at 50% -16%,
-      transparent 0deg,
-      rgba(226, 170, 101, 0.16) 5deg,
-      transparent 11deg,
-      transparent 168deg,
-      rgba(114, 194, 161, 0.12) 175deg,
-      transparent 183deg,
-      transparent 360deg
-    ),
-    radial-gradient(58% 40% at 50% -8%, rgba(226, 170, 101, 0.18), transparent 72%);
-  animation: beam-drift 26s ease-in-out infinite;
-}
-
-/*
- * Film grain. Near-black gradients band badly on 8-bit panels; a sub-perceptual
- * noise layer breaks the steps up. The shader dithers itself, so this covers the
- * CSS surfaces — the fallback beams and the workspace glow.
- */
-.grain::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.032;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/*
- * Workspace ambience: one soft pool of light at the top of the empty state, so
- * pure black reads as depth rather than a dead panel. Deliberately still — this
- * sits behind a working inbox, where drifting light would be a distraction.
- */
-.workspace-glow {
-  background: radial-gradient(
-    72% 46% at 50% -4%,
-    rgba(226, 170, 101, 0.13),
-    transparent 70%
-  );
-}
-
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

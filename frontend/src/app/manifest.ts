@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "A focused inbox for placement opportunities, deadlines, and campus updates.",
     start_url: "/",
     display: "standalone",
-    background_color: "#000000",
-    theme_color: "#000000",
+    background_color: "#f7f8fa",
+    theme_color: "#ffffff",
     categories: ["productivity", "education", "business"],
     icons: [
       {

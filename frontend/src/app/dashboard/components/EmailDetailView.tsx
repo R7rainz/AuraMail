@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
+  AlignLeft,
   Banknote,
   CalendarCheck,
   CalendarPlus,
@@ -16,7 +17,6 @@ import {
   MapPin,
   MessagesSquare,
   Paperclip,
-  Sparkles,
   Star,
   User,
 } from "lucide-react";
@@ -91,7 +91,7 @@ function AttachmentRow({
   };
 
   return (
-    <Card className="gap-0 overflow-hidden border-white/10 bg-white/[0.03] py-0">
+    <Card className="gap-0 overflow-hidden bg-card py-0">
       <div className="flex items-center justify-between gap-3 p-4">
         <div className="flex min-w-0 items-center gap-3">
           <span className="grid size-10 shrink-0 place-items-center bg-secondary">
@@ -147,7 +147,7 @@ function Field({
   value: unknown;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+    <div className="rounded-lg border bg-card p-4">
       <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <Icon className="size-3.5" />
         {label}
@@ -174,7 +174,7 @@ function Prose({
         <Icon className="size-4 text-muted-foreground" />
         {title}
       </h3>
-      <div className="mt-4 border-l-2 border-primary/50 pl-5 text-base leading-8 whitespace-pre-wrap text-foreground">
+      <div className="mt-3 border-l-2 border-border pl-4 text-[15px] leading-7 whitespace-pre-wrap text-foreground">
         {children}
       </div>
     </section>
@@ -240,13 +240,13 @@ export function EmailDetailView({
   return (
     <motion.div
       key="detail"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
       className="scrollbar-thin absolute inset-0 overflow-y-auto bg-transparent"
     >
-      <div className="sticky top-0 z-20 flex min-w-0 items-center justify-between gap-3 border-b border-white/10 bg-[#111617]/80 px-4 py-4 backdrop-blur-xl sm:px-8">
+      <div className="app-header sticky top-0 z-20 flex min-w-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
         <Button variant="ghost" size="sm" onClick={onBack} className="group -ml-2">
           <ChevronLeft className="transition-transform group-hover:-translate-x-0.5" />
           Back
@@ -304,14 +304,14 @@ export function EmailDetailView({
         </div>
       </div>
 
-      <div className="mx-auto max-w-4xl space-y-10 px-5 py-9 sm:px-10 sm:py-12">
+      <div className="mx-auto max-w-4xl space-y-8 px-5 py-8 sm:px-8 sm:py-10">
         {/* Identity */}
         <header>
           <Badge variant="outline" className="capitalize">
             {selectedEmail.category || "Announcement"}
           </Badge>
 
-          <h1 className="display mt-5 max-w-3xl text-3xl text-balance sm:text-5xl">
+          <h1 className="mt-4 max-w-3xl text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
             {selectedEmail.subject}
           </h1>
 
@@ -344,7 +344,7 @@ export function EmailDetailView({
         {runway && (
           <section
             aria-label="Application window"
-            className="rounded-2xl border border-white/10 bg-secondary p-5"
+            className="rounded-lg border bg-card p-5"
           >
             <div className="flex items-baseline justify-between gap-4">
               <span className="text-sm font-medium">
@@ -407,15 +407,15 @@ export function EmailDetailView({
           </div>
         )}
 
-        {/* AI brief */}
+        {/* Message summary */}
         {selectedEmail.summary && (
-          <Card className="gap-0 border-primary/20 bg-primary/[0.07] py-0">
+          <Card className="gap-0 bg-card py-0">
             <CardContent className="p-5">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-primary">
-                <Sparkles className="size-4" />
-                Brief
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
+                <AlignLeft className="size-4" />
+                Summary
               </h2>
-              <p className="mt-3 whitespace-pre-wrap text-base leading-8 text-foreground">
+              <p className="mt-3 whitespace-pre-wrap text-[15px] leading-7 text-muted-foreground">
                 {selectedEmail.summary}
               </p>
             </CardContent>
@@ -433,7 +433,7 @@ export function EmailDetailView({
               </span>
             </h2>
 
-            <ul className="mt-3 divide-y overflow-hidden rounded-2xl border border-white/10">
+            <ul className="mt-3 divide-y overflow-hidden rounded-lg border">
               {messages.map((message, index) => {
                 const active = message.id === selectedEmail.id;
                 return (
@@ -444,12 +444,12 @@ export function EmailDetailView({
                       className={cn(
                         "flex w-full items-center gap-3 p-3 text-left transition-colors outline-none",
                         "focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                        active ? "bg-accent" : "hover:bg-white/[0.04]",
+                        active ? "bg-accent" : "hover:bg-accent/60",
                       )}
                     >
                       <span
                         className={cn(
-                          "grid size-8 shrink-0 place-items-center rounded-full border border-white/10 font-mono text-xs",
+                          "grid size-8 shrink-0 place-items-center rounded-full border font-mono text-xs",
                           active
                             ? "border-primary/30 bg-primary/10 text-primary"
                             : "text-muted-foreground",
@@ -546,7 +546,7 @@ export function EmailDetailView({
                 Full message
                 <ChevronDown className="ml-auto size-4 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
-              <div className="mt-4 whitespace-pre-wrap border-l-2 border-primary/50 pl-5 text-base leading-8 text-foreground">
+              <div className="mt-4 whitespace-pre-wrap border-l-2 border-border pl-4 text-[15px] leading-7 text-foreground">
                 <LinkedText text={selectedEmail.description} />
               </div>
             </details>
@@ -569,7 +569,7 @@ export function EmailDetailView({
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm text-primary hover:bg-white/[0.06]"
+                  className="flex min-w-0 items-center gap-3 rounded-lg border bg-card p-3 text-sm text-primary transition-colors hover:bg-accent"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block font-medium">

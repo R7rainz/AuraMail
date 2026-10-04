@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 type LegalPageProps = {
   eyebrow: string;
@@ -16,21 +16,23 @@ export function LegalPage({
 }: LegalPageProps) {
   return (
     <main className="min-h-screen bg-background">
-      <header className="border-b border-white/10">
+      <header className="app-header border-b">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-6">
           <Link
             href="/"
             className="flex items-center gap-2 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            <Image src="/icon.svg" alt="" width={28} height={28} />
-            <span className="text-sm font-medium tracking-tight">AuraMail</span>
+            <span className="brand-mark grid size-7 place-items-center rounded-md text-[11px] font-bold">A</span>
+            <span className="text-sm font-semibold tracking-tight">AuraMail</span>
           </Link>
-          <Link
-            href="/"
-            className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            Back to home
-          </Link>
+          <div className="flex items-center gap-3">
+            <nav className="hidden items-center gap-5 text-xs text-muted-foreground sm:flex" aria-label="Legal navigation">
+              <Link href="/#how-it-works" className="hover:text-foreground">How it works</Link>
+              <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+              <Link href="/terms" className="hover:text-foreground">Terms</Link>
+            </nav>
+            <ThemeSwitcher />
+          </div>
         </div>
       </header>
 
@@ -49,7 +51,7 @@ export function LegalPage({
           {children}
         </div>
 
-        <div className="mt-14 border-t border-white/10 pt-8 text-sm leading-7 text-muted-foreground">
+        <div className="mt-14 border-t pt-8 text-sm leading-7 text-muted-foreground">
           Questions about this page or your data? Contact AuraMail through the
           <a
             href="https://github.com/R7rainz/AuraMail/issues"
@@ -63,7 +65,7 @@ export function LegalPage({
         </div>
       </article>
 
-      <footer className="border-t border-white/10">
+      <footer className="border-t">
         <div className="mx-auto flex max-w-4xl flex-wrap gap-x-5 gap-y-2 px-6 py-8 font-mono text-xs text-muted-foreground">
           <Link href="/privacy" className="hover:text-foreground">
             Privacy Policy

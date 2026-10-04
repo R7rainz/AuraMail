@@ -1,22 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, JetBrains_Mono } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { AuthProvider } from "./lib/authContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -25,7 +14,7 @@ export const metadata: Metadata = {
     template: "%s · AuraMail",
   },
   description:
-    "AuraMail turns crowded campus mail into a focused stream of placement opportunities, follow-ups, files, and deadlines — with AI that extracts the details that matter.",
+    "AuraMail organizes placement opportunities, follow-ups, files, and deadlines into one focused student inbox.",
   applicationName: "AuraMail",
   keywords: [
     "placement emails",
@@ -49,7 +38,7 @@ export const metadata: Metadata = {
     siteName: "AuraMail",
     title: "AuraMail — Placement intelligence for students",
     description:
-      "A focused inbox for placement opportunities, deadlines, and campus updates. AI reads the mail so you don't have to.",
+      "A focused inbox for placement opportunities, deadlines, and campus updates.",
     url: "/",
     locale: "en_US",
   },
@@ -71,11 +60,25 @@ export const metadata: Metadata = {
   },
 };
 
-// One theme, so the browser chrome matches the canvas unconditionally.
 export const viewport: Viewport = {
-  themeColor: "#0d1011",
-  colorScheme: "dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0d10" },
+  ],
+  colorScheme: "light dark",
 };
+
+const themeScript = `
+  try {
+    const saved = localStorage.getItem("auramail-theme");
+    const theme = ["light", "dark"].includes(saved)
+      ? saved
+      : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+  } catch (_) {
+    document.documentElement.dataset.theme = "light";
+  }
+`;
 
 // SoftwareApplication + Organization structured data for rich search results.
 const jsonLd = {
@@ -87,7 +90,7 @@ const jsonLd = {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       description:
-        "AI-powered placement inbox for students — extracts roles, eligibility, deadlines, links, and attachments from campus mail and turns deadlines into calendar events.",
+        "A placement inbox for students that organizes roles, eligibility, deadlines, links, attachments, and calendar actions.",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     },
     {
@@ -104,15 +107,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
       <body
-        className={`${geist.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}
       >
         <TooltipProvider delayDuration={200}>
           <AuthProvider>{children}</AuthProvider>

@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/lib/authContext";
 import { updateNotificationPreference } from "@/app/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Bell, BellOff, LogOut, Mail, RefreshCw, X } from "lucide-react";
+import { AlertTriangle, Bell, BellOff, LogOut, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 import type { PlacementEmail } from "./types";
 import { getDaysDiff } from "./lib/dateUtils";
@@ -21,6 +22,7 @@ import { InboxSidebar } from "./components/InboxSidebar";
 import { EmailDetailView } from "./components/EmailDetailView";
 import { DashboardOverview } from "./components/DashboardOverview";
 import { CalendarPanel } from "./components/CalendarPanel";
+import { DashboardNavigation } from "./components/DashboardNavigation";
 
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth();
@@ -105,30 +107,32 @@ export default function DashboardPage() {
     <div className="dashboard-shell flex h-dvh min-w-0 flex-col overflow-hidden">
       <Toaster position="top-right" />
 
-      <header className="z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-[#111617]/75 px-5 backdrop-blur-xl sm:px-8">
+      <header className="app-header z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b px-4 sm:px-5">
         <div className="flex items-center gap-3">
-          <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-primary to-[#9e6942] text-primary-foreground shadow-lg shadow-primary/10">
-            <Mail className="size-4" />
+          <span className="brand-mark grid size-8 place-items-center rounded-lg text-sm font-bold">
+            A
           </span>
-          <span className="text-lg font-medium tracking-tight">
+          <span className="text-sm font-semibold tracking-[-0.02em]">
             AuraMail
           </span>
-          <Separator orientation="vertical" className="mx-2 h-5 bg-white/10" />
+          <Separator orientation="vertical" className="mx-1 h-5" />
           <span className="hidden text-sm text-muted-foreground sm:inline">
-            Placement inbox
+            Inbox
           </span>
         </div>
 
         <div className="flex items-center gap-1">
+          <ThemeSwitcher className="mr-1" />
           <Button
             variant="outline"
             size="sm"
             onClick={handleSync}
             disabled={syncing}
-            className="h-10 px-4"
+            aria-label={syncing ? "Syncing inbox" : "Sync inbox"}
+            className="h-9 px-2.5 sm:px-3"
           >
             <RefreshCw className={cn(syncing && "animate-spin")} />
-            {syncing ? "Syncing" : "Sync"}
+            <span className="hidden sm:inline">{syncing ? "Syncing" : "Sync"}</span>
           </Button>
 
           <Button
@@ -149,10 +153,10 @@ export default function DashboardPage() {
           </Button>
 
 
-          <Separator orientation="vertical" className="mx-2 h-5" />
+          <Separator orientation="vertical" className="mx-1 hidden h-5 sm:block" />
 
           <span
-            className="grid size-9 place-items-center rounded-full border border-primary/30 bg-primary/15 text-xs font-medium text-primary"
+            className="hidden size-8 place-items-center rounded-full border bg-card text-xs font-semibold sm:grid"
             aria-hidden="true"
           >
             {user.name?.charAt(0).toUpperCase() || "U"}
@@ -195,6 +199,16 @@ export default function DashboardPage() {
       </AnimatePresence>
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        <DashboardNavigation
+          selectedCategory={filters.selectedCategory}
+          setSelectedCategory={filters.setSelectedCategory}
+          showImportantOnly={filters.showImportantOnly}
+          setShowImportantOnly={filters.setShowImportantOnly}
+          categoryCounts={filters.categoryCounts}
+          importantCount={filters.importantCount}
+          onNavigate={() => setSelectedEmail(null)}
+        />
+
         <InboxSidebar
           className={liveSelectedEmail ? "hidden md:flex" : undefined}
           searchQuery={filters.searchQuery}

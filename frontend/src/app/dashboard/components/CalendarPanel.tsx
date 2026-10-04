@@ -140,8 +140,8 @@ export function CalendarPanel({
   const calendarDays = getCalendarDays(currentMonth, emails, calendarEvents);
 
   return (
-    <aside className="glass-panel hidden w-[320px] shrink-0 flex-col border-l border-white/10 bg-[#121819]/65 2xl:flex">
-      <div className="border-b border-white/10 p-5">
+    <aside className="hidden w-[320px] shrink-0 flex-col border-l bg-card 2xl:flex">
+      <div className="border-b p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-semibold">
             {currentMonth.toLocaleDateString(undefined, {
@@ -262,7 +262,7 @@ export function CalendarPanel({
                       </p>
                       <div className="space-y-1.5">
                         {activeDateEvents.deadlines.map((dl) => (
-                          <div key={dl.id} className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
+                          <div key={dl.id} className="rounded-lg border bg-muted/40 p-3">
                             <p className="truncate text-sm font-medium">
                               {dl.company || dl.subject}
                             </p>
@@ -287,7 +287,7 @@ export function CalendarPanel({
                         {activeDateEvents.events.map((ev) => (
                           <div
                             key={ev.id}
-                            className="group relative rounded-xl border border-white/10 bg-white/[0.025] p-3"
+                            className="group relative rounded-lg border bg-muted/40 p-3"
                           >
                             <button
                               onClick={() => onRemoveEvent(ev.id)}
@@ -334,7 +334,7 @@ export function CalendarPanel({
                     return (
                       <div
                         key={event.id}
-                        className="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3"
+                        className="group flex items-center gap-3 rounded-lg border bg-muted/40 p-3"
                       >
                         <div className="flex size-10 shrink-0 flex-col items-center justify-center bg-secondary font-mono">
                           <span className="text-[9px] text-muted-foreground uppercase">
