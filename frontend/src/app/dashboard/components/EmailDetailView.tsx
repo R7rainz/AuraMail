@@ -362,7 +362,7 @@ export function EmailDetailView({
               </span>
               <span
                 className={cn(
-                  "font-mono text-sm font-medium tabular-nums",
+                  "font-mono text-sm tabular-nums",
                   runwayTextClass[runway.status],
                 )}
               >
