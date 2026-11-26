@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { motion } from "framer-motion";
 import {
   ArrowDown,
   ArrowUp,
@@ -90,7 +91,7 @@ export function InboxSidebar({
       <div className="space-y-3 border-b px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">Inbox</h1>
+            <h1 className="text-xl font-medium tracking-[-0.025em]">Inbox</h1>
             <p className="mt-0.5 text-xs text-muted-foreground">Placement mail and updates</p>
           </div>
           <span className="text-xs text-muted-foreground tabular-nums">
@@ -106,7 +107,7 @@ export function InboxSidebar({
               placeholder="Search company, role, tag"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="rounded-full border-transparent bg-muted pl-9 shadow-none focus-visible:bg-card"
             />
           </div>
 
@@ -151,10 +152,9 @@ export function InboxSidebar({
             onClick={() => setShowImportantOnly((prev) => !prev)}
             aria-pressed={showImportantOnly}
             className={cn(
-              "flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs whitespace-nowrap transition-colors outline-none",
-              "focus-visible:ring-[3px] focus-visible:ring-ring/50",
+              "flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs whitespace-nowrap transition-colors duration-200",
               showImportantOnly
-                ? "border-primary/30 bg-primary/15 text-primary"
+                ? "border-foreground bg-foreground text-background"
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground",
             )}
           >
@@ -177,10 +177,9 @@ export function InboxSidebar({
                   onClick={() => setSelectedCategory(key as EmailCategory)}
                   aria-pressed={isActive}
                   className={cn(
-                    "rounded-md border px-2.5 py-1.5 text-xs whitespace-nowrap transition-colors outline-none",
-                    "focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                    "rounded-full border px-3 py-1.5 text-xs whitespace-nowrap transition-colors duration-200",
                     isActive
-                      ? "border-primary/30 bg-primary/15 text-primary"
+                      ? "border-foreground bg-foreground text-background"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                   )}
                 >
@@ -218,8 +217,8 @@ export function InboxSidebar({
             </p>
           </div>
         ) : (
-          <ul>
-            {filteredEmails.map((email) => {
+          <ul className="space-y-0.5 p-2">
+            {filteredEmails.map((email, index) => {
               const isSelected = selectedEmail?.id === email.id;
               const cat =
                 categoryConfig[email.category?.toLowerCase() || "announcement"] ||
@@ -234,7 +233,11 @@ export function InboxSidebar({
                 ) ?? 0;
 
               return (
-                <li key={email.id} className="group relative">
+                <li
+                  key={email.id}
+                  className="item-enter group relative"
+                  style={{ animationDelay: `${Math.min(index, 12) * 28}ms` }}
+                >
                   {/* Sibling rather than child: the row is itself a button, and
                       nesting interactive elements is invalid. */}
                   <button
@@ -246,8 +249,8 @@ export function InboxSidebar({
                         : `Mark ${email.company || email.subject} as important`
                     }
                     className={cn(
-                      "absolute right-4 bottom-4 z-10 p-1.5 transition-all outline-none",
-                      "hover:bg-background/80 focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                      "absolute right-3 bottom-3 z-10 rounded-full p-1.5 transition-[opacity,background-color,color]",
+                      "hover:bg-background/80",
                       // Stays visible once flagged; otherwise reveals on hover.
                       email.important
                         ? "text-soon opacity-100"
@@ -263,13 +266,17 @@ export function InboxSidebar({
                     onClick={() => setSelectedEmail(email)}
                     aria-current={isSelected ? "true" : undefined}
                     className={cn(
-                      "w-full border-b border-l-2 border-l-transparent px-4 py-4 text-left transition-colors outline-none",
-                      "focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                      isSelected
-                        ? "border-l-primary bg-accent text-foreground"
-                        : "hover:bg-accent/60",
+                      "relative w-full rounded-xl px-3 py-3.5 text-left transition-colors duration-200 [&>:not(.inbox-active)]:relative",
+                      !isSelected && "hover:bg-foreground/[0.04]",
                     )}
                   >
+                    {isSelected && (
+                      <motion.span
+                        layoutId="inbox-active"
+                        transition={{ type: "spring", stiffness: 500, damping: 42 }}
+                        className="inbox-active absolute inset-0 rounded-xl bg-accent"
+                      />
+                    )}
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="truncate text-[15px] text-foreground">
                         {email.company || email.subject}

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { BrandMark } from "@/components/BrandMark";
 
 import type { PlacementEmail } from "./types";
 import { getDaysDiff } from "./lib/dateUtils";
@@ -96,7 +97,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background">
-        <div className="size-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+        <div className="size-6 animate-spin rounded-full border-2 border-foreground/10 border-t-foreground/60" />
       </div>
     );
   }
@@ -108,14 +109,12 @@ export default function DashboardPage() {
       <Toaster position="top-right" />
 
       <header className="app-header z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b px-4 sm:px-5">
-        <div className="flex items-center gap-3">
-          <span className="brand-mark grid size-8 place-items-center rounded-lg text-sm font-bold">
-            A
-          </span>
-          <span className="text-sm font-semibold tracking-[-0.02em]">
+        <div className="group flex items-center gap-2.5">
+          <BrandMark className="size-8" />
+          <span className="text-[15px] font-medium tracking-[-0.02em]">
             AuraMail
           </span>
-          <Separator orientation="vertical" className="mx-1 h-5" />
+          <Separator orientation="vertical" className="mx-1 hidden h-5 sm:block" />
           <span className="hidden text-sm text-muted-foreground sm:inline">
             Inbox
           </span>
@@ -179,11 +178,12 @@ export default function DashboardPage() {
       <AnimatePresence>
         {error && (
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -8, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
+            transition={{ type: "spring", stiffness: 420, damping: 34 }}
             role="alert"
-            className="absolute top-16 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive shadow-lg backdrop-blur-md"
+            className="glass-strong absolute top-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full px-5 py-2.5 text-sm text-destructive"
           >
             <AlertTriangle className="size-4 shrink-0" />
             <span>{error}</span>

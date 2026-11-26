@@ -94,7 +94,7 @@ function AttachmentRow({
     <Card className="gap-0 overflow-hidden bg-card py-0">
       <div className="flex items-center justify-between gap-3 p-4">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid size-10 shrink-0 place-items-center bg-secondary">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary">
             <Paperclip className="size-4 text-muted-foreground" />
           </span>
           <div className="min-w-0">
@@ -147,7 +147,7 @@ function Field({
   value: unknown;
 }) {
   return (
-    <div className="rounded-lg border bg-card p-4">
+    <div className="rounded-2xl border bg-card p-4">
       <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <Icon className="size-3.5" />
         {label}
@@ -174,7 +174,7 @@ function Prose({
         <Icon className="size-4 text-muted-foreground" />
         {title}
       </h3>
-      <div className="mt-3 border-l-2 border-border pl-4 text-[15px] leading-7 whitespace-pre-wrap text-foreground">
+      <div className="mt-3 border-l pl-4 text-[15px] leading-7 whitespace-pre-wrap text-foreground">
         {children}
       </div>
     </section>
@@ -195,7 +195,7 @@ function LinkedText({ text }: { text: string }) {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary underline decoration-primary/40 underline-offset-4 hover:decoration-primary"
+          className="underline decoration-foreground/30 underline-offset-4 transition-colors hover:decoration-foreground"
         >
           {url}
         </a>
@@ -223,6 +223,14 @@ export function EmailDetailView({
     ? getRunway(selectedEmail.deadline, selectedEmail.receivedAt)
     : null;
   const applyHref = externalHref(selectedEmail.applyLink);
+  // Skip what the header already shows: the category chip and a subject that names company and role.
+  const lower = (value?: string | null) => (value || "").toLowerCase();
+  const subjectNamesRole =
+    lower(selectedEmail.subject).includes(lower(selectedEmail.company)) &&
+    lower(selectedEmail.subject).includes(lower(selectedEmail.role));
+  const tags = (selectedEmail.tags || []).filter(
+    (tag) => lower(tag) !== lower(selectedEmail.category || "announcement"),
+  );
   const links = [
     { value: selectedEmail.applyLink, index: 0 },
     ...(selectedEmail.otherLinks || []).map((value, index) => ({
@@ -240,11 +248,11 @@ export function EmailDetailView({
   return (
     <motion.div
       key="detail"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-      className="scrollbar-thin absolute inset-0 overflow-y-auto bg-transparent"
+      initial={{ opacity: 0, filter: "blur(4px)" }}
+      animate={{ opacity: 1, filter: "blur(0px)" }}
+      exit={{ opacity: 0, transition: { duration: 0.12 } }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="scrollbar-thin absolute inset-0 overflow-y-auto bg-background"
     >
       <div className="app-header sticky top-0 z-20 flex min-w-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
         <Button variant="ghost" size="sm" onClick={onBack} className="group -ml-2">
@@ -304,18 +312,18 @@ export function EmailDetailView({
         </div>
       </div>
 
-      <div className="mx-auto max-w-4xl space-y-8 px-5 py-8 sm:px-8 sm:py-10">
+      <div className="stagger-children mx-auto max-w-4xl space-y-8 px-5 py-8 sm:px-8 sm:py-10">
         {/* Identity */}
         <header>
           <Badge variant="outline" className="capitalize">
             {selectedEmail.category || "Announcement"}
           </Badge>
 
-          <h1 className="mt-4 max-w-3xl text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+          <h1 className="mt-4 max-w-3xl text-[clamp(26px,3vw,36px)] leading-[1.1] font-medium tracking-[-0.03em] text-balance">
             {selectedEmail.subject}
           </h1>
 
-          {selectedEmail.role && selectedEmail.company && (
+          {selectedEmail.role && selectedEmail.company && !subjectNamesRole && (
             <p className="mt-3 text-lg text-muted-foreground">
               {selectedEmail.company} · {selectedEmail.role}
             </p>
@@ -329,9 +337,9 @@ export function EmailDetailView({
             </time>
           </p>
 
-          {selectedEmail.tags && selectedEmail.tags.length > 0 && (
+          {tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-1.5">
-              {selectedEmail.tags.map((tag) => (
+              {tags.map((tag) => (
                 <Badge key={tag} variant="secondary">
                   {tag}
                 </Badge>
@@ -344,7 +352,7 @@ export function EmailDetailView({
         {runway && (
           <section
             aria-label="Application window"
-            className="rounded-lg border bg-card p-5"
+            className="rounded-2xl border bg-card p-5"
           >
             <div className="flex items-baseline justify-between gap-4">
               <span className="text-sm font-medium">
@@ -433,7 +441,7 @@ export function EmailDetailView({
               </span>
             </h2>
 
-            <ul className="mt-3 divide-y overflow-hidden rounded-lg border">
+            <ul className="mt-3 divide-y overflow-hidden rounded-2xl border bg-card">
               {messages.map((message, index) => {
                 const active = message.id === selectedEmail.id;
                 return (
@@ -442,16 +450,16 @@ export function EmailDetailView({
                       onClick={() => setSelectedMessageId(message.id)}
                       aria-current={active ? "true" : undefined}
                       className={cn(
-                        "flex w-full items-center gap-3 p-3 text-left transition-colors outline-none",
-                        "focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                        active ? "bg-accent" : "hover:bg-accent/60",
+                        "flex w-full items-center gap-3 p-3 text-left transition-colors duration-200",
+                        "focus-visible:-outline-offset-2",
+                        active ? "bg-accent" : "hover:bg-foreground/[0.04]",
                       )}
                     >
                       <span
                         className={cn(
                           "grid size-8 shrink-0 place-items-center rounded-full border font-mono text-xs",
                           active
-                            ? "border-primary/30 bg-primary/10 text-primary"
+                            ? "border-foreground bg-foreground text-background"
                             : "text-muted-foreground",
                         )}
                       >
@@ -541,12 +549,12 @@ export function EmailDetailView({
           )}
           {selectedEmail.description && (
             <details className="group">
-              <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg text-sm font-semibold">
                 <FileText className="size-4 text-muted-foreground" />
                 Full message
                 <ChevronDown className="ml-auto size-4 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
-              <div className="mt-4 whitespace-pre-wrap border-l-2 border-border pl-4 text-[15px] leading-7 text-foreground">
+              <div className="mt-4 whitespace-pre-wrap border-l pl-4 text-[15px] leading-7 text-foreground">
                 <LinkedText text={selectedEmail.description} />
               </div>
             </details>
@@ -569,7 +577,7 @@ export function EmailDetailView({
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex min-w-0 items-center gap-3 rounded-lg border bg-card p-3 text-sm text-primary transition-colors hover:bg-accent"
+                  className="group flex min-w-0 items-center gap-3 rounded-2xl border bg-card p-3.5 text-sm transition-colors duration-200 hover:bg-accent"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block font-medium">
@@ -580,7 +588,7 @@ export function EmailDetailView({
                       {link.href}
                     </span>
                   </span>
-                  <ExternalLink className="size-4 shrink-0" />
+                  <ExternalLink className="size-4 shrink-0 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
               ))}
             </div>

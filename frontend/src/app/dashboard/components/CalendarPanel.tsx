@@ -200,16 +200,20 @@ export function CalendarPanel({
                   )
                 }
                 className={cn(
-                  "relative flex aspect-square items-center justify-center font-mono text-xs transition-colors outline-none",
-                  "focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                  "relative flex aspect-square items-center justify-center rounded-full font-mono text-xs transition-colors duration-200",
                   !day.isCurrentMonth && "text-muted-foreground/40",
-                  day.isToday && !isFocused && "font-semibold text-primary",
-                  isFocused
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-accent",
+                  day.isToday && !isFocused && "font-semibold underline decoration-2 underline-offset-4",
+                  isFocused && "text-background",
                 )}
               >
-                {day.date}
+                {isFocused && (
+                  <motion.span
+                    layoutId="calendar-focus"
+                    transition={{ type: "spring", stiffness: 520, damping: 40 }}
+                    className="absolute inset-0.5 rounded-full bg-foreground"
+                  />
+                )}
+                <span className="relative">{day.date}</span>
                 {(day.hasDeadline || day.hasEvent) && !isFocused && (
                   <span className="absolute bottom-1 flex gap-0.5">
                     {day.hasDeadline && (
@@ -262,7 +266,7 @@ export function CalendarPanel({
                       </p>
                       <div className="space-y-1.5">
                         {activeDateEvents.deadlines.map((dl) => (
-                          <div key={dl.id} className="rounded-lg border bg-muted/40 p-3">
+                          <div key={dl.id} className="rounded-xl border bg-muted/40 p-3">
                             <p className="truncate text-sm font-medium">
                               {dl.company || dl.subject}
                             </p>
@@ -279,7 +283,7 @@ export function CalendarPanel({
 
                   {activeDateEvents.events.length > 0 && (
                     <section>
-                      <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-primary">
+                      <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-foreground">
                         <CalendarCheck className="size-3.5" />
                         Events
                       </p>
@@ -287,12 +291,12 @@ export function CalendarPanel({
                         {activeDateEvents.events.map((ev) => (
                           <div
                             key={ev.id}
-                            className="group relative rounded-lg border bg-muted/40 p-3"
+                            className="group relative rounded-xl border bg-muted/40 p-3"
                           >
                             <button
                               onClick={() => onRemoveEvent(ev.id)}
                               aria-label={`Remove ${ev.title} from calendar`}
-                              className="absolute top-2 right-2 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity outline-none hover:text-destructive focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 group-hover:opacity-100"
+                              className="absolute top-2 right-2 rounded-full p-1 text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
                             >
                               <Trash2 className="size-3.5" />
                             </button>
@@ -321,11 +325,11 @@ export function CalendarPanel({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <h3 className="mb-4 text-sm font-semibold">Next 7 days</h3>
+              <h3 className="mb-4 text-sm font-semibold">Calendar events, next 7 days</h3>
 
               {upcomingEvents.length === 0 ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">
-                  Your week is clear.
+                  No calendar events in the next 7 days.
                 </p>
               ) : (
                 <div className="space-y-1.5">
@@ -334,10 +338,10 @@ export function CalendarPanel({
                     return (
                       <div
                         key={event.id}
-                        className="group flex items-center gap-3 rounded-lg border bg-muted/40 p-3"
+                        className="group flex items-center gap-3 rounded-xl border bg-muted/40 p-3"
                       >
-                        <div className="flex size-10 shrink-0 flex-col items-center justify-center bg-secondary font-mono">
-                          <span className="text-[9px] text-muted-foreground uppercase">
+                        <div className="flex size-10 shrink-0 flex-col items-center justify-center rounded-lg bg-secondary font-mono">
+                          <span className="text-[10px] text-muted-foreground">
                             {eventDate.toLocaleDateString(undefined, {
                               month: "short",
                             })}
