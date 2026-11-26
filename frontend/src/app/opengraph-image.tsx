@@ -25,12 +25,14 @@ export default function OpengraphImage() {
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
           <svg width="48" height="48" viewBox="0 0 32 32">
             <rect width="32" height="32" rx="9" fill="#f6f7f9" />
-            <path d="M8.5 11.5 16 17l7.5-5.5" fill="none" stroke="#0c0d10" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            <rect x="8.5" y="21" width="15" height="2.2" rx="1.1" fill="#0c0d10" fillOpacity="0.3" />
-            <rect x="8.5" y="21" width="9" height="2.2" rx="1.1" fill="#0c0d10" />
+            <circle cx="16" cy="16" r="9.2" fill="none" stroke="#0c0d10" strokeWidth="2" strokeOpacity="0.25" />
+            <path d="M16 6.8 A9.2 9.2 0 1 1 6.96 17.72" fill="none" stroke="#0c0d10" strokeWidth="2" strokeLinecap="round" />
+            <rect x="11.6" y="12.9" width="8.8" height="6.4" rx="1.4" fill="none" stroke="#0c0d10" strokeWidth="1.6" />
+            <path d="m12 13.6 4 2.9 4-2.9" fill="none" stroke="#0c0d10" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <div style={{ fontSize: 32, fontWeight: 500, letterSpacing: -0.6 }}>
-            AuraMail
+          <div style={{ display: "flex", fontSize: 32, fontWeight: 600, letterSpacing: -1 }}>
+            <span>Aura</span>
+            <span style={{ color: "#969ca8", marginLeft: -3 }}>Mail</span>
           </div>
         </div>
 
