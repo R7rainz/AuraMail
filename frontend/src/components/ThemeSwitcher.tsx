@@ -11,10 +11,41 @@ export const themes = [
 
 type Theme = (typeof themes)[number]["id"];
 
-function applyTheme(theme: Theme) {
+function setTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem("auramail-theme", theme);
   window.dispatchEvent(new Event("auramail-theme-change"));
+}
+
+/** Grows the new theme out of the toggle as a circle where View Transitions exist. */
+function applyTheme(theme: Theme, origin?: { x: number; y: number }) {
+  if (
+    !document.startViewTransition ||
+    !origin ||
+    matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    return setTheme(theme);
+  }
+
+  const radius = Math.hypot(
+    Math.max(origin.x, innerWidth - origin.x),
+    Math.max(origin.y, innerHeight - origin.y),
+  );
+  document.startViewTransition(() => setTheme(theme)).ready.then(() => {
+    document.documentElement.animate(
+      {
+        clipPath: [
+          `circle(0px at ${origin.x}px ${origin.y}px)`,
+          `circle(${radius}px at ${origin.x}px ${origin.y}px)`,
+        ],
+      },
+      {
+        duration: 520,
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        pseudoElement: "::view-transition-new(root)",
+      },
+    );
+  });
 }
 
 function getTheme(): Theme {
@@ -39,15 +70,23 @@ export function ThemeSwitcher({ className }: { className?: string }) {
   return (
     <button
       type="button"
-      onClick={() => applyTheme(nextTheme)}
+      onClick={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        applyTheme(nextTheme, {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        });
+      }}
       aria-label={`Use ${nextTheme} theme`}
       title={`Use ${nextTheme} theme`}
       className={cn(
-        "grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        "grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
         className,
       )}
     >
-      {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      <span key={theme} className="blur-in grid place-items-center">
+        {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      </span>
     </button>
   );
 }

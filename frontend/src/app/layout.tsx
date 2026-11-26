@@ -1,9 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
+import { Google_Sans, Google_Sans_Code } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./lib/authContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
+
+const sans = Google_Sans({
+  subsets: ["latin"],
+  variable: "--font-google-sans",
+  display: "swap",
+});
+const mono = Google_Sans_Code({
+  subsets: ["latin"],
+  variable: "--font-google-sans-code",
+  display: "swap",
+});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -62,8 +72,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b0d10" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f8fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0d10" },
   ],
   colorScheme: "light dark",
 };
@@ -116,7 +126,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}
+        className={`${sans.variable} ${mono.variable} font-sans antialiased`}
       >
         <TooltipProvider delayDuration={200}>
           <AuthProvider>{children}</AuthProvider>

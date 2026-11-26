@@ -17,75 +17,32 @@ export default function OpengraphImage() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "80px",
-          background: "#0b0d10",
-          color: "#fafafa",
+          background: "#0c0d10",
+          color: "#f6f7f9",
           fontFamily: "sans-serif",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 11,
-              border: "2px solid rgba(255,255,255,0.22)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: 3,
-                background: "#fafafa",
-                transform: "rotate(45deg)",
-              }}
-            />
-          </div>
-          <div style={{ fontSize: 30, fontWeight: 600, letterSpacing: -0.5 }}>
+          <svg width="48" height="48" viewBox="0 0 32 32">
+            <rect width="32" height="32" rx="9" fill="#f6f7f9" />
+            <path d="M8.5 11.5 16 17l7.5-5.5" fill="none" stroke="#0c0d10" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            <rect x="8.5" y="21" width="15" height="2.2" rx="1.1" fill="#0c0d10" fillOpacity="0.3" />
+            <rect x="8.5" y="21" width="9" height="2.2" rx="1.1" fill="#0c0d10" />
+          </svg>
+          <div style={{ fontSize: 32, fontWeight: 500, letterSpacing: -0.6 }}>
             AuraMail
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div
-            style={{
-              fontSize: 20,
-              letterSpacing: 4,
-              textTransform: "uppercase",
-              color: "#a1a1a1",
-            }}
-          >
-            Placement intelligence for students
-          </div>
-          <div
-            style={{
-              fontSize: 68,
-              fontWeight: 700,
-              lineHeight: 1.05,
-              letterSpacing: -2,
-              maxWidth: 900,
-            }}
-          >
-            Placement mail, organized around what matters.
-          </div>
+        <div style={{ display: "flex", flexDirection: "column", fontSize: 76, lineHeight: 1.02, letterSpacing: -2.6 }}>
+          <div style={{ fontWeight: 600 }}>Every placement email,</div>
+          <div style={{ color: "#969ca8" }}>sorted by what closes first.</div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 28,
-            fontSize: 22,
-            color: "#a1a1a1",
-          }}
-        >
-          <span>Clear summaries</span>
-          <span style={{ color: "#3d3d3d" }}>/</span>
-          <span>Deadlines → calendar</span>
-          <span style={{ color: "#3d3d3d" }}>/</span>
-          <span>Follow-ups & files</span>
+        <div style={{ display: "flex", gap: 28, fontSize: 22, color: "#969ca8" }}>
+          <span>Read-only Gmail access</span>
+          <span style={{ color: "#3a3d44" }}>/</span>
+          <span>Deadlines to Google Calendar</span>
         </div>
       </div>
     ),
