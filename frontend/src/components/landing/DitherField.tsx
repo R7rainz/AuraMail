@@ -7,7 +7,8 @@ const CELL = 2;
 
 const VERT = `attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
 
-// Domain-warped fbm, thresholded through an 8x8 Bayer matrix: a slow ordered-dither cloud.
+// Domain-warped fbm, thresholded per 3x2 block through a Bayer matrix and drawn as a short
+// horizontal dash: a slow cloud of "runways" (4x2 CSS px dashes on a 6x4 grid).
 const FRAG = `precision mediump float;
 #define CELL ${CELL.toFixed(1)}
 uniform vec2 uRes;uniform float uTime;uniform float uScroll;uniform float uScrollPx;uniform vec3 uInk;uniform float uAlpha;
@@ -17,9 +18,11 @@ return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(
 float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;}
 float b2(vec2 a){a=floor(a);return fract(a.x/2.+a.y*a.y*.75);}
 float b4(vec2 a){return b2(.5*a)*.25+b2(a);}
-float b8(vec2 a){return b4(.5*a)*.25+b2(a);}
 void main(){
-  vec2 uv=gl_FragCoord.xy/uRes;
+  vec2 blk=floor(gl_FragCoord.xy/vec2(3.,2.));
+  vec2 inb=gl_FragCoord.xy-blk*vec2(3.,2.);
+  vec2 c=(blk+.5)*vec2(3.,2.);
+  vec2 uv=c/uRes;
   vec2 q=vec2(uv.x*uRes.x/uRes.y,uv.y)*2.2;
   q.y+=uScroll*.55;
   float n=fbm(q+vec2(uTime*.03,-uTime*.02));
@@ -27,12 +30,13 @@ void main(){
   float glow=exp(-pow((uv.x-.8)*1.7,2.)-pow((1.-uv.y)*1.9,2.))+.7*exp(-pow((uv.x-.1)*2.,2.)-pow((uv.y-.2)*2.4,2.));
   float d=smoothstep(.4,.9,n)*(.18+.95*glow);
   // Keep the hero copy column clear (page coords, CSS px), and quiet the field past the hero.
-  vec2 css=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y)*CELL;
+  vec2 css=vec2(c.x,uRes.y-c.y)*CELL;
   float docY=uScrollPx+css.y;
   float col=1.-smoothstep(300.,480.,abs(css.x-uRes.x*CELL*.5));
   float band=smoothstep(110.,190.,docY)*(1.-smoothstep(620.,780.,docY));
   d*=(1.-col*band)*(1.-.55*smoothstep(.15,1.,uScroll));
-  float on=step(b8(gl_FragCoord.xy)+.008,d);
+  float dash=step(inb.x,2.)*step(inb.y,1.);
+  float on=step(b4(blk)+.02,d)*dash;
   gl_FragColor=vec4(uInk,1.)*on*uAlpha;
 }`;
 
