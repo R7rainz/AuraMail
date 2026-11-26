@@ -18,12 +18,12 @@ FORM: spacefs.com's page form, carried over: floating glass control pills, a cen
 
 THESIS: The inbox re-sorts itself in front of you. The page refuses the category hero (headline left, static screenshot right) and instead centres a calm two-tone headline over a live app window where placement mail lands and slides into deadline order.
 
-OWN-WORLD: spacefs-like calm desktop: #f7f8fa / #0c0d10 ground, ink-on-paper pill buttons (foreground fill), frosted glass control pills, a slow ordered-dither field with paper grain behind everything, Google Sans + Google Sans Code, hairline #e0e3e8 / #282b31 borders, 20–28px window radii, macOS window chrome. Colour only from the deadline scale (open/soon/urgent/closed) plus a blue focus ring.
+OWN-WORLD: AuraMail's own calm desktop, rebranded 2026-11-26 at the owner's request ("everything should be branded on our own ... fonts and buttons and all stuff should be personalized"): #f7f8fa / #0c0d10 ground; Schibsted Grotesk + Fragment Mono; 16px-radius ink buttons whose fill runs left to right like a deadline runway; one floating frosted nav bar; the aura-ring logo (a ring 72% drawn around an envelope) with a two-tone AuraMail wordmark; a slow field of short horizontal "runway" dashes with paper grain; AuraMail's own window chrome on every product window. Colour only from the deadline scale plus a blue focus ring.
 
 STORY: see mail get sorted by what closes → see what gets extracted → learn it is read-only → three steps → FAQ → continue with Google.
 
 FIRST VIEWPORT: floating glass nav pills; centred H1 two lines (ink medium / muted regular) ~76px desktop; one ink CTA; the demo window rising from the fold.
 
-SIGNATURE: demo rows arrive and FLIP into deadline order; runway bars fill; feature tabs swap with blur-in.
+SIGNATURE: a playable sandbox inbox: rows arrive and FLIP into deadline order until the visitor touches it, then search, star, Sync, Apply and Add to calendar all work on example data; feature tabs swap with blur-in.
 
 MOTION: hero-rise stagger (1.1s, cubic-bezier(.22,1,.36,1)); in-view rise 0.7s; shared-layout selection highlight in the dashboard; theme switch circle reveal via View Transitions.

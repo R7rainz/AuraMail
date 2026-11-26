@@ -1,17 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Google_Sans, Google_Sans_Code } from "next/font/google";
+import { Fragment_Mono, Schibsted_Grotesk } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./lib/authContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const sans = Google_Sans({
+const sans = Schibsted_Grotesk({
   subsets: ["latin"],
-  variable: "--font-google-sans",
+  variable: "--font-brand-sans",
   display: "swap",
 });
-const mono = Google_Sans_Code({
+const mono = Fragment_Mono({
   subsets: ["latin"],
-  variable: "--font-google-sans-code",
+  weight: "400",
+  variable: "--font-brand-mono",
   display: "swap",
 });
 

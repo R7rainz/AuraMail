@@ -26,8 +26,8 @@
   --color-urgent: var(--urgent);
   --color-soon: var(--soon);
   --color-open: var(--open);
-  --font-sans: var(--font-google-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: var(--font-google-sans-code), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: var(--font-brand-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-brand-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -144,27 +144,18 @@
   background: var(--background);
 }
 
-/* Frosted control pill: nav, toggles, small floating chrome. */
-.glass-control {
-  background: rgba(255, 255, 255, 0.66);
-  border: 1px solid rgba(15, 23, 42, 0.09);
+/* The floating nav bar: frosted, without the hover lift of a control. */
+.glass-bar {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(15, 23, 42, 0.05);
-  backdrop-filter: blur(20px) saturate(1.5);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
 }
-.glass-control:hover {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(15, 23, 42, 0.14);
-}
-[data-theme="dark"] .glass-control {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
-}
-[data-theme="dark"] .glass-control:hover {
-  background: rgba(255, 255, 255, 0.11);
-  border-color: rgba(255, 255, 255, 0.18);
+[data-theme="dark"] .glass-bar {
+  background: rgba(22, 24, 28, 0.66);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 /* Elevated glass: app windows, open menus. */
@@ -187,18 +178,47 @@
     0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* Ink button: the text colour as a filled pill. */
-.button-ink {
+/* Primary: an ink tile whose fill runs left to right on hover, like a deadline runway,
+   and leaves through the right edge. */
+.btn-primary {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   background: var(--foreground);
   color: var(--background);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 8px 20px -10px rgba(15, 23, 42, 0.5);
-  transition: opacity 0.2s ease, transform 0.2s var(--ease-out-expo);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 10px 24px -14px rgba(15, 23, 42, 0.6);
+  transition: transform 0.2s var(--ease-out-expo);
 }
-.button-ink:hover {
-  opacity: 0.86;
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--background) 18%, var(--foreground));
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.55s var(--ease-out-expo);
 }
-.button-ink:active {
+.btn-primary:hover::before {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+.btn-primary:active,
+.btn-outline:active {
   transform: scale(0.97);
+}
+
+/* Secondary: a quiet card-coloured tile with a hairline. */
+.btn-outline {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px var(--shadow);
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s var(--ease-out-expo);
+}
+.btn-outline:hover {
+  background: var(--accent);
+  border-color: color-mix(in srgb, var(--foreground) 18%, transparent);
 }
 
 .paper-grain {
@@ -210,16 +230,6 @@
   filter: invert(1);
   mix-blend-mode: screen;
   opacity: 0.035;
-}
-
-/* Blurred top edge behind the floating nav: content dissolves under it. */
-.nav-feather {
-  height: 7rem;
-  backdrop-filter: blur(20px) saturate(1.08);
-  -webkit-backdrop-filter: blur(20px) saturate(1.08);
-  background: rgba(255, 255, 255, 0.001);
-  mask-image: linear-gradient(180deg, #000 0, rgba(0, 0, 0, 0.92) 38%, transparent);
-  -webkit-mask-image: linear-gradient(180deg, #000 0, rgba(0, 0, 0, 0.92) 38%, transparent);
 }
 
 /* Clears the dither around text so it never sits on dots. */

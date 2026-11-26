@@ -52,7 +52,7 @@ export function Faq() {
                 className="group flex w-full items-center justify-between gap-6 py-6 text-left focus-visible:rounded-lg"
               >
                 <span className="text-lg font-medium tracking-[-0.02em] sm:text-xl">{q}</span>
-                <span className="glass-control grid size-9 shrink-0 place-items-center rounded-full">
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl border bg-card transition-colors group-hover:bg-accent">
                   <Plus
                     className={cn(
                       "size-4 transition-transform duration-500 ease-[cubic-bezier(.22,1,.36,1)]",

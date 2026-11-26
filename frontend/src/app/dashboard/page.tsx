@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { BrandMark } from "@/components/BrandMark";
+import { BrandMark, Wordmark } from "@/components/BrandMark";
 
 import type { PlacementEmail } from "./types";
 import { getDaysDiff } from "./lib/dateUtils";
@@ -111,9 +111,7 @@ export default function DashboardPage() {
       <header className="app-header z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b px-4 sm:px-5">
         <div className="group flex items-center gap-2.5">
           <BrandMark className="size-8" />
-          <span className="text-[15px] font-medium tracking-[-0.02em]">
-            AuraMail
-          </span>
+          <Wordmark className="text-[16px]" />
           <Separator orientation="vertical" className="mx-1 hidden h-5 sm:block" />
           <span className="hidden text-sm text-muted-foreground sm:inline">
             Inbox

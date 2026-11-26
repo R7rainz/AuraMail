@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, Check, LockKeyhole, X } from "lucide-react";
 import { useAuth } from "@/app/lib/authContext";
-import { BrandMark } from "@/components/BrandMark";
+import { BrandMark, Wordmark } from "@/components/BrandMark";
 import { Reveal } from "@/components/Reveal";
 import { DitherField } from "@/components/landing/DitherField";
 import { Faq } from "@/components/landing/Faq";
@@ -57,7 +57,7 @@ function CtaButton({ children = "Continue with Google" }: { children?: React.Rea
   return (
     <a
       href={SIGN_IN_URL}
-      className="button-ink group inline-flex h-12 items-center gap-2 rounded-full px-7 text-sm font-medium"
+      className="btn-primary group inline-flex h-12 items-center gap-2 rounded-xl px-6 text-[15px] font-medium"
     >
       {children}
       <ArrowRight className="size-4 transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] group-hover:translate-x-0.5" />
@@ -233,7 +233,7 @@ export default function LandingPage() {
           <div>
             <Link href="#top" className="group inline-flex items-center gap-2.5" aria-label="AuraMail home">
               <BrandMark className="size-7" />
-              <span className="font-medium tracking-[-0.02em]">AuraMail</span>
+              <Wordmark />
             </Link>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">Placement mail, sorted by what closes first.</p>
           </div>
