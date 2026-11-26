@@ -9,7 +9,6 @@ export const metadata: Metadata = {
 export default function PrivacyPolicyPage() {
   return (
     <LegalPage
-      eyebrow="AuraMail"
       title="Privacy Policy"
       updated="August 11, 2026"
     >

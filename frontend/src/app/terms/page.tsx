@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalPage eyebrow="AuraMail" title="Terms of Service" updated="August 11, 2026">
+    <LegalPage title="Terms of Service" updated="August 11, 2026">
       <LegalSection title="1. Acceptance">
         <p>
           These Terms of Service govern your use of AuraMail, a placement-email
