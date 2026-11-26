@@ -58,3 +58,6 @@ sentry-cli
 *.swp
 *.swo
 
+
+# Impeccable design-hook runtime cache
+.impeccable/hook.cache.json
